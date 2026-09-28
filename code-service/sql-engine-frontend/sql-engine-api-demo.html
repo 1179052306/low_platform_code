@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL 引擎 API 前端调用示例</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --ink: #e6edf3;
+    --muted: #7d8590;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --border: #30363d;
+    --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: .3rem; }
+  h1 .badge { font-size: .7rem; background: var(--accent2); color: var(--bg); padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
+  .subtitle { color: var(--muted); font-size: .95rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.2rem; font-weight: 600; margin: 2.5rem 0 .8rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .5rem; color: var(--accent); }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 1rem; overflow-x: auto; }
+  .card .desc { color: var(--muted); font-size: .85rem; margin-bottom: .8rem; }
+  pre { background: var(--bg3); border-radius: 6px; padding: 1rem; overflow-x: auto; font-family: var(--mono); font-size: .82rem; line-height: 1.5; }
+  code { font-family: var(--mono); font-size: .82rem; }
+  .method-tag { display: inline-block; font-family: var(--mono); font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 6px; }
+  .method-post { background: var(--accent2); color: var(--bg); }
+  .endpoint { font-family: var(--mono); font-size: .82rem; color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th, td { text-align: left; padding: .5rem .8rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+  td code { color: var(--green); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+  .nav { display: flex; gap: 1rem; flex-wrap: wrap; padding: 1rem 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+  .nav a { color: var(--muted); text-decoration: none; font-size: .82rem; }
+  .nav a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>SQL 引擎 API 前端调用示例 <span class="badge">9 个接口</span></h1>
+<p class="subtitle">通过 JSON 驱动后端 SQL 引擎，实现参数化查询、新增、修改、删除、批量操作。</p>
+
+<div class="nav">
+  <a href="#query">查询</a>
+  <a href="#count">计数</a>
+  <a href="#insert">新增</a>
+  <a href="#batch-insert">批量新增</a>
+  <a href="#update">修改</a>
+  <a href="#batch-update">批量修改</a>
+  <a href="#delete">删除</a>
+  <a href="#batch-delete">批量删除</a>
+  <a href="#batch-query">批量查询</a>
+  <a href="#condition">条件格式</a>
+  <a href="#crud">完整CRUD</a>
+</div>
+
+<!-- ==================== 基础配置 ==================== -->
+<h2 id="config">基础配置</h2>
+<div class="card">
+<div class="desc">数据源通过请求头 <code>X-DB-Name</code> 指定，不传走默认主库。</div>
+<pre><code>const SQL_ENGINE_BASE = '/api/sql-engine';
+
+function buildHeaders(dbName) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (dbName) headers['X-DB-Name'] = dbName;
+  return headers;
+}
+
+async function callSqlEngine(endpoint, body, dbName) {
+  const resp = await fetch(`${SQL_ENGINE_BASE}${endpoint}`, {
+    method: 'POST',
+    headers: buildHeaders(dbName),
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}</code></pre>
+</div>
+
+<!-- ==================== 1. 查询 ==================== -->
+<h2 id="query">1. 单条查询 <span class="endpoint">POST /api/sql-engine/query</span></h2>
+
+<h3>带条件 + 分页 + 排序</h3>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/query', {
+  tableName: 'sys_user',
+  columns: ['id', 'name', 'age', 'status', 'create_time'],
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'name', Symbol: 'like', Val: '张', TableAlias: 'T' },
+    { Symbol: 'and' },
+    { Id: 'age', Symbol: '>', Val: '18', TableAlias: 'T' },
+    { Symbol: 'or' },
+    { Id: 'status', Symbol: '=', Val: 'active', TableAlias: 'T' }
+  ],
+  orderBy: [{ column: 'create_time', direction: 'desc' }],
+  page: 1,
+  pageSize: 20
+}, 'default');
+
+// result = [{ id: 1, name: '张三', age: 25, ... }, ...]</code></pre>
+</div>
+
+<h3>无条件全表查询</h3>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/query', {
+  tableName: 'sys_dict',
+  columns: ['dict_code', 'dict_name'],
+  pageSize: 100
+});</code></pre>
+</div>
+
+<!-- ==================== 2. 计数 ==================== -->
+<h2 id="count">2. 查询总数 <span class="endpoint">POST /api/sql-engine/count</span></h2>
+<div class="card">
+<div class="desc">配合分页组件使用，与查询并行请求。</div>
+<pre><code>const result = await callSqlEngine('/count', {
+  tableName: 'sys_user',
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'status', Symbol: '=', Val: 'active', TableAlias: 'T' }
+  ]
+});
+// result = { success: true, total: 1234 }</code></pre>
+</div>
+
+<h3>查询 + 总数（并行请求）</h3>
+<div class="card">
+<pre><code>const [data, countResult] = await Promise.all([
+  callSqlEngine('/query', {
+    tableName: 'sys_user',
+    columns: ['id', 'name', 'status'],
+    conditions: conditions,
+    page: 1,
+    pageSize: 20
+  }),
+  callSqlEngine('/count', {
+    tableName: 'sys_user',
+    conditions: conditions
+  })
+]);
+// data.length → 当前页数据条数
+// countResult.total → 总记录数</code></pre>
+</div>
+
+<!-- ==================== 3. 新增 ==================== -->
+<h2 id="insert">3. 单条新增 <span class="endpoint">POST /api/sql-engine/insert</span></h2>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/insert', {
+  tableName: 'sys_user',
+  data: {
+    name: '张三',
+    age: 25,
+    status: 'active',
+    email: 'zhangsan@example.com'
+  }
+});
+// result = { success: true, affectedRows: 1 }</code></pre>
+</div>
+
+<h3>可替换属性：序列主键 + 数据库时间 + 跳过列</h3>
+<div class="card">
+<div class="desc">INSERT 时主键由数据库序列生成、审计字段用数据库时间、自增字段跳过由 DB 处理。</div>
+<pre><code>// Oracle 场景：主键用 SEQ_USERS.NEXTVAL
+const result = await callSqlEngine('/insert', {
+  tableName: 'sys_user',
+  data: {
+    name: '张三',
+    age: 25
+  },
+  // 序列主键：列名 → 序列名，后端按方言生成 NEXTVAL
+  sequenceColumns: {
+    id: 'SEQ_USERS'
+  },
+  // 数据库时间自动填充（编译为 CURRENT_TIMESTAMP / SYSTIMESTAMP / SYSDATE / GETDATE()）
+  autoTimestampColumns: ['create_time', 'update_time'],
+  // 跳过列：完全不出现在 INSERT 中，由 DB 默认值/触发器处理
+  skipColumns: ['tenant_id']
+});
+// 编译结果（Oracle）:
+// INSERT INTO sys_user (id, name, age, create_time, update_time)
+// VALUES (SEQ_USERS.NEXTVAL, ?, ?, SYSTIMESTAMP, SYSTIMESTAMP)
+
+// PostgreSQL 场景：
+// sequenceColumns: { id: 'seq_users' }
+// 编译结果: nextval('seq_users')</code></pre>
+</div>
+
+<h3>可替换属性：自定义原始表达式</h3>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/insert', {
+  tableName: 'sys_user',
+  data: { name: '张三' },
+  rawExpressions: {
+    version: '1',                    // 字面量
+    guid: "rawtohex(sys_guid())"     // Oracle GUID 生成
+  }
+});
+// 编译结果:
+// INSERT INTO sys_user (name, version, guid)
+// VALUES (?, 1, rawtohex(sys_guid()))</code></pre>
+</div>
+
+<!-- ==================== 4. 批量新增 ==================== -->
+<h2 id="batch-insert">4. 批量新增 <span class="endpoint">POST /api/sql-engine/batch-insert</span></h2>
+<div class="card">
+<div class="desc">data 为数组，每元素一行。后端使用 JDBC addBatch 一次插入多行。</div>
+<pre><code>const result = await callSqlEngine('/batch-insert', {
+  tableName: 'sys_user',
+  data: [
+    { name: '张三', age: 25, status: 'active' },
+    { name: '李四', age: 30, status: 'active' },
+    { name: '王五', age: 28, status: 'inactive' }
+  ]
+});
+// result = { success: true, affectedRows: 3 }</code></pre>
+</div>
+
+<!-- ==================== 5. 修改 ==================== -->
+<h2 id="update">5. 单条修改 <span class="endpoint">POST /api/sql-engine/update</span></h2>
+<div class="card">
+<div class="desc">WHERE 条件必填，防止全表更新。</div>
+<pre><code>const result = await callSqlEngine('/update', {
+  tableName: 'sys_user',
+  data: { status: 'inactive', age: 26 },
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'id', Symbol: '=', Val: '100', TableAlias: 'T' }
+  ]
+});</code></pre>
+</div>
+
+<h3>多条件修改</h3>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/update', {
+  tableName: 'sys_user',
+  data: { status: 'frozen' },
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'dept_id', Symbol: '=', Val: '10', TableAlias: 'T' },
+    { Symbol: 'and' },
+    { Id: 'age', Symbol: '<', Val: '18', TableAlias: 'T' }
+  ]
+});</code></pre>
+</div>
+
+<!-- ==================== 6. 批量修改 ==================== -->
+<h2 id="batch-update">6. 批量修改 <span class="endpoint">POST /api/sql-engine/batch-update</span></h2>
+<div class="card">
+<div class="desc">每组有独立的 data + conditions，内部使用事务，全成功才提交。</div>
+<pre><code>const result = await callSqlEngine('/batch-update', {
+  tableName: 'sys_user',
+  batch: [
+    {
+      data: { status: 'active' },
+      conditions: [{ Id: 'id', Symbol: '=', Val: '1', TableAlias: 'T' }]
+    },
+    {
+      data: { status: 'active', age: 30 },
+      conditions: [{ Id: 'id', Symbol: '=', Val: '2', TableAlias: 'T' }]
+    },
+    {
+      data: { status: 'inactive' },
+      conditions: [{ Id: 'id', Symbol: '=', Val: '3', TableAlias: 'T' }]
+    }
+  ]
+});
+// result = { success: true, affectedRows: 3 }</code></pre>
+</div>
+
+<!-- ==================== 7. 删除 ==================== -->
+<h2 id="delete">7. 单条删除 <span class="endpoint">POST /api/sql-engine/delete</span></h2>
+<div class="card">
+<div class="desc">WHERE 条件必填，防止全表删除。</div>
+<pre><code>const result = await callSqlEngine('/delete', {
+  tableName: 'sys_user',
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'id', Symbol: '=', Val: '100', TableAlias: 'T' }
+  ]
+});</code></pre>
+</div>
+
+<h3>范围删除</h3>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/delete', {
+  tableName: 'sys_log',
+  conditions: [
+    { Symbol: 'and' },
+    { Id: 'create_time', Symbol: '<', Val: '2026-01-01 00:00:00', TableAlias: 'T' }
+  ]
+});</code></pre>
+</div>
+
+<!-- ==================== 8. 批量删除 ==================== -->
+<h2 id="batch-delete">8. 批量删除 <span class="endpoint">POST /api/sql-engine/batch-delete</span></h2>
+<div class="card">
+<pre><code>const result = await callSqlEngine('/batch-delete', {
+  tableName: 'sys_user',
+  batch: [
+    { conditions: [{ Id: 'id', Symbol: '=', Val: '1', TableAlias: 'T' }] },
+    { conditions: [{ Id: 'id', Symbol: '=', Val: '2', TableAlias: 'T' }] },
+    { conditions: [{ Id: 'id', Symbol: 'in', Val: '3,4,5', TableAlias: 'T' }] }
+  ]
+});
+// result = { success: true, affectedRows: 3 }</code></pre>
+</div>
+
+<!-- ==================== 9. 批量查询 ==================== -->
+<h2 id="batch-query">9. 批量查询 <span class="endpoint">POST /api/sql-engine/batch-query</span></h2>
+<div class="card">
+<div class="desc">多条 SELECT 在同一连接执行，返回多结果集。适用于 Dashboard 首页：一次请求拿多个统计数据。</div>
+<pre><code>const result = await callSqlEngine('/batch-query', {
+  queries: [
+    // 查询 1：今日新增用户
+    {
+      tableName: 'sys_user',
+      columns: ['id', 'name', 'create_time'],
+      conditions: [
+        { Symbol: 'and' },
+        { Id: 'create_time', Symbol: '>=', Val: '2026-09-09 00:00:00', TableAlias: 'T' }
+      ],
+      orderBy: [{ column: 'create_time', direction: 'desc' }],
+      pageSize: 10
+    },
+    // 查询 2：待处理订单
+    {
+      tableName: 'biz_order',
+      columns: ['order_no', 'status', 'amount'],
+      conditions: [
+        { Symbol: 'and' },
+        { Id: 'status', Symbol: '=', Val: 'pending', TableAlias: 'T' }
+      ],
+      pageSize: 10
+    },
+    // 查询 3：库存预警
+    {
+      tableName: 'wms_inventory',
+      columns: ['sku', 'warehouse', 'qty'],
+      conditions: [
+        { Symbol: 'and' },
+        { Id: 'qty', Symbol: '<', Val: '10', TableAlias: 'T' }
+      ],
+      pageSize: 20
+    }
+  ]
+});
+
+// result[0] → 今日新增用户 JSONArray
+// result[1] → 待处理订单 JSONArray
+// result[2] → 库存预警 JSONArray</code></pre>
+</div>
+
+<!-- ==================== 条件格式速查 ==================== -->
+<h2 id="condition">条件 JSON 格式速查表</h2>
+<div class="card">
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>操作符</th><th>含义</th><th>JSON 示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>=</code></td><td>等于</td><td><code>{"Id":"name","Symbol":"=","Val":"张三"}</code></td></tr>
+<tr><td><code>&lt;&gt;</code></td><td>不等于</td><td><code>{"Id":"status","Symbol":"&lt;&gt;","Val":"0"}</code></td></tr>
+<tr><td><code>&lt;</code></td><td>小于</td><td><code>{"Id":"age","Symbol":"&lt;","Val":"18"}</code></td></tr>
+<tr><td><code>&lt;=</code></td><td>小于等于</td><td><code>{"Id":"age","Symbol":"&lt;=","Val":"18"}</code></td></tr>
+<tr><td><code>&gt;</code></td><td>大于</td><td><code>{"Id":"age","Symbol":"&gt;","Val":"18"}</code></td></tr>
+<tr><td><code>&gt;=</code></td><td>大于等于</td><td><code>{"Id":"age","Symbol":"&gt;=","Val":"18"}</code></td></tr>
+<tr><td><code>like</code></td><td>模糊匹配（自动加%）</td><td><code>{"Id":"name","Symbol":"like","Val":"张"}</code></td></tr>
+<tr><td><code>is null</code></td><td>为空</td><td><code>{"Id":"email","Symbol":"is null"}</code></td></tr>
+<tr><td><code>is not null</code></td><td>非空</td><td><code>{"Id":"email","Symbol":"is not null"}</code></td></tr>
+<tr><td><code>in</code></td><td>包含（逗号分隔）</td><td><code>{"Id":"dept","Symbol":"in","Val":"1,2,3"}</code></td></tr>
+<tr><td><code>between</code></td><td>区间（逗号分隔）</td><td><code>{"Id":"age","Symbol":"between","Val":"18,30"}</code></td></tr>
+<tr><td><code>raw</code></td><td>自定义SQL模板（列名+SQL）</td><td><code>{"Id":"status","Symbol":"raw","Val":"IN ('active','pending')"}</code></td></tr>
+<tr><td><code>rpc</code></td><td>SQL片段注入（完整表达式）</td><td><code>{"Id":"expr","Symbol":"rpc","Val":"EXISTS(SELECT 1 FROM orders WHERE orders.user_id = T.id)"}</code></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<h3>Rps / Rpc：自定义 SQL 条件</h3>
+<div class="card">
+<div class="desc">当 Op 枚举无法表达的复杂条件，用 <code>raw</code> 或 <code>rpc</code> 直接注入 SQL 片段。</div>
+<pre><code>// Rps: 列名 + 自定义 SQL 模板 → WHERE T.STATUS IN ('active','pending')
+conditions: [
+  {Symbol: "and"},
+  {Id: "name", Symbol: "like", Val: "张", TableAlias: "T"},
+  {Symbol: "and"},
+  {Id: "status", Symbol: "raw", Val: "IN ('active','pending')", TableAlias: "T"}
+]
+
+// Rpc: 完整 SQL 片段 → WHERE T.ID = ? AND EXISTS(...)
+conditions: [
+  {Symbol: "and"},
+  {Id: "id", Symbol: "=", Val: 100, TableAlias: "T"},
+  {Symbol: "and"},
+  {Id: "expr", Symbol: "rpc", Val: "EXISTS(SELECT 1 FROM orders WHERE orders.user_id = T.id)"}
+]</code></pre>
+</div>
+
+<h3>条件组合规则</h3>
+<div class="card">
+<div class="desc">交替排列：<code>[连接符, 条件项, 连接符, 条件项, ...]</code></div>
+<pre><code>// (name LIKE '张%' AND age > 18) OR status = 'active'
+[
+  { Symbol: 'and' },
+  { Id: 'name', Symbol: 'like', Val: '张', TableAlias: 'T' },
+  { Symbol: 'and' },
+  { Id: 'age', Symbol: '>', Val: '18', TableAlias: 'T' },
+  { Symbol: 'or' },
+  { Id: 'status', Symbol: '=', Val: 'active', TableAlias: 'T' }
+]</code></pre>
+</div>
+
+<!-- ==================== 完整 CRUD ==================== -->
+<h2 id="crud">完整业务场景：用户管理 CRUD</h2>
+<div class="card">
+<div class="desc">从搜索表单构建条件 → 查询 + 计数 → 新增 → 修改 → 删除 完整流程。</div>
+<pre><code>// 从搜索表单构建条件 JSON
+function buildConditions(searchForm) {
+  const conditions = [{ Symbol: 'and' }];
+  if (searchForm.name) {
+    conditions.push({
+      Id: 'name', Symbol: 'like', Val: searchForm.name, TableAlias: 'T'
+    });
+    conditions.push({ Symbol: 'and' });
+  }
+  if (searchForm.status) {
+    conditions.push({
+      Id: 'status', Symbol: '=', Val: searchForm.status, TableAlias: 'T'
+    });
+  }
+  return conditions.length > 1 ? conditions : [];
+}
+
+// 查询 + 分页（并行请求）
+async function loadUsers(page = 1, pageSize = 20) {
+  const conditions = buildConditions(searchForm);
+  const [data, countResult] = await Promise.all([
+    callSqlEngine('/query', {
+      tableName: 'sys_user',
+      columns: ['id', 'name', 'status', 'create_time'],
+      conditions,
+      orderBy: [{ column: 'create_time', direction: 'desc' }],
+      page, pageSize
+    }),
+    callSqlEngine('/count', {
+      tableName: 'sys_user',
+      conditions
+    })
+  ]);
+  // data → 当前页数据
+  // countResult.total → 总记录数 → 计算总页数
+  return { data, total: countResult.total };
+}
+
+// 新增
+async function addUser(form) {
+  return callSqlEngine('/insert', {
+    tableName: 'sys_user',
+    data: form
+  });
+}
+
+// 批量新增
+async function addUsers(forms) {
+  return callSqlEngine('/batch-insert', {
+    tableName: 'sys_user',
+    data: forms
+  });
+}
+
+// 修改
+async function editUser(id, data) {
+  return callSqlEngine('/update', {
+    tableName: 'sys_user',
+    data,
+    conditions: [
+      { Symbol: 'and' },
+      { Id: 'id', Symbol: '=', Val: String(id), TableAlias: 'T' }
+    ]
+  });
+}
+
+// 批量修改（状态批量变更）
+async function batchUpdateStatus(ids, status) {
+  return callSqlEngine('/batch-update', {
+    tableName: 'sys_user',
+    batch: ids.map(id => ({
+      data: { status },
+      conditions: [{ Id: 'id', Symbol: '=', Val: String(id), TableAlias: 'T' }]
+    }))
+  });
+}
+
+// 删除
+async function removeUser(id) {
+  return callSqlEngine('/delete', {
+    tableName: 'sys_user',
+    conditions: [
+      { Symbol: 'and' },
+      { Id: 'id', Symbol: '=', Val: String(id), TableAlias: 'T' }
+    ]
+  });
+}
+
+// 批量删除
+async function batchRemoveUsers(ids) {
+  return callSqlEngine('/batch-delete', {
+    tableName: 'sys_user',
+    batch: ids.map(id => ({
+      conditions: [{ Id: 'id', Symbol: '=', Val: String(id), TableAlias: 'T' }]
+    }))
+  });
+}</code></pre>
+</div>
+
+<!-- ==================== Vue / React 集成 ==================== -->
+<h2 id="framework">框架集成示例</h2>
+<div class="grid-2">
+<div class="card">
+<h3>Vue 3 Composition API</h3>
+<pre><code>// &lt;script setup&gt;
+import { ref, onMounted } from 'vue'
+
+const users = ref([])
+const total = ref(0)
+const loading = ref(false)
+
+async function loadUsers(page = 1) {
+  loading.value = true
+  try {
+    const [data, countResult] = await Promise.all([
+      callSqlEngine('/query', {
+        tableName: 'sys_user',
+        columns: ['id', 'name', 'status'],
+        conditions: buildConditions(),
+        page,
+        pageSize: 20
+      }),
+      callSqlEngine('/count', {
+        tableName: 'sys_user',
+        conditions: buildConditions()
+      })
+    ])
+    users.value = data
+    total.value = countResult.total
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadUsers())
+// &lt;/script&gt;</code></pre>
+</div>
+
+<div class="card">
+<h3>React Hooks</h3>
+<pre><code>import { useState, useEffect, useCallback } from 'react'
+
+function useSqlQuery(tableName, conditions) {
+  const [data, setData] = useState([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async (page = 1) => {
+    setLoading(true)
+    try {
+      const [rows, countResult] = await Promise.all([
+        callSqlEngine('/query', {
+          tableName,
+          conditions,
+          page,
+          pageSize: 20,
+          orderBy: [{ column: 'id', direction: 'desc' }]
+        }),
+        callSqlEngine('/count', { tableName, conditions })
+      ])
+      setData(rows)
+      setTotal(countResult.total)
+    } finally {
+      setLoading(false)
+    }
+  }, [tableName, conditions])
+
+  useEffect(() => { load(1) }, [])
+  return { data, total, loading, load }
+}</code></pre>
+</div>
+</div>
+
+</div>
+</body>
+</html>

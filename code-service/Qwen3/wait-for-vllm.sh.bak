@@ -1,0 +1,28 @@
+#!/bin/bash
+MAX_WAIT=180
+INTERVAL=5
+ELAPSED=0
+URL="http://127.0.0.1:8000/health"
+
+echo "⏳ [Waiter] 等待 vLLM 服务就绪 (最大 ${MAX_WAIT}s)..."
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+    # 尝试请求健康检查接口
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "${URL}" 2>/dev/null)
+    
+    if [ "$HTTP_CODE" = "200" ]; then
+        echo "✅ vLLM 服务已就绪 (HTTP 200)!"
+        exit 0
+    fi
+    
+    # 每 15 秒打印一次状态
+    if [ $((ELAPSED % 15)) -eq 0 ] && [ $ELAPSED -gt 0 ]; then
+        echo "   ... 等待中 (${ELAPSED}s), 当前状态码: ${HTTP_CODE:-'连接失败'}"
+    fi
+    
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+echo "❌ 等待超时，vLLM 未在 ${MAX_WAIT}s 内启动。"
+exit 2

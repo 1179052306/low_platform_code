@@ -1,0 +1,137 @@
+#server:
+#  port: 809 #服务端口
+#seata:
+#  enabled: false
+#spring:
+#  datasource:
+#    hikari:
+#      maximum-pool-size: 1000 #最大连接数,默认值10.
+#      minimum-idle: 200 #最小空闲连接，默认值10.
+#      connection-timeout: 60000 #连接超时时间(毫秒),默认值30秒.
+#      #空闲连接超时时间，默认值600000(10分钟),只有空闲连接数大于最大连接数且空闲时间超过该值，才会被释放
+#      #如果大于等于 max-lifetime 且 max-lifetime>0,则会被重置为0.
+#      idle-timeout: 600000
+#      max-lifetime: 3000000 #连接最大存活时间,默认值30分钟.设置应该比mysql设置的超时时间短
+#      auto-commit: false
+#    names:
+#      - item:
+#        poolname: project
+#        type: com.zaxxer.hikari.HikariDataSource
+#        jdbc-url: jdbc:postgresql://localhost:5432/postgres?currentSchema=public&characterEncoding=UTF-8
+#        username: postgres
+#        password: 123456
+#        driver-class-name: org.postgresql.Driver
+#
+#  redis:
+#    host: 172.29.241.131
+#    # redis端口（默认6379）
+#    port: 8004
+#    #redis连接超时等待,10秒
+#    timeout: 60s
+#    password: Ahbcd0306
+#    databases: 0
+#    # Lettuce 客户端配置（Spring Boot 2.x+ 默认且推荐）
+#    lettuce:
+#      # 关闭超时时间（避免连接池关闭异常）
+#      shutdown-timeout: 100ms
+#
+#      # 核心：连接池配置（解决高并发连接泄露与性能问题）
+#      pool:
+#        # 最大活跃连接数（默认8，生产环境建议根据 QPS 调优，如 10~20）
+#        max-active: 16
+#        # 最大空闲连接数（建议等于 max-active，避免频繁创建销毁连接）
+#        max-idle: 16
+#        # 最小空闲连接数（建议 2~5，保持一定连接数以快速响应突发请求）
+#        min-idle: 4
+#        # 获取连接的最大阻塞等待时间（生产环境严禁设为 -1，建议 3~5秒，防止连接耗尽时线程无限阻塞）
+#        max-wait: 5000ms
+#  minio:
+#    endpoint: http://172.29.241.134:9000 # MinIO 服务地址 (不要带 http:// 也可以，代码里会处理)
+#    access-key: admin # 账号
+#    secret-key: Wxwl1234 # 密码
+#    bucket-name: public-images # 默认桶名
+#    secure: false # 是否启用 HTTPS
+#    ignore-ssl: false # 是否忽略 SSL 证书验证 (仅 secure=true 时有效)
+#tenant:
+#  single: true
+#  tenanturl: ''
+#  systemType: ''
+#  defaultTenant: ''
+##  datasource:
+##    url: jdbc:oracle:thin:@122.112.206.23:8030:MES
+##    username: MESV3
+##    password: MESV3
+##    driver-class-name: oracle.jdbc.driver.OracleDriver
+##    type: com.zaxxer.hikari.HikariDataSource
+##    hikari:
+##      maximum-pool-size: 1000 #最大连接数,默认值10.
+##      minimum-idle: 200 #最小空闲连接，默认值10.
+##      connection-timeout: 60000 #连接超时时间(毫秒),默认值30秒.
+##      #空闲连接超时时间，默认值600000(10分钟),只有空闲连接数大于最大连接数且空闲时间超过该值，才会被释放
+##      #如果大于等于 max-lifetime 且 max-lifetime>0,则会被重置为0.
+##      idle-timeout: 600000
+##      max-lifetime: 3000000 #连接最大存活时间,默认值30分钟.设置应该比mysql设置的超时时间短
+##      auto-commit: false
+## ====================================================================
+## 基础数据缓存配置 —— 复制此块到 Nacos 配置中心即可生效
+## 前缀 basedata.cache 绑定 BaseDataCacheProperties
+## ====================================================================
+##basedata:
+##  cache:
+##    enabled: true
+##    caches:
+##      # 小表：全量缓存（FULL_TABLE）
+##      - tableName: wms_warehouse
+##        cacheMode: FULL_TABLE
+##        keyColumn: id
+##        localTtlMs: 1800000          # 本地缓存 30 分钟
+##        remoteTtlMs: 7200000          # Redis 缓存 2 小时
+##        localMaxSize: 10000
+##        preheatOnStartup: true        # 启动时预热
+##
+##      - tableName: wms_zone
+##        cacheMode: FULL_TABLE
+##        keyColumn: id
+##        preheatOnStartup: true
+##
+##      - tableName: wms_location
+##        cacheMode: FULL_TABLE
+##        keyColumn: id
+##        preheatOnStartup: true
+##
+##      # 大表：按主键分条热点缓存（SINGLE_RECORD）
+##      - tableName: wms_material
+##        cacheMode: SINGLE_RECORD
+##        keyColumn: id
+##        lookupColumns: [code, barcode] # 除主键外可缓存的精确查询列
+##        columns: [id, code, name, spec, unit, barcode]
+##        localMaxSize: 50000           # 本地最多缓存 5 万条热点
+##        localTtlMs: 1800000
+##        remoteTtlMs: 7200000
+##        cacheNull: true               # 防穿透：缓存空值
+##        nullTtlMs: 300000             # 空值缓存 5 分钟
+##        preheatOnStartup: false       # 大表不预热
+##
+##      - tableName: wms_customer
+##        cacheMode: SINGLE_RECORD
+##        keyColumn: id
+##        lookupColumns: [code]
+##        localMaxSize: 20000
+##        preheatOnStartup: false
+## ====================================================================
+## RocketMQ 配置（rocketmq-spring-boot-starter 2.2.3，对应 RocketMQ 4.9.x）
+## ====================================================================
+#rocketmq:
+#  # NameServer 地址，多个用分号分隔（如 127.0.0.1:9876;127.0.0.1:9877）
+#  name-server: 127.0.0.1:9876
+#  producer:
+#    # 生产者组名：同一组下生产者实例共享，事务消息回查依赖此组
+#    group: wms-db-producer-group
+#    # 同步发送超时时间（毫秒），默认 3000
+#    send-message-timeout: 3000
+#    # 同步发送失败重试次数，默认 2
+#    retry-times-when-send-failed: 2
+#    # 异步发送失败重试次数，默认 2
+#    retry-times-when-send-async-failed: 2
+#    # 最大消息体大小（字节），默认 4MB
+#    max-message-size: 4194304

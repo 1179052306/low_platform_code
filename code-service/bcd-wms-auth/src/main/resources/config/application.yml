@@ -1,0 +1,38 @@
+server:
+
+  port: @server.port@
+seata:
+
+  enabled: false
+
+spring:
+
+  application:
+
+    name: bcd-wms-auth@prefix@@envName@
+
+  profiles:
+
+    active: ZHANJI
+
+  servlet:
+
+    multipart:
+
+      max-file-size: 50MB
+
+      max-request-size: 50MB
+
+      enabled: true
+
+# application.yml
+
+logpath: logs/${spring.application.name}
+
+
+
+app:
+
+    env: @envName@
+
+    prefix: '@prefix@'

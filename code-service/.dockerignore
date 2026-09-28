@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+*.iml
+*.ipr
+*.iws
+
+# Build artifacts
+**/target/maven-archiver
+**/target/maven-status
+**/target/generated-sources
+**/target/generated-test-sources
+**/target/test-classes
+**/target/surefire-reports
+
+# Logs
+**/logs
+**/*.log
+**/gc.log*
+
+# Service release
+serviceRelease/
+
+# Misc
+*.md
+*.zip
+*.exe
+ant-contrib-*.jar
+InstallService.exe
+jvm-options.properties

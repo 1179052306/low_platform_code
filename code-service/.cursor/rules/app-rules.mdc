@@ -1,0 +1,133 @@
+---
+description: Flutter/Dart APP code standards for bcd_android project
+globs: bcd-mobile/bcd_android/**/*.dart
+alwaysApply: false
+---
+
+# APP Code Rules
+
+适用范围：`bcd-mobile/bcd_android`。当前项目为 Flutter/Dart 项目，SDK 约束 `>=2.15.1 <3.3.2`，使用 `MaterialApp`、`flutter_screenutil`、`dio`、`bruno`、自研 `BcdRequest`、`WidgetTab`、`WidgetList`、`BcdListView`、`BcdColumn` 等组件。
+
+## 基本原则
+
+- 无特别说明时，APP 端新增功能必须按项目已有 `Bcd*`、`Widget*`、`Utils`、`Prefs` 封装开发，以保证 UI、交互、请求和代码组织统一。
+- 新增 APP 功能优先参考同业务域的 `Task`、`Have` 页面，例如 `PickTask.dart`、`PickHave.dart`。
+- 继续沿用当前"任务列表页 + 执行页"的组织方式：`Task` 展示待执行/执行中，`Have` 处理扫描、保存、提交等操作。
+- 请求统一走 `BcdRequest().Request(...)` 和 `HttpRequestUtils`，返回统一使用 `Resource`。
+- 页面尺寸继续使用 `flutter_screenutil` 的 `.w`、`.h`、`.r`、`.sp`，不要混用新的适配体系。
+- 修改旧页面时保持局部代码风格，不做大规模现代化重构。
+
+## 自定义封装优先级
+
+- 顶部栏优先使用 `widget/bcdwidget/appBar/BcdAppBar.dart`。
+- 列表任务页优先使用 `WidgetList`、`BcdListView`、`BcdListItem`、`BcdListSearch`、`BcdListViewFilter`：
+  - `WidgetList.addItem(...)` 配置列表字段。
+  - `pageKey`、`Url`、`isFilter`、`isSearchFilter` 控制请求和过滤。
+  - `BcdStartTask` 配置开始任务。
+- Tab 页优先使用 `WidgetTab`、`BcdTabBar`：
+  - `addItem(...)` 添加 Tab。
+  - `listener` 处理切换刷新。
+  - `jumpToPage(...)`、`editTabName(...)` 按已有能力跳转或修改标题。
+- 表单和输入优先使用 `WidgetForm`、`BcdForm`、`BcdFormItem`、`BcdTextBox`、`BcdTextView`、`BcdSelectBox`、`BcdSwitch`、`BcdDatePicker`、`BcdRadioButton`。
+- 下拉和选择优先使用 `BcdSearchDropDown`、`BcdFastSearchSelect`、`BcdItemDropDown`、`BcdDropDownWhDialog`、`BcdDropDownConsignorWhDialog`。
+- 表格和明细优先使用 `WidgetTable`、`BcdDataTable`、`BcdPaginatedDataTable`、`BcdColumn`，不要手写重复表格。
+- 弹窗、底部选择、加载优先使用 `BcdDialog`、`BcdBottomDialog`、`WidgetDialog`、`BcdHttpLoading`，以及 `utils/dialog`、`utils/loading` 下已有封装。
+- 网络请求优先使用 `BcdRequest`，底层统一走 `HttpRequestUtils`、`DioManager`、`Resource`。
+- 路由和动画优先使用 `Routers.dart`、`NavigatorUtils.dart`、`AnimRightToLeft`、`AnimLeftToRight` 等现有封装。
+- Toast、语音、日志、版本等通用行为优先使用 `Utils.dart`；颜色使用 `MyColors.dart`；字符串和屏幕工具使用现有 `MyString`、`screen_utils`、`string_utils`。
+- 本地持久化优先使用 `LoginPrefs`、`SettingPrefs`、`HttpPrefs`、`TaskKeyPrefs`、各业务 `*OptionSetPrefs`，不要重复封装 SharedPreferences。
+
+## 目录与文件
+
+- WMS 功能放在 `lib/bcd_wms/<业务域>/<功能名>/`。
+- TMS 功能放在 `lib/bcd_tms/<业务域>/`。
+- 登录、首页、设置分别沿用 `lib/login`、`lib/firstPage`、`lib/setting`。
+- 通用网络代码放在 `lib/net` 或 `lib/widget/bcdwidget/http`。
+- 通用控件放在 `lib/widget` 或 `lib/widget/bcdwidget`。
+- 实体/返回对象目录沿用项目现状中的 `ently` 命名，不要在同一业务下混建 `entity` 目录。
+
+## 命名规范
+
+- Widget 类、State 类使用 PascalCase，如 `PickTask`、`PickTaskState`。
+- 任务列表页命名为 `<Feature>Task.dart`，执行/已领取页命名为 `<Feature>Have.dart`。
+- 私有控件构造方法可使用 `_inputUser()` 这类当前页面内局部方法。
+- 接口 URL 字段统一集中在 State 顶部，命名如 `waitUrl`、`haveUrl`、`startWaitUrl`。
+- 页面标识使用稳定 `pageKey`，不要每次进入页面动态生成。
+- 后端字段名保持大写下划线，如 `PICK_INFO_MST_KEY`、`ITEM_ID`。
+
+## 页面结构
+
+- `State` 顶部声明请求对象、组件对象、URL、`pageKey`、当前页状态和防重复标记。
+- 推荐方法顺序：
+  - `initState()`
+  - `loadPage()`
+  - `loadTab()`
+  - `loadWaitListView()`
+  - `loadHaveListView()`
+  - `loadBottomTable()`
+  - 业务请求方法
+  - `build()`
+- 列表页优先使用 `WidgetList`：
+  - 设置 `title`、`pageKey`、`Url`。
+  - 通过 `addItem(field, caption, isNumber, isShow: false)` 配置列。
+  - 通过 `BcdStartTask` 配置开始任务。
+  - 通过 `BcdBottomTable` 配置长按明细。
+- Tab 页优先使用 `WidgetTab`，切换时刷新对应列表并更新 `currentPage`。
+
+## 接口与错误处理
+
+- 请求必须经过 `BcdRequest req = BcdRequest();` 和 `req.Request(url, param, context)`。
+- 参数统一使用 `Map<String, dynamic>`，必须传入 `pageid`/`pageKey`。
+- 返回处理统一使用 `response.isSuccess()`。
+- 失败时至少执行：
+  - `Utils.SpeechText(response.msg.toString())`
+  - `Utils.showBNoImgshortToast(response.msg.toString(), context)`
+  - `Utils.log(...)`
+- 异常捕获中必须恢复防重复标记，如 `isReLoad = false`。
+- 异步回调中调用 `setState` 或访问 `context` 前，新增代码应优先判断 `mounted`。
+
+## 路由与导航
+
+- 静态路由统一维护在 `lib/utils/Routers.dart`。
+- 页面跳转优先使用当前动画工具，如 `AnimRightToLeft(...)`。
+- 子页面返回后刷新列表时，继续使用 `.then((value) { ... })` 模式，并按当前 Tab 刷新对应列表。
+
+## UI 与资源
+
+- 全局背景、图片、音频等继续使用 `generated/r.dart` 中的资源常量。
+- 颜色优先使用 `MyColors`，不要在业务页散落新的色值体系。
+- 输入框、弹窗、Toast、Loading 优先复用 `utils/dialog`、`utils/loading`、`widget/bcdwidget` 下已有组件。
+- 登录和设置相关持久化继续使用 `LoginPrefs`、`SettingPrefs`、`HttpPrefs`。
+
+## 禁止写法
+
+- 禁止绕过 `BcdRequest` 直接新建 Dio 请求，除非是在网络层内部扩展。
+- 禁止在业务页复制网络拦截、Token、BaseUrl、租户处理逻辑。
+- 禁止新增与 `WidgetList`、`WidgetTab` 功能重复的大型列表/Tab 控件。
+- 禁止在没有说明的情况下用原生 Widget 手写与 `Bcd*`、`Widget*` 封装重复的表单、列表、表格、弹窗、下拉。
+- 禁止把临时测试页面注册为默认路由。
+- 禁止新增未释放的 `FocusNode`、`TextEditingController`；新增控制器必须在 `dispose()` 中释放。
+
+## 注释
+
+- 保留业务状态、特殊扫描逻辑、任务流转和接口参数说明。
+- 新增注释应保证编码正常，避免乱码。
+- 不给普通 Widget 嵌套、简单赋值写无意义注释。
+
+## 新功能流程
+
+1. 在同业务域找到最相近的 `Task/Have` 页面。
+2. 确认后端接口前缀，例如 `/api-out`、`/api-in`、`/api-stock`。
+3. 新建页面并配置 `pageKey`、URL、列表字段、开始任务、底部明细。
+4. 接入请求，按 `Resource.isSuccess()` 分支处理成功、失败、异常。
+5. 注册路由或菜单入口，确认返回刷新和防重复请求逻辑。
+6. 在真实设备或模拟器自测登录、列表刷新、任务领取、扫描、保存、提交、异常提示。
+
+## 提交前自检
+
+- 页面是否放入正确业务目录，命名是否符合 `Task/Have` 模式。
+- 是否复用了 `BcdRequest`、`WidgetList`、`WidgetTab`、`BcdColumn`。
+- 请求是否带 `pageid`，失败和异常是否都有 Toast/语音/日志。
+- 是否避免重复点击和重复刷新。
+- 新增控制器、焦点、订阅是否在 `dispose()` 中释放。
+- 是否没有新增乱码注释、硬编码环境地址或账号密码。

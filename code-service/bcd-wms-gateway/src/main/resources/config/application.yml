@@ -1,0 +1,50 @@
+server:
+
+  port: @server.port@
+  max-http-header-size: 102400
+
+seata:
+
+  enabled: false
+
+management:
+
+  endpoints:
+
+    enabled-by-default: false
+
+  endpoint:
+
+    health:
+
+      enabled: false
+
+    info:
+
+      enabled: false
+
+    heapdump:
+
+      enabled: false
+
+    gateway:
+
+      enabled: false
+
+logpath: logs/${spring.application.name}
+
+
+
+spring:
+
+  application:
+
+    name: bcd-wms-gateway@prefix@@envName@
+
+
+
+app:
+
+    env: @envName@
+
+    prefix: '@prefix@'

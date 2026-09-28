@@ -1,0 +1,77 @@
+
+> vue3-lowcode-platform@0.1.0 dev
+> vite
+
+
+  VITE v6.4.3  ready in 1014 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+14:11:05 [vite] (client) page reload src/devextreme-license.ts
+14:13:31 [vite] (client) page reload src/devextreme-license.ts
+14:13:39 [vite] (client) page reload src/devextreme-license.ts
+15:23:18 [vite] (client) page reload src/devextreme-license.ts
+15:23:19 [vite] (client) Pre-transform error: Failed to load url /src/devextreme-license.ts (resolved id: D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts) in D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/main.ts. Does the file exist?
+15:23:25 [vite] (client) page reload src/devextreme-license.ts
+15:23:26 [vite] Internal server error: Transform failed with 1 error:
+D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21: ERROR: Unexpected ">"
+  Plugin: vite:esbuild
+  File: D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21
+  
+  Unexpected ">"
+  1  |  LCPv1%y+y3bVv%edF>jy(>n)@7Naf7+VSIpma,%y_3oRjIb!_%_VSe>a[pN)1:KF+(LaBe>!fS>++pLRi7Re@,R-f3_,46o!f7HRKc1m:I+SfpKFQVHeHp<!Jpje7IiS3IR,X2HSN7RVN27!-c+d_VY!<:LD@pn-k!nVj3gf4pLFk:j!f!%L[7RQmk7!JSyEfE+ab3oagSYan,n,n,n,n,n,n,n,n,n,n,n,n>%X<2p@Fp<-vIg-6>jz<!Qd$6g-)!Q8;G_y6p_@v6<-:Ig!Q9NX;6<dQ>KXvIbR)9jz;!jL;9jyFI7yFI7yFIp@v2%d)Ig-QIp-)I7yFI7yFI7yF
+     |                       ^
+  
+      at failureErrorWithLog (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:1467:15)
+      at D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:736:50
+      at responseCallbacks.<computed> (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:603:9)
+      at handleIncomingPacket (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:658:12)
+      at Socket.readFromStdout (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:581:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+15:23:26 [vite] (client) Pre-transform error: Transform failed with 1 error:
+D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21: ERROR: Unexpected ">"
+  Plugin: vite:esbuild
+  File: D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21
+  
+  Unexpected ">"
+  1  |  LCPv1%y+y3bVv%edF>jy(>n)@7Naf7+VSIpma,%y_3oRjIb!_%_VSe>a[pN)1:KF+(LaBe>!fS>++pLRi7Re@,R-f3_,46o!f7HRKc1m:I+SfpKFQVHeHp<!Jpje7IiS3IR,X2HSN7RVN27!-c+d_VY!<:LD@pn-k!nVj3gf4pLFk:j!f!%L[7RQmk7!JSyEfE+ab3oagSYan,n,n,n,n,n,n,n,n,n,n,n,n>%X<2p@Fp<-vIg-6>jz<!Qd$6g-)!Q8;G_y6p_@v6<-:Ig!Q9NX;6<dQ>KXvIbR)9jz;!jL;9jyFI7yFI7yFIp@v2%d)Ig-QIp-)I7yFI7yFI7yF
+     |                       ^
+  
+15:23:50 [vite] (client) page reload src/devextreme-license.ts
+15:23:51 [vite] (client) Pre-transform error: Transform failed with 1 error:
+D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21: ERROR: Unexpected ">"
+  Plugin: vite:esbuild
+  File: D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21
+  
+  Unexpected ">"
+  1  |  LCPv1%y+y3bVv%edF>jy(>n)@7Naf7+VSIpma,%y_3oRjIb!_%_VSe>a[pN)1:KF+(LaBe>!fS>++pLRi7Re@,R-f3_,46o!f7HRKc1m:I+SfpKFQVHeHp<!Jpje7IiS3IR,X2HSN7RVN27!-c+d_VY!<:LD@pn-k!nVj3gf4pLFk:j!f!%L[7RQmk7!JSyEfE+ab3oagSYan,n,n,n,n,n,n,n,n,n,n,n,n>%X<2p@Fp<-vIg-6>jz<!Qd$6g-)!Q8;G_y6p_@v6<-:Ig!Q9NX;6<dQ>KXvIbR)9jz;!jL;9jyFI7yFI7yFIp@v2%d)Ig-QIp-)I7yFI7yFI7yF
+     |                       ^
+  
+15:23:51 [vite] Internal server error: Transform failed with 1 error:
+D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21: ERROR: Unexpected ">"
+  Plugin: vite:esbuild
+  File: D:/Documents/qwen-agent/NzStlLDJ3F/低代码平台/src/devextreme-license.ts:1:21
+  
+  Unexpected ">"
+  1  |  LCPv1%y+y3bVv%edF>jy(>n)@7Naf7+VSIpma,%y_3oRjIb!_%_VSe>a[pN)1:KF+(LaBe>!fS>++pLRi7Re@,R-f3_,46o!f7HRKc1m:I+SfpKFQVHeHp<!Jpje7IiS3IR,X2HSN7RVN27!-c+d_VY!<:LD@pn-k!nVj3gf4pLFk:j!f!%L[7RQmk7!JSyEfE+ab3oagSYan,n,n,n,n,n,n,n,n,n,n,n,n>%X<2p@Fp<-vIg-6>jz<!Qd$6g-)!Q8;G_y6p_@v6<-:Ig!Q9NX;6<dQ>KXvIbR)9jz;!jL;9jyFI7yFI7yFIp@v2%d)Ig-QIp-)I7yFI7yFI7yF
+     |                       ^
+  
+      at failureErrorWithLog (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:1467:15)
+      at D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:736:50
+      at responseCallbacks.<computed> (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:603:9)
+      at handleIncomingPacket (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:658:12)
+      at Socket.readFromStdout (D:\Documents\qwen-agent\NzStlLDJ3F\低代码平台\node_modules\esbuild\lib\main.js:581:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+15:24:10 [vite] (client) page reload src/devextreme-license.ts
+15:24:24 [vite] (client) page reload src/devextreme-license.ts
+15:26:21 [vite] vite.config.ts changed, restarting server...
+15:26:22 [vite] server restarted.

@@ -1,0 +1,46 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background: #f0f2f5;
+}
+
+/* 通用滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9ced4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 拖拽占位提示 */
+.drag-over-top {
+  box-shadow: 0 -2px 0 0 #1976d2;
+}
+.drag-over-bottom {
+  box-shadow: 0 2px 0 0 #1976d2;
+}
+.drag-over-container {
+  outline: 2px dashed #1976d2;
+  outline-offset: -2px;
+}
+
+/* DevExtreme 弹出层（filterRow 下拉、日历、headerFilter 等）z-index 提高到 100000，
+   确保高于平台自定义弹窗 overlay（最高 10001），避免被遮挡 */
+.dx-overlay-wrapper {
+  z-index: 100000 !important;
+}

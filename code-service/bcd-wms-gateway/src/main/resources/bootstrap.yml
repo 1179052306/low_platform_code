@@ -1,0 +1,27 @@
+﻿spring:
+    cloud:
+      nacos:
+          discovery:
+              username: @nacos.username@
+              password: @nacos.password@
+              enabled: true
+              server-addr: @nacos.server-addr@
+              namespace: @nacos.discovery.namespace@
+          config:
+              username: @nacos.username@
+              password: @nacos.password@
+              server-addr: @nacos.server-addr@
+              file-extension: yaml
+              namespace: @nacos.config.namespace@
+              refresh-enabled: true
+              encode: UTF-8
+      gateway:
+            httpclient:
+                response-timeout: PT600S
+                connect-timeout: 600000
+                pool:
+                    max-connections: 30000
+                    max-idle-time: 120000
+                    acquire-timeout: 600000
+                    eviction-interval: 10
+                    type: fixed

@@ -1,0 +1,1109 @@
+2026-08-13 13:34:24.282 [main] INFO  com.api.BcdComboxApplication - The following profiles are active: ZHANJI
+2026-08-13 13:34:35.972 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:34:35.973 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:34:35.977 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:34:37.892 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:34:38.422 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户数据
+2026-08-13 13:34:38.422 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenantDataBase/getTenantData
+2026-08-13 13:34:38.423 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:34:38.457 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":4,"CONNECT_IP":"172.29.241.133","CONNECT_NAME":"WMS","DRIVER_CLASS_NAME":"dm.jdbc.driver.DmDriver","TRX_DATE":"2026-02-10T03:30:42.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project","CONNECT_STRING":"jdbc:dm://172.29.241.133:5136","DATABASE_ID":"project","DATABASE_KEY":"231f27f3-a2f4-4e6d-91ab-002683d972a0","CONNECT_PORT":"5136","DATABASE_NAME":"项目","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"WMS","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"},{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":3,"CONNECT_IP":"172.29.241.131","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:31:56.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project_log","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8","DATABASE_ID":"project_log","DATABASE_KEY":"aa508d2e-0e1f-4ea8-91d1-1b1fa91b4536","CONNECT_PORT":"5432","DATABASE_NAME":"日志","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"postgres","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"}],"customValue":null}
+2026-08-13 13:34:41.617 [main] INFO  com.server.log4.LogbackConfigurator - 准备获取平台日志数据库
+2026-08-13 13:34:41.618 [main] INFO  com.server.log4.LogbackConfigurator - 请求地址：http://172.29.241.131:10007/log/getDataSource
+2026-08-13 13:34:41.619 [main] INFO  com.server.log4.LogbackConfigurator - 发送请求
+2026-08-13 13:34:41.640 [main] INFO  com.server.log4.LogbackConfigurator - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","DATABASE_KEY":"3","CONNECT_PORT":"5432","ACTIVE":1,"DATABASE_TYPE":3,"CREATE_DATE":"2025-03-11T02:23:10.000+00:00","CONNECT_IP":"172.29.241.131","CONNECT_USERID":"postgres","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:22:10.000+00:00","TRX_USER_KEY":5581,"CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","CREATE_USER_NAME":"","CREATE_USER_KEY":"","SYSTEM_TYPE":"WMS","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8"}],"customValue":null}
+2026-08-13 13:34:42.780 [main] INFO  com.server.minio.MinioConfig - Initializing MinIO Client for endpoint: http://172.29.241.134:9000
+2026-08-13 13:34:45.524 [main] INFO  org.redisson.Version - Redisson 4.4.0
+2026-08-13 13:34:54.216 [redisson-netty-4-5] INFO  o.r.connection.ConnectionsHolder - 1 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 13:34:54.387 [redisson-netty-4-11] INFO  o.r.connection.ConnectionsHolder - 4 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 13:34:54.972 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 13:34:55.002 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 13:35:05.273 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property : null
+2026-08-13 13:35:05.276 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Environment :null
+2026-08-13 13:35:05.281 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property :null
+2026-08-13 13:35:05.490 [main] INFO  c.alibaba.nacos.common.remote.client - [RpcClientFactory] create a new rpc client of 49b569f0-2351-463f-85e7-c8de09cabb7d
+2026-08-13 13:35:05.490 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]RpcClient init label, labels={module=naming, source=sdk}
+2026-08-13 13:35:05.504 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]RpcClient init, ServerListFactory =com.alibaba.nacos.client.naming.core.ServerListManager
+2026-08-13 13:35:05.504 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]Registry connection listener to current client:com.alibaba.nacos.client.naming.remote.gprc.redo.NamingGrpcRedoService
+2026-08-13 13:35:05.506 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]Register server push request handler:com.alibaba.nacos.client.naming.remote.gprc.NamingPushRequestHandler
+2026-08-13 13:35:05.507 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d] Try to connect to server on start up, server: {serverIp='172.29.241.131', server main port=8001}
+2026-08-13 13:35:05.666 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d] Success to connect to server [172.29.241.131:8001] on start up,connectionId=1786599304438_192.168.129.41_53999
+2026-08-13 13:35:05.669 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]Notify connected event to listeners.
+2026-08-13 13:35:05.669 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$ConnectResetRequestHandler
+2026-08-13 13:35:05.669 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-13 13:35:05.670 [main] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$4
+2026-08-13 13:35:05.775 [main] INFO  com.alibaba.nacos.client.naming - init new ips(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 13:35:05.842 [main] INFO  com.alibaba.nacos.client.naming - current ips:(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 13:35:05.977 [main] INFO  com.alibaba.nacos.client.naming - [REGISTER-SERVICE] lw registering service bcd-wms-combox with instance Instance{instanceId='null', ip='192.168.129.41', port=8010, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2026-08-13 13:35:06.005 [main] INFO  c.a.c.n.r.NacosServiceRegistry - nacos registry, DEFAULT_GROUP bcd-wms-combox 192.168.129.41:8010 register finished
+2026-08-13 13:35:06.327 [nacos-grpc-client-executor-5] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]receive server push request,request=NotifySubscriberRequest,requestId=7539
+2026-08-13 13:35:06.341 [nacos-grpc-client-executor-5] INFO  com.alibaba.nacos.client.naming - new ips(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2026-08-13 13:35:06.342 [nacos-grpc-client-executor-5] INFO  com.alibaba.nacos.client.naming - current ips:(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2026-08-13 13:35:06.345 [nacos-grpc-client-executor-5] INFO  c.alibaba.nacos.common.remote.client - [49b569f0-2351-463f-85e7-c8de09cabb7d]ack server push request,request=NotifySubscriberRequest,requestId=7539
+2026-08-13 13:35:07.271 [main] INFO  com.api.BcdComboxApplication - Started BcdComboxApplication in 72.525 seconds (JVM running for 76.738)
+2026-08-13 13:35:07.294 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] logback.yml+saas-wms+wms
+2026-08-13 13:35:07.299 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=logback.yml, group=saas-wms, cnt=1
+2026-08-13 13:35:07.300 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] datasource.yml+saas-wms+wms
+2026-08-13 13:35:07.301 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=datasource.yml, group=saas-wms, cnt=1
+2026-08-13 13:35:07.301 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox.yaml+DEFAULT_GROUP+wms
+2026-08-13 13:35:07.302 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 13:35:07.302 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox-ZHANJI.yaml+DEFAULT_GROUP+wms
+2026-08-13 13:35:07.302 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox-ZHANJI.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 13:35:07.303 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] tenant.yml+saas-wms+wms
+2026-08-13 13:35:07.303 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=tenant.yml, group=saas-wms, cnt=1
+2026-08-13 13:35:07.304 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] redis.yml+saas-wms+wms
+2026-08-13 13:35:07.304 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=redis.yml, group=saas-wms, cnt=1
+2026-08-13 13:35:07.306 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox+DEFAULT_GROUP+wms
+2026-08-13 13:35:07.306 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox, group=DEFAULT_GROUP, cnt=1
+2026-08-13 13:35:07.308 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] sentinel.yml+saas-wms+wms
+2026-08-13 13:35:07.308 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=sentinel.yml, group=saas-wms, cnt=1
+2026-08-13 13:36:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:36:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:36:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:36:00.052 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:39:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:39:00.030 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:39:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:39:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:42:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:42:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:42:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:42:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:45:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:45:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:45:00.048 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:48:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:48:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:48:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:48:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:51:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:51:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:51:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:51:00.063 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:54:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:54:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:54:00.023 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:54:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:57:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 13:57:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 13:57:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 13:57:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 13:58:47.968 [http-nio-8010-exec-4] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 13:58:48.025 [http-nio-8010-exec-4] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1  AND T.CONSIGNOR_KEY IN (SELECT CONSIGNOR_KEY FROM S_JURISDICTION_CONSIGNOR C  WHERE 1=1 AND C.JURISDICTION_KEY=543 AND C.ORG_KEY=1)
+2026-08-13 13:58:48.033 [http-nio-8010-exec-4] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Starting...
+2026-08-13 13:58:49.000 [http-nio-8010-exec-4] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Start completed.
+2026-08-13 13:58:49.860 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 13:58:49.860 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 13:58:54.217 [http-nio-8010-exec-8] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ID,EXT_NAME AS TEXT FROM S_AREA WHERE DEEP=0 ORDER BY ID
+2026-08-13 13:58:56.281 [http-nio-8010-exec-8] INFO  com.server.db.DbHelp - 设置缓存
+2026-08-13 13:58:57.057 [http-nio-8010-exec-5] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 13:58:57.063 [http-nio-8010-exec-5] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 13:58:57.405 [http-nio-8010-exec-9] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 13:58:57.406 [http-nio-8010-exec-9] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 13:58:57.668 [http-nio-8010-exec-12] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 13:58:57.669 [http-nio-8010-exec-12] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 14:00:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:00:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:00:00.081 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:00:00.428 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:00:26.742 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:00:31.767 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:02:02.020 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:02:07.188 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:03:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:03:00.032 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:03:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:03:00.113 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:03:37.391 [lettuce-eventExecutorLoop-1-3] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:03:42.735 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:05:12.890 [lettuce-eventExecutorLoop-1-7] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:05:18.344 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:06:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:06:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:06:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:06:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:06:32.203 [SpringContextShutdownHook] INFO  c.a.c.n.r.NacosServiceRegistry - De-registering from Nacos Server now...
+2026-08-13 14:06:32.209 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - [DEREGISTER-SERVICE] lw deregistering service bcd-wms-combox with instance: Instance{instanceId='null', ip='192.168.129.41', port=8010, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={}}
+2026-08-13 14:06:32.255 [SpringContextShutdownHook] INFO  c.a.c.n.r.NacosServiceRegistry - De-registration finished.
+2026-08-13 14:06:32.257 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.cache.ServiceInfoHolder do shutdown begin
+2026-08-13 14:06:32.259 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown begin
+2026-08-13 14:06:32.262 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown stop
+2026-08-13 14:06:32.262 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.cache.ServiceInfoHolder do shutdown stop
+2026-08-13 14:06:32.263 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.NamingClientProxyDelegate do shutdown begin
+2026-08-13 14:06:32.263 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServiceInfoUpdateService do shutdown begin
+2026-08-13 14:06:32.591 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServiceInfoUpdateService do shutdown stop
+2026-08-13 14:06:32.592 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServerListManager do shutdown begin
+2026-08-13 14:06:32.594 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServerListManager do shutdown stop
+2026-08-13 14:06:32.594 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.http.NamingHttpClientProxy do shutdown begin
+2026-08-13 14:06:32.594 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.beat.BeatReactor do shutdown begin
+2026-08-13 14:06:32.595 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.beat.BeatReactor do shutdown stop
+2026-08-13 14:06:32.598 [SpringContextShutdownHook] INFO  c.a.n.c.identify.CredentialWatcher - [null] CredentialWatcher is stopped
+2026-08-13 14:06:32.598 [SpringContextShutdownHook] INFO  c.a.n.c.identify.CredentialService - [null] CredentialService is freed
+2026-08-13 14:06:32.599 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.http.NamingHttpClientProxy do shutdown stop
+2026-08-13 14:06:32.599 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Shutdown rpc client ,set status to shutdown
+2026-08-13 14:06:32.606 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Shutdown  client event executor java.util.concurrent.ScheduledThreadPoolExecutor@15d5de7e[Running, pool size = 2, active threads = 2, queued tasks = 0, completed tasks = 0]
+2026-08-13 14:06:32.607 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Close current connection 1786599304438_192.168.129.41_53999
+2026-08-13 14:06:32.627 [nacos-grpc-client-executor-393] INFO  c.a.n.c.r.client.grpc.GrpcClient - [1786599304438_192.168.129.41_53999]Ignore complete event,isRunning:false,isAbandon=false
+2026-08-13 14:06:32.628 [SpringContextShutdownHook] INFO  c.a.n.c.r.client.grpc.GrpcClient - Shutdown grpc executor java.util.concurrent.ThreadPoolExecutor@6e72c80a[Running, pool size = 4, active threads = 1, queued tasks = 0, completed tasks = 393]
+2026-08-13 14:06:32.629 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - Shutdown grpc redo service executor java.util.concurrent.ScheduledThreadPoolExecutor@4f83f159[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 626]
+2026-08-13 14:06:32.630 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.NamingClientProxyDelegate do shutdown stop
+2026-08-13 14:07:05.878 [main] INFO  com.api.BcdComboxApplication - The following profiles are active: ZHANJI
+2026-08-13 14:07:13.720 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:07:13.721 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:07:13.725 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:07:15.988 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:07:16.566 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户数据
+2026-08-13 14:07:16.566 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenantDataBase/getTenantData
+2026-08-13 14:07:16.566 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:07:16.634 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":4,"CONNECT_IP":"172.29.241.133","CONNECT_NAME":"WMS","DRIVER_CLASS_NAME":"dm.jdbc.driver.DmDriver","TRX_DATE":"2026-02-10T03:30:42.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project","CONNECT_STRING":"jdbc:dm://172.29.241.133:5136","DATABASE_ID":"project","DATABASE_KEY":"231f27f3-a2f4-4e6d-91ab-002683d972a0","CONNECT_PORT":"5136","DATABASE_NAME":"项目","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"WMS","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"},{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":3,"CONNECT_IP":"172.29.241.131","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:31:56.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project_log","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8","DATABASE_ID":"project_log","DATABASE_KEY":"aa508d2e-0e1f-4ea8-91d1-1b1fa91b4536","CONNECT_PORT":"5432","DATABASE_NAME":"日志","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"postgres","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"}],"customValue":null}
+2026-08-13 14:07:19.204 [main] INFO  com.server.log4.LogbackConfigurator - 准备获取平台日志数据库
+2026-08-13 14:07:19.205 [main] INFO  com.server.log4.LogbackConfigurator - 请求地址：http://172.29.241.131:10007/log/getDataSource
+2026-08-13 14:07:19.205 [main] INFO  com.server.log4.LogbackConfigurator - 发送请求
+2026-08-13 14:07:19.233 [main] INFO  com.server.log4.LogbackConfigurator - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","DATABASE_KEY":"3","CONNECT_PORT":"5432","ACTIVE":1,"DATABASE_TYPE":3,"CREATE_DATE":"2025-03-11T02:23:10.000+00:00","CONNECT_IP":"172.29.241.131","CONNECT_USERID":"postgres","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:22:10.000+00:00","TRX_USER_KEY":5581,"CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","CREATE_USER_NAME":"","CREATE_USER_KEY":"","SYSTEM_TYPE":"WMS","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8"}],"customValue":null}
+2026-08-13 14:07:20.590 [main] INFO  com.server.minio.MinioConfig - Initializing MinIO Client for endpoint: http://172.29.241.134:9000
+2026-08-13 14:07:23.217 [main] INFO  org.redisson.Version - Redisson 4.4.0
+2026-08-13 14:07:29.789 [redisson-netty-4-6] INFO  o.r.connection.ConnectionsHolder - 1 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 14:07:29.878 [redisson-netty-4-11] INFO  o.r.connection.ConnectionsHolder - 4 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 14:07:30.701 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 14:07:30.754 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 14:07:38.261 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property : null
+2026-08-13 14:07:38.264 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Environment :null
+2026-08-13 14:07:38.269 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property :null
+2026-08-13 14:07:38.479 [main] INFO  c.alibaba.nacos.common.remote.client - [RpcClientFactory] create a new rpc client of e6960707-8fb1-4135-89ee-0f8a348e8e74
+2026-08-13 14:07:38.479 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]RpcClient init label, labels={module=naming, source=sdk}
+2026-08-13 14:07:38.502 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]RpcClient init, ServerListFactory =com.alibaba.nacos.client.naming.core.ServerListManager
+2026-08-13 14:07:38.503 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]Registry connection listener to current client:com.alibaba.nacos.client.naming.remote.gprc.redo.NamingGrpcRedoService
+2026-08-13 14:07:38.507 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]Register server push request handler:com.alibaba.nacos.client.naming.remote.gprc.NamingPushRequestHandler
+2026-08-13 14:07:38.508 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74] Try to connect to server on start up, server: {serverIp='172.29.241.131', server main port=8001}
+2026-08-13 14:07:38.658 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74] Success to connect to server [172.29.241.131:8001] on start up,connectionId=1786601257435_192.168.129.41_52690
+2026-08-13 14:07:38.659 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$ConnectResetRequestHandler
+2026-08-13 14:07:38.659 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]Notify connected event to listeners.
+2026-08-13 14:07:38.659 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-13 14:07:38.659 [main] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$4
+2026-08-13 14:07:38.754 [main] INFO  com.alibaba.nacos.client.naming - init new ips(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 14:07:38.823 [main] INFO  com.alibaba.nacos.client.naming - current ips:(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 14:07:39.007 [main] INFO  com.alibaba.nacos.client.naming - [REGISTER-SERVICE] lw registering service bcd-wms-combox with instance Instance{instanceId='null', ip='192.168.129.41', port=8010, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2026-08-13 14:07:39.034 [main] INFO  c.a.c.n.r.NacosServiceRegistry - nacos registry, DEFAULT_GROUP bcd-wms-combox 192.168.129.41:8010 register finished
+2026-08-13 14:07:39.387 [nacos-grpc-client-executor-6] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]receive server push request,request=NotifySubscriberRequest,requestId=7562
+2026-08-13 14:07:39.399 [nacos-grpc-client-executor-6] INFO  com.alibaba.nacos.client.naming - new ips(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-13 14:07:39.401 [nacos-grpc-client-executor-6] INFO  com.alibaba.nacos.client.naming - current ips:(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-13 14:07:39.404 [nacos-grpc-client-executor-6] INFO  c.alibaba.nacos.common.remote.client - [e6960707-8fb1-4135-89ee-0f8a348e8e74]ack server push request,request=NotifySubscriberRequest,requestId=7562
+2026-08-13 14:07:40.364 [main] INFO  com.api.BcdComboxApplication - Started BcdComboxApplication in 52.672 seconds (JVM running for 55.863)
+2026-08-13 14:07:40.386 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] logback.yml+saas-wms+wms
+2026-08-13 14:07:40.391 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=logback.yml, group=saas-wms, cnt=1
+2026-08-13 14:07:40.394 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] datasource.yml+saas-wms+wms
+2026-08-13 14:07:40.394 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=datasource.yml, group=saas-wms, cnt=1
+2026-08-13 14:07:40.395 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox.yaml+DEFAULT_GROUP+wms
+2026-08-13 14:07:40.395 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:07:40.395 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox-ZHANJI.yaml+DEFAULT_GROUP+wms
+2026-08-13 14:07:40.396 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox-ZHANJI.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:07:40.397 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] tenant.yml+saas-wms+wms
+2026-08-13 14:07:40.397 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=tenant.yml, group=saas-wms, cnt=1
+2026-08-13 14:07:40.398 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] redis.yml+saas-wms+wms
+2026-08-13 14:07:40.398 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=redis.yml, group=saas-wms, cnt=1
+2026-08-13 14:07:40.399 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox+DEFAULT_GROUP+wms
+2026-08-13 14:07:40.399 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:07:40.400 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] sentinel.yml+saas-wms+wms
+2026-08-13 14:07:40.401 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=sentinel.yml, group=saas-wms, cnt=1
+2026-08-13 14:09:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:09:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:09:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:09:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:10:17.820 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:10:17.833 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1  AND T.CONSIGNOR_KEY IN (SELECT CONSIGNOR_KEY FROM S_JURISDICTION_CONSIGNOR C  WHERE 1=1 AND C.JURISDICTION_KEY=543 AND C.ORG_KEY=1)
+2026-08-13 14:10:17.837 [http-nio-8010-exec-1] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Starting...
+2026-08-13 14:10:18.443 [http-nio-8010-exec-1] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Start completed.
+2026-08-13 14:10:18.936 [http-nio-8010-exec-3] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 14:10:18.937 [http-nio-8010-exec-3] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 14:10:20.353 [http-nio-8010-exec-4] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 14:10:20.353 [http-nio-8010-exec-4] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 14:10:20.501 [http-nio-8010-exec-5] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.DRIVER_KEY AS ID,T.DRIVER_NAME AS TEXT FROM B_DELIVER T WHERE  1=1 
+2026-08-13 14:10:20.503 [http-nio-8010-exec-5] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.DRIVER_KEY AS ID,T.DRIVER_NAME AS TEXT FROM B_DELIVER T WHERE  1=1 
+2026-08-13 14:10:20.629 [http-nio-8010-exec-6] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:10:20.631 [http-nio-8010-exec-6] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:10:20.789 [http-nio-8010-exec-7] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 14:10:20.790 [http-nio-8010-exec-7] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 14:10:48.846 [SpringContextShutdownHook] INFO  c.a.c.n.r.NacosServiceRegistry - De-registering from Nacos Server now...
+2026-08-13 14:10:48.847 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - [DEREGISTER-SERVICE] lw deregistering service bcd-wms-combox with instance: Instance{instanceId='null', ip='192.168.129.41', port=8010, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={}}
+2026-08-13 14:10:48.864 [SpringContextShutdownHook] INFO  c.a.c.n.r.NacosServiceRegistry - De-registration finished.
+2026-08-13 14:10:48.864 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.cache.ServiceInfoHolder do shutdown begin
+2026-08-13 14:10:48.864 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown begin
+2026-08-13 14:10:48.865 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown stop
+2026-08-13 14:10:48.865 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.cache.ServiceInfoHolder do shutdown stop
+2026-08-13 14:10:48.865 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.NamingClientProxyDelegate do shutdown begin
+2026-08-13 14:10:48.865 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServiceInfoUpdateService do shutdown begin
+2026-08-13 14:10:49.195 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServiceInfoUpdateService do shutdown stop
+2026-08-13 14:10:49.196 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServerListManager do shutdown begin
+2026-08-13 14:10:49.196 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.core.ServerListManager do shutdown stop
+2026-08-13 14:10:49.197 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.http.NamingHttpClientProxy do shutdown begin
+2026-08-13 14:10:49.197 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.beat.BeatReactor do shutdown begin
+2026-08-13 14:10:49.197 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.beat.BeatReactor do shutdown stop
+2026-08-13 14:10:49.198 [SpringContextShutdownHook] INFO  c.a.n.c.identify.CredentialWatcher - [null] CredentialWatcher is stopped
+2026-08-13 14:10:49.198 [SpringContextShutdownHook] INFO  c.a.n.c.identify.CredentialService - [null] CredentialService is freed
+2026-08-13 14:10:49.199 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.http.NamingHttpClientProxy do shutdown stop
+2026-08-13 14:10:49.199 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Shutdown rpc client ,set status to shutdown
+2026-08-13 14:10:49.199 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Shutdown  client event executor java.util.concurrent.ScheduledThreadPoolExecutor@bfc7443[Running, pool size = 2, active threads = 2, queued tasks = 0, completed tasks = 0]
+2026-08-13 14:10:49.199 [SpringContextShutdownHook] INFO  c.alibaba.nacos.common.remote.client - Close current connection 1786601257435_192.168.129.41_52690
+2026-08-13 14:10:49.200 [SpringContextShutdownHook] INFO  c.a.n.c.r.client.grpc.GrpcClient - Shutdown grpc executor java.util.concurrent.ThreadPoolExecutor@184bbaaf[Running, pool size = 4, active threads = 0, queued tasks = 0, completed tasks = 48]
+2026-08-13 14:10:49.200 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - Shutdown grpc redo service executor java.util.concurrent.ScheduledThreadPoolExecutor@7ef69b73[Running, pool size = 1, active threads = 0, queued tasks = 1, completed tasks = 63]
+2026-08-13 14:10:49.200 [SpringContextShutdownHook] INFO  com.alibaba.nacos.client.naming - com.alibaba.nacos.client.naming.remote.NamingClientProxyDelegate do shutdown stop
+2026-08-13 14:11:14.222 [main] INFO  com.api.BcdComboxApplication - The following profiles are active: ZHANJI
+2026-08-13 14:11:21.672 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:11:21.673 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:11:21.682 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:11:24.281 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:11:25.296 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户数据
+2026-08-13 14:11:25.296 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenantDataBase/getTenantData
+2026-08-13 14:11:25.296 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:11:25.357 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":4,"CONNECT_IP":"172.29.241.133","CONNECT_NAME":"WMS","DRIVER_CLASS_NAME":"dm.jdbc.driver.DmDriver","TRX_DATE":"2026-02-10T03:30:42.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project","CONNECT_STRING":"jdbc:dm://172.29.241.133:5136","DATABASE_ID":"project","DATABASE_KEY":"231f27f3-a2f4-4e6d-91ab-002683d972a0","CONNECT_PORT":"5136","DATABASE_NAME":"项目","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"WMS","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"},{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":3,"CONNECT_IP":"172.29.241.131","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:31:56.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project_log","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8","DATABASE_ID":"project_log","DATABASE_KEY":"aa508d2e-0e1f-4ea8-91d1-1b1fa91b4536","CONNECT_PORT":"5432","DATABASE_NAME":"日志","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"postgres","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"}],"customValue":null}
+2026-08-13 14:11:28.223 [main] INFO  com.server.log4.LogbackConfigurator - 准备获取平台日志数据库
+2026-08-13 14:11:28.225 [main] INFO  com.server.log4.LogbackConfigurator - 请求地址：http://172.29.241.131:10007/log/getDataSource
+2026-08-13 14:11:28.225 [main] INFO  com.server.log4.LogbackConfigurator - 发送请求
+2026-08-13 14:11:28.256 [main] INFO  com.server.log4.LogbackConfigurator - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","DATABASE_KEY":"3","CONNECT_PORT":"5432","ACTIVE":1,"DATABASE_TYPE":3,"CREATE_DATE":"2025-03-11T02:23:10.000+00:00","CONNECT_IP":"172.29.241.131","CONNECT_USERID":"postgres","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:22:10.000+00:00","TRX_USER_KEY":5581,"CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","CREATE_USER_NAME":"","CREATE_USER_KEY":"","SYSTEM_TYPE":"WMS","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8"}],"customValue":null}
+2026-08-13 14:11:29.842 [main] INFO  com.server.minio.MinioConfig - Initializing MinIO Client for endpoint: http://172.29.241.134:9000
+2026-08-13 14:11:32.572 [main] INFO  org.redisson.Version - Redisson 4.4.0
+2026-08-13 14:11:40.334 [redisson-netty-4-4] INFO  o.r.connection.ConnectionsHolder - 1 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 14:11:40.400 [redisson-netty-4-11] INFO  o.r.connection.ConnectionsHolder - 4 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-13 14:11:41.199 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 14:11:41.253 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-13 14:11:50.158 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property : null
+2026-08-13 14:11:50.164 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Environment :null
+2026-08-13 14:11:50.170 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property :null
+2026-08-13 14:11:50.471 [main] INFO  c.alibaba.nacos.common.remote.client - [RpcClientFactory] create a new rpc client of 632462c5-fd86-459a-9632-90ab2953542e
+2026-08-13 14:11:50.472 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]RpcClient init label, labels={module=naming, source=sdk}
+2026-08-13 14:11:50.490 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]RpcClient init, ServerListFactory =com.alibaba.nacos.client.naming.core.ServerListManager
+2026-08-13 14:11:50.491 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Registry connection listener to current client:com.alibaba.nacos.client.naming.remote.gprc.redo.NamingGrpcRedoService
+2026-08-13 14:11:50.495 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Register server push request handler:com.alibaba.nacos.client.naming.remote.gprc.NamingPushRequestHandler
+2026-08-13 14:11:50.497 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] Try to connect to server on start up, server: {serverIp='172.29.241.131', server main port=8001}
+2026-08-13 14:11:50.644 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] Success to connect to server [172.29.241.131:8001] on start up,connectionId=1786601509422_192.168.129.41_53553
+2026-08-13 14:11:50.645 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Notify connected event to listeners.
+2026-08-13 14:11:50.645 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-13 14:11:50.645 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$ConnectResetRequestHandler
+2026-08-13 14:11:50.646 [main] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$4
+2026-08-13 14:11:50.750 [main] INFO  com.alibaba.nacos.client.naming - init new ips(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 14:11:50.822 [main] INFO  com.alibaba.nacos.client.naming - current ips:(0) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> []
+2026-08-13 14:11:51.092 [main] INFO  com.alibaba.nacos.client.naming - [REGISTER-SERVICE] lw registering service bcd-wms-combox with instance Instance{instanceId='null', ip='192.168.129.41', port=8010, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2026-08-13 14:11:51.121 [main] INFO  c.a.c.n.r.NacosServiceRegistry - nacos registry, DEFAULT_GROUP bcd-wms-combox 192.168.129.41:8010 register finished
+2026-08-13 14:11:51.358 [nacos-grpc-client-executor-5] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]receive server push request,request=NotifySubscriberRequest,requestId=7565
+2026-08-13 14:11:51.372 [nacos-grpc-client-executor-5] INFO  com.alibaba.nacos.client.naming - new ips(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-13 14:11:51.374 [nacos-grpc-client-executor-5] INFO  com.alibaba.nacos.client.naming - current ips:(1) service: DEFAULT_GROUP@@bcd-wms-combox@@DEFAULT -> [{"instanceId":"192.168.129.41#8010#DEFAULT#DEFAULT_GROUP@@bcd-wms-combox","ip":"192.168.129.41","port":8010,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-combox","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-13 14:11:51.376 [nacos-grpc-client-executor-5] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]ack server push request,request=NotifySubscriberRequest,requestId=7565
+2026-08-13 14:11:52.630 [main] INFO  com.api.BcdComboxApplication - Started BcdComboxApplication in 51.947 seconds (JVM running for 56.079)
+2026-08-13 14:11:52.661 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] logback.yml+saas-wms+wms
+2026-08-13 14:11:52.665 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=logback.yml, group=saas-wms, cnt=1
+2026-08-13 14:11:52.666 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] datasource.yml+saas-wms+wms
+2026-08-13 14:11:52.668 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=datasource.yml, group=saas-wms, cnt=1
+2026-08-13 14:11:52.669 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox.yaml+DEFAULT_GROUP+wms
+2026-08-13 14:11:52.669 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:11:52.670 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox-ZHANJI.yaml+DEFAULT_GROUP+wms
+2026-08-13 14:11:52.671 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox-ZHANJI.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:11:52.672 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] tenant.yml+saas-wms+wms
+2026-08-13 14:11:52.673 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=tenant.yml, group=saas-wms, cnt=1
+2026-08-13 14:11:52.674 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] redis.yml+saas-wms+wms
+2026-08-13 14:11:52.675 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=redis.yml, group=saas-wms, cnt=1
+2026-08-13 14:11:52.675 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-combox+DEFAULT_GROUP+wms
+2026-08-13 14:11:52.675 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-combox, group=DEFAULT_GROUP, cnt=1
+2026-08-13 14:11:52.677 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] sentinel.yml+saas-wms+wms
+2026-08-13 14:11:52.677 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=sentinel.yml, group=saas-wms, cnt=1
+2026-08-13 14:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:12:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:12:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:12:00.057 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:15:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:15:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:15:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:15:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:16:36.591 [http-nio-8010-exec-2] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN,PORDER_TYPE FROM S_ORDER_TYPE T WHERE T.ORDER_TYPE_ID <> 'KCDB'  AND T.ACTIVE=1 AND (T.PORDER_TYPE=-2 OR T.ORDER_TYPE_ID= 'JXQBH') AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) 
+2026-08-13 14:16:36.608 [http-nio-8010-exec-2] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN,PORDER_TYPE FROM S_ORDER_TYPE T WHERE T.ORDER_TYPE_ID <> 'KCDB'  AND T.ACTIVE=1 AND (T.PORDER_TYPE=-2 OR T.ORDER_TYPE_ID= 'JXQBH') AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) 
+2026-08-13 14:16:36.614 [http-nio-8010-exec-2] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Starting...
+2026-08-13 14:16:37.491 [http-nio-8010-exec-2] INFO  com.zaxxer.hikari.HikariDataSource - project-WMS_TEST - Start completed.
+2026-08-13 14:16:38.308 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_CATEGORIES_ID AS ID,T.ORDER_CATEGORIES_NAME AS TEXT,ORDER_CATEGORIES_KEY FROM S_ORDER_CATEGORIES T WHERE  T.ACTIVE=1 AND T.PORDER_TYPE=-6 AND T.ORDER_CATEGORIES_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504)
+2026-08-13 14:16:38.308 [http-nio-8010-exec-1] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_CATEGORIES_ID AS ID,T.ORDER_CATEGORIES_NAME AS TEXT,ORDER_CATEGORIES_KEY FROM S_ORDER_CATEGORIES T WHERE  T.ACTIVE=1 AND T.PORDER_TYPE=-6 AND T.ORDER_CATEGORIES_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504)
+2026-08-13 14:18:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:18:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:18:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:18:00.034 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:21:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:21:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:21:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:21:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:24:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:24:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:24:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:24:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:27:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:27:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:27:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:27:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:28:23.800 [http-nio-8010-exec-37] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:28:23.839 [http-nio-8010-exec-37] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT CONSIGNOR_KEY AS ID,CONSIGNOR_ID ||'-'|| CONSIGNOR_NAME AS TEXT ,CONSIGNOR_ID  FROM B_CONSIGNOR T WHERE 1=1  AND T.ACTIVE=1  AND T.CONSIGNOR_KEY IN (SELECT CONSIGNOR_KEY FROM S_JURISDICTION_CONSIGNOR C  WHERE 1=1 AND C.JURISDICTION_KEY=543 AND C.ORG_KEY=1)
+2026-08-13 14:28:24.040 [http-nio-8010-exec-39] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 14:28:24.042 [http-nio-8010-exec-39] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','WLCT', 'CPTK')
+2026-08-13 14:28:28.222 [http-nio-8010-exec-42] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 14:28:28.223 [http-nio-8010-exec-42] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT ITEM_CLASS_KEY AS  ID,ITEM_CLASS_ID || '-' || ITEM_CLASS_NAME AS TEXT FROM B_ITEM_CLASS WHERE ACTIVE=1
+2026-08-13 14:28:28.552 [http-nio-8010-exec-43] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.DELIVER_KEY AS ID,T.DELIVERT_NAME AS TEXT FROM B_DELIVER T WHERE  1=1 
+2026-08-13 14:28:28.556 [http-nio-8010-exec-43] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.DELIVER_KEY AS ID,T.DELIVERT_NAME AS TEXT FROM B_DELIVER T WHERE  1=1 
+2026-08-13 14:28:28.722 [http-nio-8010-exec-44] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:28:28.723 [http-nio-8010-exec-44] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:28:28.911 [http-nio-8010-exec-45] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 14:28:28.915 [http-nio-8010-exec-45] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT T.ORDER_TYPE_ID AS ID,T.ORDER_TYPE_NAME AS TEXT,ORDER_TYPE_KEY,IS_TRAN FROM S_ORDER_TYPE T WHERE  T.PORDER_TYPE=-2  AND T.ACTIVE=1 AND T.ORDER_TYPE_ID NOT IN(SELECT ORTYPE_KEY FROM S_USER_ORDERTYPE WHERE USER_KEY=1504) AND T.ORDER_TYPE_ID NOT IN('ADCT', 'KCDB', 'TZCK','CPCK','QTCK','ADCTZD','BHGDB','KCDB','KNZZ','KNCJ','WLCT','CPTK') AND T.ORDER_TYPE_ID NOT IN(SELECT ORDER_TYPE_ID FROM S_ORDER_TYPE WHERE PORDER_TYPE = -3)
+2026-08-13 14:29:05.503 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:29:10.967 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:30:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:30:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:30:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:30:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:30:40.784 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:30:46.140 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:32:16.495 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:32:21.806 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:33:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:33:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:33:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:33:00.032 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:33:51.983 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:33:57.451 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:35:27.493 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:35:32.964 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:36:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:36:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:36:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:36:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:37:02.983 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:37:08.334 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:38:38.383 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:38:43.651 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:39:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:39:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:40:13.998 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:40:19.348 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:41:49.482 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:41:54.755 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:42:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:42:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:42:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:42:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:43:24.889 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:43:30.353 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:45:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:45:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:45:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:45:00.069 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:45:00.495 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:45:05.836 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:46:35.896 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:46:41.245 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:48:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:48:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:48:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:48:00.051 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:48:11.385 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:48:16.746 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:49:46.888 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:49:52.354 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:51:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:51:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:51:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:51:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:51:22.396 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:51:27.826 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:51:40.949 [http-nio-8010-exec-46] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:51:40.964 [http-nio-8010-exec-46] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:51:41.267 [http-nio-8010-exec-48] INFO  c.a.c.PickSortingPortController - 分拣台管理
+2026-08-13 14:51:41.664 [http-nio-8010-exec-48] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT * FROM (SELECT T.TABLE_NAME,UPPER(T.COLUMN_NAME) AS COLUMN_NAME,T.DATA_TYPE,T.DATA_LENGTH,0 IS_COLUMN  FROM USER_TAB_COLUMNS T WHERE 1=1   AND   UPPER(T.TABLE_NAME)='B_PICK_SORTING_PORT' UNION ALL SELECT UPPER(T.TABLE_NAME) TABLE_NAME, UPPER(T.COLUMN_NAME) COLUMN_NAME ,T.COLUMN_TYPE DATA_TYPE, T.COLUMN_SIZE DATA_LENGTH,1 IS_COLUMN  FROM S_XML_MANAGE T  WHERE 1=1   AND  UPPER(T.TABLE_NAME)='B_PICK_SORTING_PORT')T WHERE 1 = 1
+2026-08-13 14:51:41.748 [http-nio-8010-exec-48] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT PICK_SORTING_PORT_KEY AS ID,PICK_SORTING_PORT_ID ||'-'|| PICK_SORTING_PORT_NAME AS TEXT ,PICK_SORTING_PORT_ID  FROM B_PICK_SORTING_PORT T WHERE 1=1  AND T.ACTIVE=1  AND  T.WH_KEY  = ? AND  T.PICK_SORTING_PORT_TYPE  = ?
+2026-08-13 14:51:41.748 [http-nio-8010-exec-48] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT PICK_SORTING_PORT_KEY AS ID,PICK_SORTING_PORT_ID ||'-'|| PICK_SORTING_PORT_NAME AS TEXT ,PICK_SORTING_PORT_ID  FROM B_PICK_SORTING_PORT T WHERE 1=1  AND T.ACTIVE=1  AND  T.WH_KEY  = ? AND  T.PICK_SORTING_PORT_TYPE  = ?
+2026-08-13 14:51:41.758 [http-nio-8010-exec-48] INFO  com.server.db.DbHelp - 参数化：
+2026-08-13 14:51:41.758 [http-nio-8010-exec-48] INFO  com.server.db.DbHelp - 参数名：WH_KEY 参数类型：DOUBLE 值：142452
+2026-08-13 14:51:41.791 [http-nio-8010-exec-48] INFO  com.server.db.DbHelp - 参数名：PICK_SORTING_PORT_TYPE 参数类型：DOUBLE 值：0
+2026-08-13 14:52:57.986 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:53:03.435 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:54:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:54:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:54:00.109 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:54:03.943 [http-nio-8010-exec-49] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:54:03.943 [http-nio-8010-exec-49] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT WH_KEY AS ID,WH_ID ||'-'|| WH_NAME AS TEXT ,WH_ID,ORG_KEY  FROM B_WAREHOUSE T WHERE 1=1  AND T.ACTIVE=1 
+2026-08-13 14:54:04.054 [http-nio-8010-exec-50] INFO  c.a.c.PickSortingPortController - 分拣台管理
+2026-08-13 14:54:04.070 [http-nio-8010-exec-50] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT PICK_SORTING_PORT_KEY AS ID,PICK_SORTING_PORT_ID ||'-'|| PICK_SORTING_PORT_NAME AS TEXT ,PICK_SORTING_PORT_ID  FROM B_PICK_SORTING_PORT T WHERE 1=1  AND T.ACTIVE=1  AND  T.WH_KEY  = ? AND  T.PICK_SORTING_PORT_TYPE  = ?
+2026-08-13 14:54:04.070 [http-nio-8010-exec-50] INFO  com.server.syntax.DbConvertSql - 执行SQL:SELECT PICK_SORTING_PORT_KEY AS ID,PICK_SORTING_PORT_ID ||'-'|| PICK_SORTING_PORT_NAME AS TEXT ,PICK_SORTING_PORT_ID  FROM B_PICK_SORTING_PORT T WHERE 1=1  AND T.ACTIVE=1  AND  T.WH_KEY  = ? AND  T.PICK_SORTING_PORT_TYPE  = ?
+2026-08-13 14:54:04.102 [http-nio-8010-exec-50] INFO  com.server.db.DbHelp - 参数化：
+2026-08-13 14:54:04.102 [http-nio-8010-exec-50] INFO  com.server.db.DbHelp - 参数名：WH_KEY 参数类型：DOUBLE 值：142452
+2026-08-13 14:54:04.102 [http-nio-8010-exec-50] INFO  com.server.db.DbHelp - 参数名：PICK_SORTING_PORT_TYPE 参数类型：DOUBLE 值：0
+2026-08-13 14:54:33.384 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:54:38.803 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:56:08.887 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:56:14.334 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:57:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 14:57:00.068 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 14:57:00.068 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 14:57:00.154 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 14:57:44.398 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:57:49.844 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 14:59:19.891 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 14:59:25.356 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:00:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:00:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:00:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:00:00.065 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:00:55.395 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:01:00.851 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:02:30.886 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:02:36.262 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:03:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:03:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:03:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:03:00.052 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:04:06.387 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:04:11.755 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:05:41.896 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:05:47.337 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:06:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:06:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:06:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:06:00.067 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:07:17.390 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:07:22.750 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:08:52.884 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:08:58.336 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:09:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:09:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:09:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:09:00.057 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:10:28.384 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:10:33.932 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:12:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:12:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:12:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:12:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:12:03.883 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:12:09.135 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:13:39.497 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:13:44.959 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:15:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:15:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:15:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:15:00.029 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:15:14.993 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:15:20.349 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:16:50.393 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:16:55.883 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:18:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:18:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:18:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:18:00.036 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:18:25.887 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:18:31.123 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:20:01.283 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:20:06.617 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:21:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:21:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:21:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:21:00.051 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:21:36.694 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:21:42.125 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:23:12.184 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:23:17.652 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:24:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:24:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:24:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:24:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:24:47.590 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:24:52.806 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:26:23.093 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:26:28.432 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:27:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:27:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:27:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:27:00.041 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:27:58.686 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:28:04.045 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:29:34.189 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:29:39.434 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:30:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:30:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:30:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:30:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:31:09.582 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:31:15.048 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:32:45.086 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:32:50.829 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:33:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:33:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:33:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:33:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:34:20.591 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:34:25.809 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:35:56.183 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:36:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:36:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:36:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:36:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:36:01.414 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:37:31.388 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:37:36.739 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:39:00.056 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:39:06.896 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:39:12.343 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:40:42.489 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:40:47.856 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:42:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:42:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:42:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:42:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:42:17.898 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:42:23.220 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:43:53.382 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:43:58.645 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:45:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:45:00.045 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:45:28.890 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:45:34.247 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:47:04.495 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:47:09.724 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:48:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:48:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:48:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:48:00.042 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:48:39.893 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:48:45.336 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:50:15.393 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:50:20.628 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:51:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:51:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:51:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:51:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:51:50.885 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:51:56.130 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:53:26.386 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:53:31.849 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:54:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:54:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:54:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:54:00.053 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:55:01.989 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:55:07.230 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:56:37.386 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:56:42.739 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 15:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 15:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 15:57:00.081 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 15:58:12.883 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:58:18.349 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 15:59:48.385 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 15:59:53.644 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:00:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:00:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:00:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:00:00.077 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:01:23.893 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:01:29.219 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:02:59.390 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:03:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:03:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:03:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:03:00.053 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:03:04.850 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:04:34.888 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:04:40.110 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:06:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:06:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:06:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:06:00.063 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:06:10.386 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:06:15.597 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:07:45.783 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:07:51.133 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:09:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:09:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:09:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:09:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:09:21.386 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:09:26.773 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:10:56.883 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:11:02.126 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:12:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:12:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:12:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:12:32.485 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:12:37.745 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:14:07.882 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:14:13.227 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:15:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:15:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:15:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:15:00.083 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:15:43.488 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:15:48.951 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:17:18.991 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:17:24.419 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:18:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:18:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:18:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:18:00.061 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:18:54.386 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:18:59.725 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:20:29.888 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:20:35.247 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:21:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:21:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:21:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:21:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:22:05.388 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:22:10.634 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:23:40.883 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:23:46.355 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:24:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:24:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:24:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:24:00.093 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:25:16.383 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:25:21.790 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:26:51.882 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:26:57.734 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:27:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:27:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:27:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:27:00.066 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:28:27.391 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:28:32.746 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:30:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:30:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:30:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:30:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:30:02.891 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:30:08.138 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:31:38.390 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:31:43.703 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:33:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:33:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:33:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:33:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:33:13.888 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:33:19.124 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:34:49.496 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:34:55.053 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:36:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:36:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:36:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:36:00.041 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:36:24.883 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:36:30.256 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:38:00.501 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:38:06.071 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:39:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:39:00.033 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:39:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:39:00.154 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:39:35.992 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:39:41.452 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:41:11.490 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:41:17.001 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:42:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:42:00.029 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:42:00.033 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:42:00.132 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:42:46.896 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:42:52.355 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:44:22.396 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:44:27.987 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:45:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:45:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:45:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:45:58.000 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:46:03.446 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:47:33.391 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:47:38.732 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:48:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:48:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:48:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:48:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:49:08.990 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:49:14.448 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:50:44.389 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:50:49.862 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:51:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:51:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:51:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:51:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:52:19.889 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:52:25.246 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:53:55.383 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:54:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:54:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:54:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:54:00.057 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:54:00.830 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:55:30.895 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:55:36.339 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:57:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 16:57:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 16:57:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 16:57:00.065 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 16:57:06.387 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:57:11.838 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 16:58:41.886 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 16:58:47.241 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:00:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:00:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:00:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:00:17.382 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:00:23.805 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:01:53.044 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:01:58.396 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:03:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:03:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:03:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:03:00.038 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:03:28.384 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:03:33.720 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:05:03.882 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:05:09.238 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:06:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:06:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:06:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:06:00.042 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:06:39.488 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:06:44.852 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:08:14.884 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:08:20.355 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:09:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:09:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:09:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:09:00.132 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:09:50.392 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:09:55.742 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:11:25.882 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:11:31.223 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:12:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:12:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:12:00.076 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:13:01.200 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:13:06.408 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:14:36.583 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:14:41.814 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:15:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:15:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:15:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:15:00.048 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:16:12.183 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:16:17.406 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:17:47.688 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:17:53.010 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:18:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:18:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:18:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:18:00.075 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:19:23.091 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:19:28.335 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:20:58.588 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:21:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:21:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:21:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:21:00.065 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:21:04.027 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:22:34.083 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:22:39.577 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:24:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:24:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:24:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:24:00.089 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:24:09.583 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:24:15.055 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:25:45.182 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:25:50.537 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:27:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:27:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:27:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:27:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:27:20.682 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:27:26.042 [lettuce-nioEventLoop-7-4] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:28:56.097 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:29:01.475 [lettuce-nioEventLoop-7-7] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:30:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:30:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:30:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:30:00.041 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:30:31.587 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:30:37.000 [lettuce-nioEventLoop-7-2] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:32:06.885 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:32:12.248 [lettuce-nioEventLoop-7-5] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:33:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:33:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:33:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:33:00.059 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:33:42.383 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:33:47.838 [lettuce-nioEventLoop-7-8] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:35:17.883 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:35:23.235 [lettuce-nioEventLoop-7-3] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:36:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 17:36:53.382 [lettuce-eventExecutorLoop-1-4] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:36:58.741 [lettuce-nioEventLoop-7-6] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:38:28.883 [lettuce-eventExecutorLoop-1-1] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was /172.29.241.131:8004
+2026-08-13 17:38:34.236 [lettuce-nioEventLoop-7-1] INFO  i.l.c.protocol.ReconnectionHandler - Reconnected to 172.29.241.131:8004
+2026-08-13 17:39:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 17:39:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 17:39:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 17:39:00.050 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:29:12.380 [nacos-grpc-client-executor-2541] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]receive server push request,request=ClientDetectionRequest,requestId=7661
+2026-08-13 18:29:12.380 [nacos-grpc-client-executor-2533] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]receive server push request,request=ClientDetectionRequest,requestId=7653
+2026-08-13 18:29:12.389 [nacos-grpc-client-executor-2533] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]ack server push request,request=ClientDetectionRequest,requestId=7653
+2026-08-13 18:29:12.389 [nacos-grpc-client-executor-2541] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]ack server push request,request=ClientDetectionRequest,requestId=7661
+2026-08-13 18:29:12.490 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-13 18:29:12.490 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-13 18:29:14.350 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] success to connect a server  [172.29.241.131:8001],connectionId=1786616952427_192.168.129.41_58982
+2026-08-13 18:29:14.351 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1786601509422_192.168.129.41_53553
+2026-08-13 18:29:14.449 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Notify disconnected event to listeners
+2026-08-13 18:29:14.464 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Notify connected event to listeners.
+2026-08-13 18:29:14.465 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-13 18:29:14.493 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1786616952427_192.168.129.41_58983
+2026-08-13 18:29:14.494 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1786601472168_192.168.129.41_52394
+2026-08-13 18:29:14.496 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify disconnected event to listeners
+2026-08-13 18:29:14.499 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] DisConnected,clear listen context...
+2026-08-13 18:29:14.502 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify connected event to listeners.
+2026-08-13 18:29:14.503 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Connected,notify listen context...
+2026-08-13 18:29:15.439 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-combox
+2026-08-13 18:29:15.482 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-combox#DEFAULT
+2026-08-13 18:29:15.983 [nacos-grpc-client-executor-2548] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]receive server push request,request=NotifySubscriberRequest,requestId=7693
+2026-08-13 18:29:15.987 [nacos-grpc-client-executor-2548] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]ack server push request,request=NotifySubscriberRequest,requestId=7693
+2026-08-13 18:31:50.320 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:31:50.321 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:31:50.322 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:31:50.342 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:33:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:33:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:33:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:33:00.041 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:41:51.397 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Server healthy check fail,currentConnection=1786616952427_192.168.129.41_58983
+2026-08-13 18:41:51.397 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-13 18:41:51.590 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1786617710258_192.168.129.41_49700
+2026-08-13 18:41:51.591 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1786616952427_192.168.129.41_58983
+2026-08-13 18:41:51.592 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-13 18:41:51.592 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify disconnected event to listeners
+2026-08-13 18:41:51.592 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] DisConnected,clear listen context...
+2026-08-13 18:41:51.594 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify connected event to listeners.
+2026-08-13 18:41:51.594 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Connected,notify listen context...
+2026-08-13 18:41:51.740 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1786617710435_192.168.129.41_49706
+2026-08-13 18:41:51.740 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1786617710258_192.168.129.41_49700
+2026-08-13 18:41:51.750 [nacos-grpc-client-executor-2606] INFO  c.a.n.c.r.client.grpc.GrpcClient - [1786617710258_192.168.129.41_49700]Ignore complete event,isRunning:false,isAbandon=true
+2026-08-13 18:41:51.750 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify disconnected event to listeners
+2026-08-13 18:41:51.751 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] DisConnected,clear listen context...
+2026-08-13 18:41:51.751 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]Notify connected event to listeners.
+2026-08-13 18:41:51.751 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Connected,notify listen context...
+2026-08-13 18:41:51.758 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0] Server check success,currentServer is172.29.241.131:8001 
+2026-08-13 18:41:54.210 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Server healthy check fail,currentConnection=1786616952427_192.168.129.41_58982
+2026-08-13 18:41:54.211 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-13 18:41:54.362 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] success to connect a server  [172.29.241.131:8001],connectionId=1786617713057_192.168.129.41_51626
+2026-08-13 18:41:54.362 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1786616952427_192.168.129.41_58982
+2026-08-13 18:41:54.364 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Notify disconnected event to listeners
+2026-08-13 18:41:54.364 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]Notify connected event to listeners.
+2026-08-13 18:41:54.365 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-13 18:41:55.957 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-combox
+2026-08-13 18:41:55.972 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-combox#DEFAULT
+2026-08-13 18:41:56.483 [nacos-grpc-client-executor-2615] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]receive server push request,request=NotifySubscriberRequest,requestId=7732
+2026-08-13 18:41:56.489 [nacos-grpc-client-executor-2615] INFO  c.alibaba.nacos.common.remote.client - [632462c5-fd86-459a-9632-90ab2953542e]ack server push request,request=NotifySubscriberRequest,requestId=7732
+2026-08-13 18:43:30.597 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:43:30.604 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:43:30.613 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:43:30.666 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:45:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:45:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:45:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:45:00.030 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:48:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:48:00.129 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:48:00.134 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:48:00.455 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:51:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:51:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:51:00.057 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:51:00.146 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:54:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:54:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:54:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:54:00.056 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 18:57:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 18:57:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 18:57:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 18:57:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:00:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:00:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:00:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:00:00.117 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:03:00.029 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:03:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:03:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:03:00.050 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:06:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:06:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:06:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:06:00.058 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:09:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:09:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:09:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:09:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:12:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:12:00.083 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:12:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:12:00.310 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:15:00.033 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:15:00.349 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:15:00.373 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:15:01.325 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:18:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:18:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:18:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:18:00.146 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:21:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:21:00.052 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:21:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:21:00.163 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:24:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:24:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:24:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:24:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:27:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:27:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:27:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:27:00.058 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:30:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:30:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:30:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:30:00.043 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:33:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:33:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:33:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:33:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:36:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:36:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:36:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:36:00.041 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:39:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:39:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:39:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:39:00.059 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:42:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:42:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:42:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:42:00.034 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:44:58.952 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:44:58.958 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:44:58.958 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:44:58.993 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:48:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:48:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:48:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:48:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:51:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:51:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:51:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:51:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:54:00.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:54:00.027 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:54:00.027 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:54:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 19:57:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 19:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 19:57:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 19:57:00.061 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:00:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:00:00.071 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:03:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:03:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:03:00.036 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:03:00.144 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:06:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:06:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:06:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:06:00.082 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:09:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:09:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:09:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:09:00.137 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:12:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:12:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:12:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:12:00.071 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:15:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:15:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:15:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:15:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:18:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:18:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:18:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:18:00.087 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:21:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:21:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:21:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:21:00.082 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:23:44.539 [nacos-grpc-client-executor-3837] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]receive server push request,request=ClientDetectionRequest,requestId=7793
+2026-08-13 20:23:44.554 [nacos-grpc-client-executor-3837] INFO  c.alibaba.nacos.common.remote.client - [f4e30c26-836e-4083-8dc3-bf4f1b9a0529_config-0]ack server push request,request=ClientDetectionRequest,requestId=7793
+2026-08-13 20:24:16.025 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:24:16.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:24:16.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:24:16.048 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:27:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:27:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:27:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:27:00.050 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:30:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:30:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:30:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:30:00.079 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:33:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:33:00.177 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:33:00.177 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:33:00.312 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:36:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:36:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:36:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:36:00.120 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:39:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:39:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:39:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:39:00.070 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:42:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:42:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:42:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:42:00.082 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:45:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:45:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:45:00.081 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:48:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:48:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:48:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:48:00.228 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:51:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:51:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:51:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:51:00.259 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:54:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:54:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:54:00.075 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 20:57:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 20:57:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 20:57:00.035 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 20:57:00.153 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-13 21:00:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-13 21:00:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-13 21:00:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-13 21:00:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}

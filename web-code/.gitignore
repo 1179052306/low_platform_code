@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+npm-debug.log*
+*.log
+.env
+.env.*
+.qoder/
+src/devextreme-license.ts

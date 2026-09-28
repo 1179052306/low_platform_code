@@ -1,0 +1,340 @@
+version: '3.8'
+
+# 公共环境变量（修改这里即可切换环境）
+x-nacos-env: &nacos-env
+  NACOS_SERVER_ADDR: "nacos:8848"
+  NACOS_USERNAME: "nacos"
+  NACOS_PASSWORD: "nacos"
+  NACOS_DISCOVERY_NAMESPACE: "public"
+  NACOS_CONFIG_NAMESPACE: "public"
+
+x-fat-jar-java: &fat-jar-java
+  JAVA_OPTS: "-server -Xms1G -Xmx1G -XX:+UseG1GC -Dfile.encoding=utf-8"
+
+x-thin-jar-java: &thin-jar-java
+  JAVA_OPTS: "-server -Xms1G -Xmx1G -XX:+UseG1GC -Dfile.encoding=utf-8 -Dloader.path=/app/lib"
+
+services:
+  # ==================== Nacos Server ====================
+  nacos:
+    image: nacos/nacos-server:2.1.0
+    container_name: nacos
+    environment:
+      - MODE=standalone
+      - JVM_XMS=512m
+      - JVM_XMX=512m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    networks:
+      - wms-net
+
+  # ==================== Gateway (fat jar) ====================
+  bcd-wms-gateway:
+    build:
+      context: ./bcd-wms-gateway
+      dockerfile: Dockerfile
+    container_name: bcd-wms-gateway
+    ports:
+      - "8004:8004"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *fat-jar-java]
+
+  # ==================== Auth (fat jar) ====================
+  bcd-wms-auth:
+    build:
+      context: ./bcd-wms-auth
+      dockerfile: Dockerfile
+    container_name: bcd-wms-auth
+    ports:
+      - "8003:8003"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *fat-jar-java]
+
+  # ==================== Thin jar services ====================
+  bcd-wms-base:
+    build:
+      context: ./bcd-wms-base
+      dockerfile: Dockerfile
+    container_name: bcd-wms-base
+    ports:
+      - "8015:8015"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-combox:
+    build:
+      context: ./bcd-wms-combox
+      dockerfile: Dockerfile
+    container_name: bcd-wms-combox
+    ports:
+      - "8010:8010"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-ifs:
+    build:
+      context: ./bcd-wms-ifs
+      dockerfile: Dockerfile
+    container_name: bcd-wms-ifs
+    ports:
+      - "8058:8058"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-in:
+    build:
+      context: ./bcd-wms-in
+      dockerfile: Dockerfile
+    container_name: bcd-wms-in
+    ports:
+      - "8009:8009"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-orderflow:
+    build:
+      context: ./bcd-wms-orderflow
+      dockerfile: Dockerfile
+    container_name: bcd-wms-orderflow
+    ports:
+      - "7256:7256"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-out:
+    build:
+      context: ./bcd-wms-out
+      dockerfile: Dockerfile
+    container_name: bcd-wms-out
+    ports:
+      - "8007:8007"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-report:
+    build:
+      context: ./bcd-wms-report
+      dockerfile: Dockerfile
+    container_name: bcd-wms-report
+    ports:
+      - "8021:8021"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-stock:
+    build:
+      context: ./bcd-wms-stock
+      dockerfile: Dockerfile
+    container_name: bcd-wms-stock
+    ports:
+      - "8012:8012"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-system:
+    build:
+      context: ./bcd-wms-system
+      dockerfile: Dockerfile
+    container_name: bcd-wms-system
+    ports:
+      - "8005:8005"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-tms:
+    build:
+      context: ./bcd-wms-tms
+      dockerfile: Dockerfile
+    container_name: bcd-wms-tms
+    ports:
+      - "8011:8011"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-websocket:
+    build:
+      context: ./bcd-wms-websocket
+      dockerfile: Dockerfile
+    container_name: bcd-wms-websocket
+    ports:
+      - "8025:8025"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  # ==================== API services (thin jar) ====================
+  bcd-wms-api-client:
+    build:
+      context: ./bcd-wms-api-client
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-client
+    ports:
+      - "8023:8023"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-in:
+    build:
+      context: ./bcd-wms-api-in
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-in
+    ports:
+      - "8013:8013"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-ops:
+    build:
+      context: ./bcd-wms-api-ops
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-ops
+    ports:
+      - "8123:8023"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-out:
+    build:
+      context: ./bcd-wms-api-out
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-out
+    ports:
+      - "8014:8014"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-stock:
+    build:
+      context: ./bcd-wms-api-stock
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-stock
+    ports:
+      - "8019:8019"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-system:
+    build:
+      context: ./bcd-wms-api-system
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-system
+    ports:
+      - "8008:8008"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-tms:
+    build:
+      context: ./bcd-wms-api-tms
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-tms
+    ports:
+      - "8006:8006"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+  bcd-wms-api-wcs:
+    build:
+      context: ./bcd-wms-api-wcs
+      dockerfile: Dockerfile
+    container_name: bcd-wms-api-wcs
+    ports:
+      - "8024:8024"
+    depends_on:
+      - nacos
+    networks:
+      - wms-net
+    environment:
+      <<: [*nacos-env, *thin-jar-java]
+
+networks:
+  wms-net:
+    driver: bridge
+
+volumes:
+  nacos-data:
+  nacos-logs:

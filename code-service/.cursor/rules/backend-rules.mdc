@@ -1,0 +1,145 @@
+---
+description: Java backend code standards for bcd-service-api project
+globs: bcd-service/bcd-service-api/**/*.java
+alwaysApply: false
+---
+
+# Backend Code Rules
+
+适用范围：`bcd-service/bcd-service-api`。当前后端为 Java 8 + Maven 多模块 + Spring Boot 2.3.x + Spring Cloud Hoxton + Nacos + OpenFeign 项目，公共返回对象为 `ResMsg`，数据库访问大量使用 `dbHelp`、`generateSql`、`GenerateSqlTran`、`DataTable`、`JSONArray/JSONObject` 和模板类。
+
+## 模块边界
+
+- 无特别说明时，后端新增接口和业务必须优先使用项目已有模板类、公共 SQL 组件、公共返回对象、异常处理和日志注解开发，以保证接口协议和业务行为统一。
+- 根模块 `pom.xml` 统一管理版本，子模块不得随意覆盖公共依赖版本。
+- API/PDA 入口模块按业务拆分：
+  - `bcd-wms-api-in`
+  - `bcd-wms-api-out`
+  - `bcd-wms-api-stock`
+  - `bcd-wms-api-system`
+  - `bcd-wms-api-tms`
+  - `bcd-wms-api-wcs`
+  - `bcd-wms-api-ops`
+  - `bcd-wms-api-client`
+- 后台业务模块按领域拆分，如 `bcd-wms-in`、`bcd-wms-out`、`bcd-wms-stock`、`bcd-wms-system`。
+- 公共能力优先放入 `bcd-wms-common`、`bcd-wms-db`、`bcd-wms-base`、`bcd-wms-template`。
+
+## 自定义封装优先级
+
+- 普通主表/主从表管理优先参考和复用 `bcd-wms-template` 中的 `MasterPage`、`MasterDetPage`、`BasePage`、`ComboxPage` 等模板能力。
+- PDA 任务类接口优先继承或复用 `PdaTaskTemplate`、`PdaTaskPage`、`PdaTaskModel`，通过模板配置主表、明细表、状态、多人执行、过滤条件、排序和回调。
+- 下拉接口优先使用 `ComboxPage`、`ComboxInterFace`、`ComBoxGetDataCallback` 等已有下拉封装。
+- 增删改查、导入导出、网格数据等通用能力优先使用 `GridUtil`、`ExcelUtil`、`MasterDetPage`、`BasePageCommon`，不要在业务 Service 中重复写通用 CRUD 框架。
+- SQL 组装和事务优先使用 `generateSql`、`GenerateSqlTran`、`Rps`、`Rpt`、`WhereSql`、`DataParameter`、`DbParameter`、`DbKeepTran` 等现有参数模型。
+- 数据库访问优先使用 `dbHelp`、`queryJson`、`queryTranJson`、`queryTranJsonObject` 及现有事务执行方法。
+- 库存、条码、容器、单据流转、波次、任务锁等业务共性能力优先注入并复用：
+  - `Stock`、`StockSql`、`BarcodeSql`、`BarcodeStockSql`、`CaseSql`、`SiteSql`
+  - `InStockUpdateSql`、`OutMstDetReturnSql`、`InMstDetReturnSql`
+  - `OrderFlowSql`、`OrderAssociation`、`WaveFlowSql`、`WaveSplit`
+  - `TasklHandle`、`BusinessDelete`、`UnbindAndBindCase`
+  - `ConvertTool`、`UtilsHelper`、`CheckData`
+- 文件、压缩、下载、日期、字符串、HTTP、加密等通用处理优先使用 `bcd-wms-common` 中的 `FileHelp`、`ZipFileHelper`、`DownloadUtils`、`DateTimeUtils`、`StringUtils`、`HttpClient*`、`DESUtils/RsaUtils`。
+- 接口统一返回 `ResMsg`，异常统一交给 `ControllerException`；PDA 操作日志使用 `@PdaLog`。
+- 只有现有模板或公共组件无法覆盖明确业务差异时，才新增公共组件；新增公共组件必须放在合适公共模块，并保持 Java 8 兼容。
+
+## 包与命名
+
+- 新增 Java 包名全部小写，如 `com.api.controller.pickcheck`，除非维护已有大小写目录。
+- Controller 命名为 `<Feature>Controller`。
+- Service 命名为 `<Feature>Service`，放在与 Controller 对应的业务包。
+- Feign 接口命名为 `<Target>FeignService` 或沿用本模块现有命名。
+- 返回对象统一使用 `ResMsg`；行级返回可参考 `ResRow`。
+- 数据库表名、字段名在 SQL 和 JSON 中保持大写下划线。
+- 不新增拼写错误目录；维护既有 `ently`、`PalletCheck` 等历史目录时保持局部兼容。
+
+## Controller 规则
+
+- Controller 只负责路由、注解、参数入口和调用 Service，不写大段业务逻辑。
+- 类上使用：
+  - `@RestController`
+  - `@RequestMapping("/feature")`
+  - 需要 PDA 模板时使用 `@TemplateName`
+  - 需要日志时使用 `@Slf4j`
+- 接口方法优先使用 `@PostMapping`，返回 `ResMsg`。
+- PDA 操作接口加 `@PdaLog(title = "...")`，标题使用业务可读名称。
+- 无特殊 JSON body 时，参数从模板/上下文读取；确需 body 时使用 `@RequestBody String data` 并在 Service 解析。
+- 构造函数中只做模板页模型初始化，复杂业务判断放到 Service 或专门方法。
+
+## Service 规则
+
+- Service 加 `@Service`，业务逻辑集中在 Service。
+- PDA 类 Service 继承 `PdaTaskPage` 时，通过 `this.getPageModel()`、`this.getRequestValues(...)`、`this.getUserKey()`、`this.getOrgKey()` 获取上下文。
+- 数据库读写优先使用现有 `dbHelp`、`generateSql`、`GenerateSqlTran` 和事务列表，不直接散落 JDBC。
+- 多条 SQL 需要一致性时，使用 `List<GenerateSqlTran>` 并调用事务/批量查询方法。
+- 每个业务方法创建新的 `ResMsg`，失败时设置：
+  - `resMsg.setRes(false)`
+  - `resMsg.setData("业务错误信息")`
+  - 必要时设置 `code` 或 `msg`
+- 成功时设置 `data`，保持 `res=true` 默认值。
+- 涉及单据状态、库存、条码、容器、任务锁、多人员执行时，必须先校验当前单据是否存在、状态是否允许、当前用户/组织/仓库是否有权限。
+
+## SQL 与数据访问
+
+- 优先使用 `generateSql.add(...)`、过滤数组、参数化模板，减少字符串拼接。
+- 只能拼接受控的表名、字段名、固定状态值；用户输入不得直接拼进 SQL。
+- 查询主表后必须处理空结果，返回明确业务错误。
+- 状态变更、库存扣减、条码绑定/解绑等写操作必须放入同一事务列表。
+- 新增复杂 SQL 时，要写清楚别名和排序；字段别名与前端/APP 使用字段保持一致。
+- 多租户、组织、仓库、货主过滤必须沿用 `DataParameter`、模板参数或已有公共方法，不自行绕过。
+
+## Feign 与外部接口
+
+- 跨服务调用使用已有 Feign 接口，不在 Service 中直接拼 HTTP 请求，除非维护现有外部系统集成工具类。
+- 外部系统返回必须转换为项目统一的 `ResMsg` 或业务 Result，不把第三方异常直接透传给前端。
+- WebService/OPS/WCS 类集成保持在现有 `webService`、`feign`、`service` 分层内。
+
+## 异常与日志
+
+- Controller 层异常由 `ControllerException` 统一捕获并返回 `ResMsg(code=500,res=false)`。
+- 业务可预期失败不要抛异常，返回 `ResMsg` 并给出可读业务信息。
+- 真正系统异常允许抛出，由统一异常处理记录请求参数、接口位置和堆栈。
+- 使用 `@Slf4j` 的 `log.info/warn/error`，不要新增 `System.out.println`。
+- 日志中不得输出密码、Token、密钥、完整敏感证件号。
+
+## 依赖与配置
+
+- Java 版本保持 1.8。
+- 不随意升级 Spring Boot、Spring Cloud、Nacos、Lombok、数据库驱动等基础依赖。
+- 新依赖必须加在合适模块；通用依赖先放根 `dependencyManagement`，业务模块按需引用。
+- 配置文件沿用 `src/main/resources/config/application.yml` 和 Nacos/模块现有结构。
+
+## 禁止写法
+
+- 禁止 Controller 中写长业务流程。
+- 禁止直接拼接用户输入 SQL。
+- 禁止绕过 `ResMsg` 返回裸 Map、字符串或第三方对象，除非已有接口协议如此。
+- 禁止在没有说明的情况下绕过模板页、`generateSql/dbHelp`、公共库存/条码/任务锁组件去重复实现已有能力。
+- 禁止在业务代码硬编码生产地址、账号、密码、密钥。
+- 禁止无关批量格式化、重排 import 或重命名历史包。
+- 禁止吞异常后返回成功。
+
+## 注释
+
+- 类和核心方法可以保留 `@author`、`@date`、`@description` 风格。
+- 新增注释重点说明业务规则、状态值、特殊客户逻辑、事务顺序和 SQL 意图。
+- 不新增乱码注释；如果修改到乱码附近，只改必要内容，不扩大改动范围。
+- 新增的功能代码写好详细注释。
+
+## 新功能流程
+
+1. 先定位业务模块和相似 Controller/Service。
+2. 确认前端或 APP 需要的 URL、字段、主键、状态和返回结构。
+3. 新增 Controller 路由，保持薄入口。
+4. 在 Service 中实现校验、查询、事务和返回。
+5. 复用公共 SQL、库存、条码、任务锁、单据流转组件。
+6. 添加或更新必要配置、Feign 接口、日志注解。
+7. 至少运行对应模块 Maven 编译，或说明无法运行的原因。
+
+## 提交前自检
+
+- 模块和包是否放对，Controller 是否足够薄。
+- 返回是否统一为 `ResMsg`，失败时 `res=false` 且信息可读。
+- SQL 是否避免用户输入直拼，组织/仓库/租户过滤是否完整。
+- 写操作是否使用事务列表，状态/库存/任务锁是否校验。
+- 日志是否没有敏感信息，异常是否没有被吞掉。
+- 是否没有改动无关模块和依赖版本。

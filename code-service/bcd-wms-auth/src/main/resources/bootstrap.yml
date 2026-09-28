@@ -1,0 +1,17 @@
+﻿spring:
+    cloud:
+      nacos:
+          discovery:
+              username: @nacos.username@
+              password: @nacos.password@
+              enabled: true
+              server-addr: @nacos.server-addr@
+              namespace: @nacos.discovery.namespace@
+          config:
+              username: @nacos.username@
+              password: @nacos.password@
+              server-addr: @nacos.server-addr@
+              file-extension: yaml
+              namespace: @nacos.config.namespace@
+              refresh-enabled: true
+              encode: UTF-8

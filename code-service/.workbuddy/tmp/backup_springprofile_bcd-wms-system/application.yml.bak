@@ -1,0 +1,164 @@
+server:
+
+  port: @server.port@
+param:
+
+  url: @param.url@
+
+  projectLog: project_log
+
+# 解密的key
+
+bcd:
+
+  decode: ahbcdxfsnmdb
+
+
+
+seata:
+
+  enabled: false
+
+spring:
+
+  mvc:
+
+    async:
+
+      request-timeout: 300000
+
+  application:
+
+    name: bcd-wms-system@prefix@@envName@
+
+  profiles:
+
+    active: hxh
+
+  servlet:
+
+    multipart:
+
+      max-file-size: 50MB
+
+      max-request-size: 50MB
+
+      enabled: true
+
+logging:
+
+  file:
+
+    name: logs/${spring.application.name}/info.log
+
+management:
+
+  endpoint:
+
+    heapdump:
+
+      enabled: false
+
+    gateway:
+
+      enabled: false
+
+skywalking:
+
+  agent:
+
+    enabled: true
+
+    service-name: bcd-wms-system@prefix@@envName@
+
+    oap-server-url: localhost:11800
+
+logpath: logs/${spring.application.name}
+
+loginRsa:
+
+  private-key: |
+
+    -----BEGIN PRIVATE KEY-----
+
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCUbdmn5bv9FULd
+
+    F12O8s83CW1jLV5cAZeiU3gCrHInkJR5/wRRnsqY6V4C9T1CSjSQmfJGfP5Aig0+
+
+    U3rvWtB3N0Gn14nBvoLLaNQlVFZcwDMnUudiw7o9ReHc58kfln6lF1lO47mHoeO/
+
+    /H2GE+mnWAeV9DY2Ts3JHumjC24xzbDIFd6KVOloUiQJuAgJUxO8ENvz+3/BiQiP
+
+    KU1gEFhUBhxgPKkhELADU9sH1y3Yfh/f0kkFqfueyEUfppTo6dPjVyKXP3SmjWQ/
+
+    LSmQQ2yHkKD3bOaPwa2ZqrWJwsjoI2aLF2MyCe8rLhzeHkE9hmUZ3ixC2u0MdaK/
+
+    CI30xFn/AgMBAAECggEABXkmqCpeLAhKvq/uPXnWgUYdXNxfD+HoAZe17NUHM7wl
+
+    mgt40Tn2+vwUAS19dJStxoixAeP5VQaiLxljq1UgvcpfMDQrjMF4Bs4EtTZBAUr9
+
+    7sF/yTbEUB7Ro/jsX1OaaqPnRfPNV9DQWlzJE9/VGhNE2qBbF7FuW+bdsxjxl4IR
+
+    m4HwcevEeS5tcm8bPun+jqUFwNOl3sxULYz2e/ZqUqCPUXpivVM/FVTpzcmXbok8
+
+    0gujd0DkmH0Xu9x86rZAOkOD2R7fGHlCN8MYYwy1hGixQ9ID89Vp6Jm4/Tm7yh//
+
+    uomFTPk0q8rL0e8I2oJIJUhtev+HrUgm2lAMG2YTdQKBgQC6LgSReQqzW/2XEXTa
+
+    ewysuxQzOymAfdJFuOaTXpzM6VzcZhwTAYXkZm+O4ZxfgZJnT6ISEy5D1ThnA48H
+
+    S+Ep8COW8w04pOjpC+VNqu+Qge1QnvzsMTAsjVC0e0T9tOu7O1THe48TBdnc7Yz8
+
+    PPaGs2E7I+tiXZYteXdOeLK33QKBgQDMF59WmeHF9lowddjHyHthBtPVRGlSq0WN
+
+    b/AkKkLO7b/XiBW+P8b7ZxQiVn4rtIQ7obtkn3hd5NHNSVq+xHXskImp+gAqiVWQ
+
+    c9+oszv29i/+9T9qxZI8Lu6cGexwLnsBKHp2hhF65JALSjGeyke4XxZ2aAkJpcIX
+
+    1Aqd5/bJiwKBgFsvYqllISqLaX5t3E+NaL3IurIEzeTSuwPO9Y9EDYQG36ZKlIFy
+
+    g4ND8GuIcDAOpAfZZsV3g3dRnNhHU+v87ADATo4F6HnPuws4+ku55q9eEz8jPzjn
+
+    NnL7m4VpwnaH/9Sp0HILQB3PBc9AwYZgzVVX0c1HYGfC8mS/UwGp9845AoGAMDEH
+
+    w9g0Mp14MGczWAFj+MY28O3lfMrKcppS9wcvnVMQcKFGmRTQNH7jhzQrOMC4VKhc
+
+    6mapcmpci//dOJyFR+XdS9Cnh2PEW4aw8lHYP/lj3e0lG14pqKJgX2XTqa2gB+b5
+
+    +9CugflEdhX/34HeK4/waucn8yo7yYqdMyoZ4P8CgYEAjQYiWwjHiOTbZZy/6XEz
+
+    fNlnri8KboWxFOW5dGs7Kyx5GF39Ldt/LTeqcdQomEZncPE7omIpx/F/mdwlnG02
+
+    +F2fjL/0C1Ns7v0w5dk4xz47zpyx0TdxOuvAAVo0xj7izOCe2C74H28UCHJLhB3H
+
+    Q2vq/+fwusf8S0YXKK/7Ezk=
+
+    -----END PRIVATE KEY-----
+
+  public-key: |
+
+    -----BEGIN PUBLIC KEY-----
+
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlG3Zp+W7/RVC3RddjvLP
+
+    NwltYy1eXAGXolN4AqxyJ5CUef8EUZ7KmOleAvU9Qko0kJnyRnz+QIoNPlN671rQ
+
+    dzdBp9eJwb6Cy2jUJVRWXMAzJ1LnYsO6PUXh3OfJH5Z+pRdZTuO5h6Hjv/x9hhPp
+
+    p1gHlfQ2Nk7NyR7powtuMc2wyBXeilTpaFIkCbgICVMTvBDb8/t/wYkIjylNYBBY
+
+    VAYcYDypIRCwA1PbB9ct2H4f39JJBan7nshFH6aU6OnT41cilz90po1kPy0pkENs
+
+    h5Cg92zmj8Gtmaq1icLI6CNmixdjMgnvKy4c3h5BPYZlGd4sQtrtDHWivwiN9MRZ
+
+    /wIDAQAB
+
+    -----END PUBLIC KEY-----
+
+
+
+app:
+
+    env: @envName@
+
+    prefix: '@prefix@'

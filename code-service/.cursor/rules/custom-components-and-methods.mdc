@@ -1,0 +1,129 @@
+---
+description: Custom components and methods for Web, APP and Backend
+alwaysApply: true
+---
+
+# Custom Components And Methods
+
+本文件汇总三端已有自定义封装。后续开发没有特别说明时，默认必须优先使用这些组件、模板类和工具方法，以保持 UI、交互、接口协议和代码风格统一。
+
+## Web 端
+
+适用目录：`bcd-web/bcd-web/src`。
+
+### 页面与 UI 组件
+
+- `components/datagrid.vue`：核心数据表格组件，列表、分页、筛选、操作列优先使用它。
+- `components/defaultform.vue`：通用表单弹窗/抽屉，新增、编辑、查看优先使用它。
+- `components/singleform.vue`：表单内容渲染组件，通常由 `defaultform` 或页面配置驱动。
+- `components/defaultformtable.vue`、`defaultformtable2.vue`、`defaultformChecktable.vue`：表单 + 明细表场景优先使用。
+- `components/defaultformtreetable.vue`、`defaultformtreeChecktable.vue`：树表、树形明细场景优先使用。
+- `components/defaulttable.vue`、`defaulttablepage.vue`：标准表格页或分页表格页。
+- `components/dropdatagrid.vue`、`droptree.vue`：下拉表格、下拉树选择。
+- `components/querycontrol.vue`、`searchtool.vue`、`searchscheme.vue`：查询条件、高级查询、查询方案。
+- `components/accordionMenus.vue`、`cascadeMenu.vue`、`leftnav.vue`、`searchMenu.vue`：菜单和导航相关。
+- `components/processControl.vue`、`processNode.vue`、`checkflow.vue`：流程、节点、审核流相关。
+- `components/reportViewer.vue`、`reportViewer3.vue`、`reportGridViewer.vue`、`reportDataViewer.vue`、`reportDesigner.vue`：报表查看、设计和数据展示。
+- `components/printpage.vue`：打印页面。
+- `components/theme-selector.vue`、`common/theme-service.js`：主题相关。
+
+### 公共方法
+
+- `common/DevCommon.js` 是页面开发的首选工具入口：
+  - 配置生成：`gridSeting()`、`treeGridseting()`、`formSeting()`、`componentSeting()`。
+  - 字段和列：`convertTable()`、`mateCombox()`、`columnWidth()`、`columntemplateWidth()`。
+  - 校验：`validation()`、`formValidation()`、`tableValidation()`、`itemValidation()`、`required()`、`checkDom()`。
+  - 消息：`successMsg()`、`errMsg()`、`infoMsg()`、`alertForm()`、`alertTable()`。
+  - 值处理：`guid()`、`code()`、`defaultTime()`、`dateFormat()`、`getSysDate()`、`cloneDeep()`、`checkQtyPrecise()`。
+- `common/Combox.js` 提供静态枚举和状态下拉，如启用状态、创建类型、库存状态、单据状态、条码类型、出库规则等。新增下拉先查这里。
+- `common/ComboxRequestData.js` 用于请求型下拉数据组织。
+- `common/LoadGridConfig.js`、`ColumnCommon.js`、`ColumnCommonCheck.js` 提供表格列和配置加载能力。
+- `common/Config.js` 维护租户、组织等全局配置。
+- `common/Websocket.js` 处理 WebSocket。
+- `common/DesUtils.js` 处理 DES 加解密。
+- `network/request.js` 是唯一默认请求入口，包含 Token、租户、组织、加载态、下载、错误弹窗、Combox 缓存。
+- `plugins/loading.js`、`plugins/cache.js` 处理加载态和缓存。
+
+### 默认开发方式
+
+新增标准管理页时，优先采用 `Index.vue + formSeting + gridSeting + UrlItems + DevCommon + Combox + req.post` 模式。只有通用组件无法满足业务时，才新增页面级自定义 UI。
+
+## APP 端
+
+适用目录：`bcd-mobile/bcd_android/lib`。
+
+### BcdWidget 组件
+
+- `widget/bcdwidget/appBar/BcdAppBar.dart`：统一顶部栏。
+- `widget/bcdwidget/list/WidgetList.dart`、`BcdListView.dart`：任务列表、分页、筛选、开始任务。
+- `widget/bcdwidget/list/BcdFilter.dart`、`BcdListSearch.dart`、`BcdSearchInputWidget.dart`：列表筛选和搜索。
+- `widget/bcdwidget/tab/WidgetTab.dart`、`BcdTabBar.dart`：Tab 页面。
+- `widget/bcdwidget/table/WidgetTable.dart`、`BcdDataTable.dart`、`BcdPaginatedDataTable.dart`、`BcdColumn.dart`：表格和底部明细。
+- `widget/bcdwidget/form/WidgetForm.dart`、`BcdForm.dart`、`BcdFormItem.dart`：表单容器和表单项。
+- `widget/bcdwidget/form/BcdTextBox.dart`、`BcdTextView.dart`、`BcdSelectBox.dart`、`BcdSwitch.dart`、`BcdDatePicker.dart`、`BcdRadioButton.dart`：输入、展示、选择、开关、日期、单选。
+- `widget/bcdwidget/dropdown/BcdSearchDropDown.dart`、`BcdFastSearchSelect.dart`、`BcdItemDropDown.dart`、`BcdDropDownWhDialog.dart`、`BcdDropDownConsignorWhDialog.dart`：搜索下拉、物料、仓库、货主仓库选择。
+- `widget/bcdwidget/dialog/BcdDialog.dart`、`BcdBottomDialog.dart`、`WidgetDialog.dart`、`BcdHttpLoading.dart`：弹窗、底部弹窗、加载。
+- `widget/bcdwidget/popWindow/BcdSelectPopWindow.dart`：弹出选择。
+- `widget/bcdwidget/updateVersion/BcdCheckUpdate.dart`：版本更新。
+- `widget/bcdwidget/http/BcdRequest.dart`：业务请求入口。
+
+### 工具和基础能力
+
+- `net/Resource.dart`：统一响应对象，使用 `isSuccess()` 判断业务成功。
+- `net/HttpRequestUtils.dart`、`DioManager.dart`、`HttpConfig.dart`、`NetAPIService.dart`：网络底层。
+- `utils/Utils.dart`：Toast、语音、日志、版本等通用能力。
+- `utils/Routers.dart`、`NavigatorUtils.dart`：路由和导航。
+- `utils/animation/*`：页面切换动画。
+- `utils/MyColors.dart`、`screen_utils.dart`、`string_utils.dart`：颜色、屏幕、字符串工具。
+- `utils/dialog/*`、`utils/loading/*`：项目已有弹窗和加载组件。
+- `utils/prefs/*`：登录、设置、接口地址、任务 Key、业务选项的本地持久化。
+
+### 默认开发方式
+
+新增 WMS/TMS 任务功能时，优先采用 `<Feature>Task.dart + <Feature>Have.dart` 模式：`Task` 中用 `WidgetTab/WidgetList/BcdStartTask/BcdBottomTable` 配置列表和领取任务，`Have` 中处理扫描、保存、提交。请求统一使用 `BcdRequest`，失败统一用 `Utils` 提示。
+
+## 后端
+
+适用目录：`bcd-service/bcd-service-api`。
+
+### 模板类和页面能力
+
+- `bcd-wms-template/src/main/java/com/template/*`：模板入口，包含主表、主从表、下拉、PDA 任务等 Controller 可复用模板。
+- `com.template.PdaTaskTemplate`：PDA 任务 Controller 的常用父类，负责标准待执行/执行中、开始任务、状态等模板流程。
+- `com.base.PdaTaskPage`：PDA 任务 Service 的常用父类，提供请求上下文、页面模型、用户/组织、条码解析等能力。
+- `com.base.MasterPage`、`MasterDetPage`、`BasePage`、`ComboxPage`：标准管理页、主从表、基础页、下拉页能力。
+- `com.base.model.PdaTaskModel`、`MultExecute`：PDA 任务模型、多人执行配置。
+- `com.base.impl.*`：页面、删除、校验、导出、PDA 开始任务等回调接口。
+
+### SQL、数据库和通用业务
+
+- `bcd-wms-db`：
+  - `DbHelp`、`DbHelpImpl`、`JdbcDbHelp`：数据库访问。
+  - `GenerateSql`、`GenerateSqlImpl`、`SQLSanitizer`：SQL 生成和安全处理。
+  - `GenerateSqlTran`、`Rps`、`Rpt`、`WhereSql`、`DataParameter`、`DbParameter`、`DbKeepTran`：查询、过滤、事务参数模型。
+  - `DataTable`、`DataRow`、`DataSet`：表格数据结构。
+  - `MultiDataSource`、`Tenant`、`InterceptTenant`：多数据源和租户。
+- `bcd-wms-template/com/base/commonsql`：
+  - `ItemSql`、`StockSql`、`SiteSql`、`BarcodeSql`、`BarcodeStockSql`、`CaseSql`：物料、库存、库位、条码、容器公共 SQL。
+  - `OrderFlowSql`、`WaveFlowSql`、`OutInfoMstOrderSateSql`：单据流、波次、出库状态。
+  - `InStockUpdateSql`、`OutMstDetReturnSql`、`InMstDetReturnSql`、`ShippingDetailsSql`：库存更新和出入库明细回写。
+- `bcd-wms-template/com/base/common`：
+  - `ConvertTool`、`UtilsHelper`、`CheckData`、`OrderAssociation`、`BasePageCommon`：转换、校验、订单关联、页面公共逻辑。
+- 业务公共组件：
+  - `Stock`：库存业务。
+  - `TasklHandle`：任务锁。
+  - `BusinessDelete`：业务删除。
+  - `UnbindAndBindCase`：容器绑定/解绑。
+  - `WaveSplit`、`PickScanSplit`：波次拆分、拣货扫描拆分。
+  - `ExcelRead*`、`ExcelUtil`：Excel 导入导出。
+
+### 公共基础设施
+
+- `bcd-wms-common/com/common/returns/ResMsg.java`：统一返回对象。
+- `bcd-wms-common/com/common/config/ControllerException.java`：统一异常处理。
+- `com.base.log.annotation.PdaLog`：PDA 操作日志。
+- `DateTimeUtils`、`StringUtils`、`DownloadUtils`、`FileHelp`、`ZipFileHelper`、`HttpClient*`、`DESUtils`、`RsaUtils`：通用工具。
+
+### 默认开发方式
+
+新增后端接口时，先判断是否属于标准管理页、下拉页、主从表、PDA 任务、导入导出或库存/条码/容器/任务锁业务。能用模板类和公共组件解决的，不重复手写；Controller 保持薄入口，Service 复用模板、`generateSql/dbHelp` 和公共业务组件。

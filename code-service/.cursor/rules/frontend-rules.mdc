@@ -1,0 +1,108 @@
+---
+description: Vue 3 frontend code standards for bcd-web project
+globs: bcd-web/bcd-web/src/**/*.{vue,js}
+alwaysApply: false
+---
+
+# Frontend Code Rules
+
+适用范围：`bcd-web/bcd-web`。当前项目为 Vue 3 + Vue CLI + Vue Router + Vuex + Element Plus + DevExtreme 组合，接口统一走 `src/network/request.js`，大量业务页基于 `defaultform`、`datagridVue`、`singleform`、`DevCommon`、`Combox` 等配置式组件。
+
+## 基本原则
+
+- 无特别说明时，Web 端新增功能必须按项目已有封装组件和公共方法开发，以保证 UI、交互、请求、错误提示和代码结构统一。
+- 新增代码先看同业务目录的 `Index.vue`、公共组件和 `DevCommon` 用法，优先复用现有配置式表单、表格、下拉、工具栏能力。
+- 修改旧页面时保持局部风格，不因为新增功能大面积改写组件结构、命名、缩进或接口调用方式。
+- 新增页面应放在 `src/views/<业务域>/<功能名>/Index.vue`，业务域沿用现有 `Base`、`Inventory`、`InWarehouse`、`OutWarehouse`、`Stock`、`System`、`Tms` 等目录。
+- 公共能力放到 `src/common`、`src/components`、`src/plugins` 或 `src/network`，不要在页面中复制大段公共逻辑。
+- 遵守 `.prettierrc.json`：`tabWidth: 2`、`printWidth: 200`、`bracketSpacing: true`、`bracketSameLine: true`。
+
+## 自定义封装优先级
+
+- 表单弹窗优先使用 `defaultform.vue`、`singleform.vue`、`defaultformtable.vue`、`defaultformtreetable.vue` 系列，通过 `formSeting` 配置字段、保存地址、主键、弹窗模式和回调。
+- 表格列表优先使用 `datagrid.vue`、`defaulttable.vue`、`defaulttablepage.vue`、`treegird.vue`，通过 `gridSeting` 配置 URL、列、工具栏、筛选、分页和操作列。
+- 查询和筛选优先使用 `querycontrol.vue`、`searchtool.vue`、`searchscheme.vue`、`dropdatagrid.vue`、`droptree.vue`。
+- 菜单、流程、报表、打印等场景优先复用 `accordionMenus.vue`、`cascadeMenu.vue`、`processControl.vue`、`reportViewer*.vue`、`reportDesigner.vue`、`printpage.vue`。
+- 页面配置、字段转换、校验、消息提示、日期和唯一值生成优先使用 `DevCommon.js`：
+  - `gridSeting()`、`treeGridseting()`、`formSeting()` 创建页面配置。
+  - `convertTable()` 将表单字段转换为表格列。
+  - `mateCombox()` 将下拉数据绑定到字段配置。
+  - `successMsg()`、`errMsg()`、`infoMsg()`、`alertForm()`、`alertTable()` 统一提示。
+  - `guid()`、`defaultTime()`、`dateFormat()`、`getSysDate()`、`checkQtyPrecise()` 处理通用值。
+- 静态枚举和状态下拉优先使用 `Combox.js`，如 `getActive()`、`getIsManage()`、`getCreateType()`、`getBarcodeType()`、`getRoleOut()`、各种单据状态和库存状态方法。
+- 动态网格列和用户表格配置优先使用 `LoadGridConfig.js`、`ColumnCommon*.js`，不要在页面里重复维护通用列定义。
+- 请求、下载、加载态、下拉缓存优先使用 `src/network/request.js` 和 `src/plugins/loading.js`。
+- 只有现有封装无法满足明确业务需求时，才新增组件；新增前先确认不能通过扩展配置、插槽、回调、template 配置解决。
+
+## 文件与命名
+
+- 业务页面目录可以沿用数据库/菜单风格，如 `B_Barcode`、`B_Item_Class_Stock`；新增目录优先使用既有菜单编码或清晰英文业务名。
+- 页面入口文件优先命名为 `Index.vue`。
+- 公共 Vue 组件新增时优先使用清晰英文名；若放入 `src/components`，先参考附近组件命名，避免重复创建 `default*` 类组件。
+- 组件内配置对象沿用项目拼写：`formSeting`、`gridSeting`、`toolSeting`。不要在局部强行改为 `Setting`，除非整体迁移同一处上下文。
+- 后端字段名、表字段、主键字段保持大写下划线，如 `ITEM_ID`、`PICK_INFO_MST_KEY`。
+- JS 变量和方法使用 camelCase；配置字段按现有组件协议使用原字段名。
+
+## 页面组织
+
+- 单据/基础资料页面优先采用当前模式：
+  - `data()` 中声明 `pageid`、`UrlItems`、`formItems`、`columns`、`comBox`、`formSeting`、`gridSeting`。
+  - `created()` 中按顺序执行 `loadCombox()`、`loadForm()`、`loadTable()`，最后设置 `load = 1`。
+  - 表单字段在 `loadForm()` 中配置，表格列由 `DevCommon.convertTable(this.formItems)` 转换后补充操作列。
+- 页面唯一标识 `pageid` 必须稳定，不要每次渲染动态生成；新增页面需要新建唯一 ID。
+- 表单、表格、下拉配置优先通过 `DevCommon.gridSeting()`、`DevCommon.formSeting()`、`DevCommon.mateCombox()`、`Combox` 公共方法完成。
+- 页面中不要直接拼 DOM 操作，除非是维护既有公共组件内部逻辑或错误弹窗等已有模式。
+
+## 接口调用
+
+- 业务请求必须通过 `this.req.post(url, data, callback, isLoad)` 或 `request` 封装，不要直接引入裸 `axios`。
+- 请求参数必须包含当前页面 `pageid`，涉及组织、仓库、租户、权限的数据由现有请求拦截器和公共参数处理。
+- URL 集中写入 `UrlItems`，不要在方法中散落硬编码接口地址。
+- 回调中统一判断 `res.res`：
+  - 成功读取 `res.data`。
+  - 失败调用 `this.DevCommon.errMsg(this, res.data)` 或当前页面已有错误提示方式。
+- 下载文件使用 `request.downloadFile`，不要自行重复实现 blob 下载和错误解析。
+
+## 状态与缓存
+
+- 全局状态仅在确有跨页面需要时放入 `src/store/index.js`；当前 Vuex 很轻，新增状态要保持克制。
+- 本地登录态、租户、组织等继续使用当前 `localStorage` 键，不新增含义重复的键。
+- 下拉类接口优先使用 `/combox/` 约定，复用 `request.js` 中的 Combox 缓存逻辑。
+
+## UI 与交互
+
+- 继续使用 Element Plus、DevExtreme 和项目自研组件，避免为单个页面引入新的 UI 框架。
+- 表格操作列、工具栏按钮、表单弹窗、抽屉等优先沿用 `defaultform`、`defaultformtable`、`datagridVue` 现有交互。
+- 字段标题、按钮文字、错误提示应与后端业务术语一致。
+- 新增页面要考虑加载态、空数据、接口失败、重复点击和权限/菜单上下文。
+
+## 禁止写法
+
+- 禁止绕过 `src/network/request.js` 直接调用 `axios`。
+- 禁止在业务页面重复实现已有公共表单、表格、下拉、下载、错误提示逻辑。
+- 禁止在没有说明的情况下手写一套与 `defaultform/datagridVue/DevCommon/Combox` 重复的 UI 和业务配置体系。
+- 禁止为了个人偏好重命名旧配置字段或批量格式化无关文件。
+- 禁止把测试代码、临时 `console.log`、复制文件名如 `copy.vue` 作为正式新增内容。
+- 禁止在页面里新增真实密钥、环境地址、账号密码。
+
+## 注释
+
+- 保留对业务规则、状态码、特殊客户逻辑、复杂 SQL/接口参数的说明。
+- 新增注释使用可读中文或英文，确保文件编码正常；不要继续新增乱码注释。
+- 不给显而易见的赋值、组件挂载、字段声明写空泛注释。
+
+## 新功能流程
+
+1. 找到同业务域相似页面，确认目录、字段配置、接口调用和错误处理。
+2. 与后端接口确认 URL、入参、返回 `res/data/msg/code` 结构和主键字段。
+3. 新建或修改 `Index.vue`，先配置 `UrlItems`、`pageid`、表单字段、表格列、下拉数据。
+4. 通过 `this.req.post` 接入接口，失败分支必须可见。
+5. 本地运行 `npm run lint` 或至少完成页面打开、查询、新增/编辑/删除、下载等人工自测。
+
+## 提交前自检
+
+- 页面是否放在正确业务目录，入口是否为 `Index.vue`。
+- 是否复用了 `DevCommon`、`Combox`、`defaultform`、`datagridVue` 等既有能力。
+- 所有请求是否走 `this.req.post`/`request.downloadFile`，且携带 `pageid`。
+- 是否处理了 `res.res === false`、空数据、加载态和重复点击。
+- 是否没有引入无关依赖、无关格式化和临时调试代码。

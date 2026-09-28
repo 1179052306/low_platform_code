@@ -1,0 +1,26 @@
+{
+  "name": "vue3-lowcode-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "devextreme": "26.1.4",
+    "devextreme-vue": "26.1.4",
+    "element-plus": "^2.14.4",
+    "@devexpress/analytics-core": "26.1",
+    "devexpress-reporting": "26.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0",
+    "vue-tsc": "^2.1.10"
+  }
+}

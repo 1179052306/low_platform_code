@@ -1,0 +1,47 @@
+.lc-theme-page {
+  --lc-primary: #1976d2;
+  --lc-primary-hover: #1565c0;
+  --lc-success: #52c41a;
+  --lc-warning: #faad14;
+  --lc-danger: #f5222d;
+  --lc-info: #909399;
+  --lc-page-bg: #f0f2f5;
+  --lc-card-bg: #ffffff;
+  --lc-text-primary: #303133;
+  --lc-text-secondary: #606266;
+  --lc-border: #dcdfe6;
+  --lc-radius: 0px;
+
+  --dx-color-primary: var(--lc-primary);
+  --dx-color-success: var(--lc-success);
+  --dx-color-warning: var(--lc-warning);
+  --dx-color-danger: var(--lc-danger);
+  --dx-color-border: var(--lc-border);
+  --dx-color-text: var(--lc-text-primary);
+  --dx-color-main-bg: var(--lc-card-bg);
+  --dx-border-radius: var(--lc-radius);
+
+  --el-color-primary: var(--lc-primary);
+  --el-color-success: var(--lc-success);
+  --el-color-warning: var(--lc-warning);
+  --el-color-danger: var(--lc-danger);
+  --el-border-radius-base: var(--lc-radius);
+}
+
+.lc-theme-page .dx-theme-generic-typography {
+  background-color: var(--lc-card-bg);
+  color: var(--lc-text-primary);
+}
+.lc-theme-page .dx-widget {
+  background-color: var(--lc-card-bg);
+  color: var(--lc-text-primary);
+}
+.lc-theme-page .dx-fieldset {
+  border-color: var(--lc-border);
+}
+.lc-theme-page .dx-toolbar {
+  background-color: var(--lc-card-bg);
+}
+.lc-theme-page .dx-datagrid-headers .dx-datagrid-text-content {
+  color: var(--lc-text-primary);
+}

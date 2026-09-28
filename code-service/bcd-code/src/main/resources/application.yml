@@ -1,0 +1,54 @@
+server:
+  port: 3015
+seata:
+  enabled: false
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 1000
+      minimum-idle: 200
+      connection-timeout: 60000
+      idle-timeout: 600000
+      max-lifetime: 3000000
+      auto-commit: false
+    names:
+      - item:
+        poolname: lowcode
+        type: com.zaxxer.hikari.HikariDataSource
+        jdbc-url: jdbc:postgresql://localhost:5432/postgres?currentSchema=public&characterEncoding=UTF-8
+        username: postgres
+        password: 123456
+        driver-class-name: org.postgresql.Driver
+  redis:
+    host: 172.29.241.131
+    port: 8004
+    timeout: 60s
+    password: Ahbcd0306
+    databases: 0
+    lettuce:
+      shutdown-timeout: 100ms
+      pool:
+        max-active: 16
+        max-idle: 16
+        min-idle: 4
+        max-wait: 5000ms
+  minio:
+    endpoint: http://172.29.241.134:9000
+    access-key: admin
+    secret-key: Wxwl1234
+    bucket-name: public-images
+    secure: false
+    ignore-ssl: false
+tenant:
+  single: true
+  tenanturl: ''
+  systemType: ''
+  defaultTenant: ''
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: wms-code-producer-group
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+    retry-times-when-send-async-failed: 2
+    max-message-size: 4194304

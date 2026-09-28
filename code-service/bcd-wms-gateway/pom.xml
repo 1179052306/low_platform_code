@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>saas-wms</artifactId>
+        <groupId>saas-wms</groupId>
+        <version>1.0-1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>bcd-wms-gateway</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!--springboot项目不需要引用spring的包-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework</groupId>-->
+<!--            <artifactId>spring-web</artifactId>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>2.8.8</version>
+        </dependency>
+        <!--依赖公共模块-->
+        <dependency>
+            <groupId>saas-wms</groupId>
+            <artifactId>bcd-wms-db</artifactId>
+            <version>1.0-1</version>
+
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.7.3</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-alibaba-sentinel-gateway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+        </dependency>
+        <!-- SpringBoot Admin Client -->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-client</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>5.2.16.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.4.0</version>
+        </dependency>
+        <!-- SpringBoot Actuator -->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-actuator</artifactId>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <fork>true</fork>
+                    <mainClass>com.api.BcdGatewayApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <!--这里是相关配置文件的输出目录，当然你可以过滤一些文件-->
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>true</filtering>
+
+                                    <!--这里是需要导出的文件（类型）-->
+                                    <includes>
+                                        <include>**/application.yml</include>
+                                    <include>**/bootstrap.yml</include>
+
+                                    </includes>
+                                </resource>
+                            </resources>
+                            <!--输出目录-->
+                            <outputDirectory>${project.build.directory}/config</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <!--打包时需要排除的文件-->
+                        <exclude>static/**</exclude>
+                        <exclude>config/**</exclude>
+                        <exclude>application.yml</exclude>
+                                <exclude>bootstrap.yml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>package</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <echo message="copy package to serviceRelease"/>
+                                <delete dir="../serviceRelease${prefix}${envName}/service/${project.artifactId}${prefix}${envName}" />
+                                <copy todir="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/config"
+                                      overwrite="true">
+                                    <fileset dir="${project.build.directory}/config" />
+                                </copy>
+                                <copy file="../InstallService.exe"
+                                      tofile="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/${project.artifactId}${prefix}${envName}.exe"
+                                      overwrite="true"/>
+                                <copy file="../service-autostart.sh"
+                                      tofile="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/service-autostart.sh"
+                                      overwrite="true"/>
+                                <copy file="${project.build.directory}/${project.artifactId}.jar"
+                                      tofile="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/${project.artifactId}${prefix}${envName}.jar"
+                                      overwrite="true"/>
+                                <echo file="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/install.bat"
+                                      message="@echo off &#10;${project.artifactId}${prefix}${envName}.exe install &#10;exit"></echo>
+                                <echo file="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/uninstall.bat"
+                                      message="@echo off &#10;${project.artifactId}${prefix}${envName}.exe uninstall &#10;exit"></echo>
+
+                                <!-- 生成 service.xml -->
+                                <!-- 定义 ant-contrib 的 taskdef -->
+                                <taskdef resource="net/sf/antcontrib/antlib.xml">
+                                    <classpath>
+                                        <pathelement location="../ant-contrib-1.0b3.jar"/>
+                                    </classpath>
+                                </taskdef>
+                                <property file="../jvm-options.properties"/>
+                                <!-- 替换变量 -->
+                                <propertycopy name="final.jvm.options" from="common.jvm.options"/>
+                                <propertycopy name="final.logging.config" from="common.logging.config"/>
+                                <echo file="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/${project.artifactId}${prefix}${envName}.xml" append="false">
+                                    <![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<service>
+    <id>${project.artifactId}${prefix}${envName}</id>
+    <name>${project.artifactId}${prefix}${envName}</name>
+    <description>${project.artifactId}${prefix}${envName}</description>
+    <executable>java</executable>
+    <arguments>
+]]>${final.jvm.options}<![CDATA[
+ -jar ${project.artifactId}${prefix}${envName}.jar
+    </arguments>
+]]> ${final.logging.config}<![CDATA[
+</service>
+]]>
+                                </echo>
+                                                            <zip destfile="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}/${project.artifactId}${prefix}${envName}.zip">
+                                    <fileset dir="../serviceRelease${prefix}${envName}/gateway${prefix}${envName}" excludes="*.zip" />
+                                </zip>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!--
+        服务端口随环境变化，profile id 必须与根 pom 一致才能继承激活（mvn -P<env> 或 IDEA 勾选）
+        application.yml 中 server.port 用 @server.port@ 占位符，由 Maven 资源过滤注入
+        各 profile 的 port 默认跟现状一致（8004），需要切环境端口时只改对应 profile 的值
+    -->
+    <profiles>
+        <!-- 调试环境（IDEA 调试用） -->
+        <profile>
+            <id>debug</id>
+            <properties>
+                <server.port>8004</server.port>
+            </properties>
+        </profile>
+        <!-- 开发环境 -->
+        <profile>
+            <id>dev</id>
+                        <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <server.port>8004</server.port>
+            </properties>
+        </profile>
+        <!-- 测试环境 -->
+        <profile>
+            <id>test</id>
+            <properties>
+                <server.port>6004</server.port>
+            </properties>
+        </profile>
+        <!-- 生产环境 -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <server.port>6004</server.port>
+            </properties>
+        </profile>
+    </profiles>
+</project>

@@ -1,0 +1,729 @@
+2026-08-25 09:07:54.908 [main] INFO  com.api.BcdBaseApplication - The following profiles are active: ZHANJI
+2026-08-25 09:08:26.581 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:08:26.583 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:08:26.597 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:08:32.536 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:08:36.465 [main] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户数据
+2026-08-25 09:08:36.465 [main] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenantDataBase/getTenantData
+2026-08-25 09:08:36.466 [main] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:08:36.494 [main] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":4,"CONNECT_IP":"172.29.241.133","CONNECT_NAME":"WMS","DRIVER_CLASS_NAME":"dm.jdbc.driver.DmDriver","TRX_DATE":"2026-02-10T03:30:42.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project","CONNECT_STRING":"jdbc:dm://172.29.241.133:5136","DATABASE_ID":"project","DATABASE_KEY":"231f27f3-a2f4-4e6d-91ab-002683d972a0","CONNECT_PORT":"5136","DATABASE_NAME":"项目","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"WMS","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"},{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","ACTIVE":1,"DATABASE_TYPE":3,"CONNECT_IP":"172.29.241.131","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:31:56.000+00:00","TRX_USER_KEY":5581,"CREATE_USER_KEY":5581,"SYSTEM_TYPE":"WMS","DATA_TYPE":"project_log","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8","DATABASE_ID":"project_log","DATABASE_KEY":"aa508d2e-0e1f-4ea8-91d1-1b1fa91b4536","CONNECT_PORT":"5432","DATABASE_NAME":"日志","TENANT_KEY":"5c57de7c-5f28-4ee5-b771-b682c9714201","CREATE_DATE":"2026-02-10T03:19:38.000+00:00","CONNECT_USERID":"postgres","CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","TENANT_NAME":"WMS_TEST","CREATE_USER_NAME":"lw","TENANT_ID":"WMS_TEST"}],"customValue":null}
+2026-08-25 09:08:43.393 [main] INFO  com.server.log4.LogbackConfigurator - 准备获取平台日志数据库
+2026-08-25 09:08:43.393 [main] INFO  com.server.log4.LogbackConfigurator - 请求地址：http://172.29.241.131:10007/log/getDataSource
+2026-08-25 09:08:43.394 [main] INFO  com.server.log4.LogbackConfigurator - 发送请求
+2026-08-25 09:08:43.447 [main] INFO  com.server.log4.LogbackConfigurator - 请求结果：{"res":true,"code":"200","errtype":0,"data":[{"CONNECT_PWD":"Wxwl1234","TRX_USER_NAME":"lw","DATABASE_KEY":"3","CONNECT_PORT":"5432","ACTIVE":1,"DATABASE_TYPE":3,"CREATE_DATE":"2025-03-11T02:23:10.000+00:00","CONNECT_IP":"172.29.241.131","CONNECT_USERID":"postgres","CONNECT_NAME":"postgres","DRIVER_CLASS_NAME":"org.postgresql.Driver","TRX_DATE":"2026-02-10T03:22:10.000+00:00","TRX_USER_KEY":5581,"CREATE_TYPE":0,"CONNECT_CURRENTSCHEMA":"public","CREATE_USER_NAME":"","CREATE_USER_KEY":"","SYSTEM_TYPE":"WMS","CONNECT_STRING":"jdbc:postgresql://172.29.241.131:5432/postgres?currentSchema=public&characterEncoding=UTF-8"}],"customValue":null}
+2026-08-25 09:08:47.360 [main] INFO  com.server.minio.MinioConfig - Initializing MinIO Client for endpoint: http://172.29.241.134:9000
+2026-08-25 09:09:23.893 [main] INFO  org.redisson.Version - Redisson 4.4.0
+2026-08-25 09:09:50.930 [redisson-netty-4-5] INFO  o.r.connection.ConnectionsHolder - 1 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-25 09:09:51.194 [redisson-netty-4-11] INFO  o.r.connection.ConnectionsHolder - 4 connections initialized for 172.29.241.131/172.29.241.131:8004
+2026-08-25 09:09:53.651 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-25 09:09:53.761 [main] INFO  c.n.c.sources.URLConfigurationSource - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2026-08-25 09:10:14.706 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property : null
+2026-08-25 09:10:14.723 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Environment :null
+2026-08-25 09:10:14.759 [main] INFO  com.alibaba.nacos.client.naming - initializer namespace from System Property :null
+2026-08-25 09:10:15.871 [main] INFO  c.alibaba.nacos.common.remote.client - [RpcClientFactory] create a new rpc client of 001d5567-db35-4bd4-b9b5-9ba89b021cf3
+2026-08-25 09:10:15.876 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]RpcClient init label, labels={module=naming, source=sdk}
+2026-08-25 09:10:15.918 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]RpcClient init, ServerListFactory =com.alibaba.nacos.client.naming.core.ServerListManager
+2026-08-25 09:10:15.919 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Registry connection listener to current client:com.alibaba.nacos.client.naming.remote.gprc.redo.NamingGrpcRedoService
+2026-08-25 09:10:15.927 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Register server push request handler:com.alibaba.nacos.client.naming.remote.gprc.NamingPushRequestHandler
+2026-08-25 09:10:15.930 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Try to connect to server on start up, server: {serverIp='172.29.241.131', server main port=8001}
+2026-08-25 09:10:16.147 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Success to connect to server [172.29.241.131:8001] on start up,connectionId=1787620216590_192.168.129.41_60513
+2026-08-25 09:10:16.148 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify connected event to listeners.
+2026-08-25 09:10:16.150 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-25 09:10:16.148 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$ConnectResetRequestHandler
+2026-08-25 09:10:16.168 [main] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Register server push request handler:com.alibaba.nacos.common.remote.client.RpcClient$4
+2026-08-25 09:10:17.828 [main] INFO  com.alibaba.nacos.client.naming - init new ips(0) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> []
+2026-08-25 09:10:18.162 [nacos-grpc-client-executor-4] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11565
+2026-08-25 09:10:18.343 [main] INFO  com.alibaba.nacos.client.naming - current ips:(0) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> []
+2026-08-25 09:10:18.344 [nacos-grpc-client-executor-4] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11565
+2026-08-25 09:10:21.819 [main] INFO  com.alibaba.nacos.client.naming - [REGISTER-SERVICE] lw registering service bcd-wms-base with instance Instance{instanceId='null', ip='192.168.129.41', port=8015, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='DEFAULT', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2026-08-25 09:10:21.991 [main] INFO  c.a.c.n.r.NacosServiceRegistry - nacos registry, DEFAULT_GROUP bcd-wms-base 192.168.129.41:8015 register finished
+2026-08-25 09:10:22.547 [nacos-grpc-client-executor-9] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11566
+2026-08-25 09:10:22.846 [nacos-grpc-client-executor-9] INFO  com.alibaba.nacos.client.naming - new ips(1) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> [{"instanceId":"192.168.129.41#8015#DEFAULT#DEFAULT_GROUP@@bcd-wms-base","ip":"192.168.129.41","port":8015,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-base","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-25 09:10:22.865 [nacos-grpc-client-executor-9] INFO  com.alibaba.nacos.client.naming - current ips:(1) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> [{"instanceId":"192.168.129.41#8015#DEFAULT#DEFAULT_GROUP@@bcd-wms-base","ip":"192.168.129.41","port":8015,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-base","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-25 09:10:22.875 [nacos-grpc-client-executor-9] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11566
+2026-08-25 09:10:31.075 [main] INFO  com.api.BcdBaseApplication - Started BcdBaseApplication in 187.896 seconds (JVM running for 193.329)
+2026-08-25 09:10:31.160 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] logback.yml+saas-wms+wms
+2026-08-25 09:10:31.169 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=logback.yml, group=saas-wms, cnt=1
+2026-08-25 09:10:31.172 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-base.yaml+DEFAULT_GROUP+wms
+2026-08-25 09:10:31.177 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-base.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-25 09:10:31.182 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] datasource.yml+saas-wms+wms
+2026-08-25 09:10:31.195 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=datasource.yml, group=saas-wms, cnt=1
+2026-08-25 09:10:31.196 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-base-ZHANJI.yaml+DEFAULT_GROUP+wms
+2026-08-25 09:10:31.198 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-base-ZHANJI.yaml, group=DEFAULT_GROUP, cnt=1
+2026-08-25 09:10:31.199 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] bcd-wms-base+DEFAULT_GROUP+wms
+2026-08-25 09:10:31.200 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=bcd-wms-base, group=DEFAULT_GROUP, cnt=1
+2026-08-25 09:10:31.207 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] tenant.yml+saas-wms+wms
+2026-08-25 09:10:31.208 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=tenant.yml, group=saas-wms, cnt=1
+2026-08-25 09:10:31.213 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] redis.yml+saas-wms+wms
+2026-08-25 09:10:31.214 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=redis.yml, group=saas-wms, cnt=1
+2026-08-25 09:10:31.217 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] cip.yml+saas-wms+wms
+2026-08-25 09:10:31.219 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=cip.yml, group=saas-wms, cnt=1
+2026-08-25 09:10:31.228 [main] INFO  c.a.n.c.config.impl.ClientWorker - [config_rpc_client] [subscribe] sentinel.yml+saas-wms+wms
+2026-08-25 09:10:31.229 [main] INFO  c.a.n.client.config.impl.CacheData - [config_rpc_client] [add-listener] ok, tenant=wms, dataId=sentinel.yml, group=saas-wms, cnt=1
+2026-08-25 09:12:00.311 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:12:00.379 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:12:00.380 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:12:00.499 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:19:14.335 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Server healthy check fail,currentConnection=1787620073891_192.168.129.41_54032
+2026-08-25 09:19:14.350 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 09:19:15.287 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Server healthy check fail,currentConnection=1787620216590_192.168.129.41_60513
+2026-08-25 09:19:15.288 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 09:19:15.395 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787620755488_192.168.129.41_63638
+2026-08-25 09:19:15.396 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787620073891_192.168.129.41_54032
+2026-08-25 09:19:15.400 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 09:19:15.403 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 09:19:15.404 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 09:19:15.404 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 09:19:15.603 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] success to connect a server  [172.29.241.131:8001],connectionId=1787620755995_192.168.129.41_49892
+2026-08-25 09:19:15.604 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787620216590_192.168.129.41_60513
+2026-08-25 09:19:15.609 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify disconnected event to listeners
+2026-08-25 09:19:15.665 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify connected event to listeners.
+2026-08-25 09:19:15.665 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-25 09:19:17.871 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-base
+2026-08-25 09:19:17.882 [com.alibaba.nacos.client.naming.updater.0] INFO  com.alibaba.nacos.client.naming - removed ips(1) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> [{"instanceId":"192.168.129.41#8015#DEFAULT#DEFAULT_GROUP@@bcd-wms-base","ip":"192.168.129.41","port":8015,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-base","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-25 09:19:17.882 [com.alibaba.nacos.client.naming.updater.0] INFO  com.alibaba.nacos.client.naming - current ips:(0) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> []
+2026-08-25 09:19:17.913 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-base#DEFAULT
+2026-08-25 09:19:18.442 [nacos-grpc-client-executor-67] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11585
+2026-08-25 09:19:18.444 [nacos-grpc-client-executor-67] INFO  com.alibaba.nacos.client.naming - new ips(1) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> [{"instanceId":"192.168.129.41#8015#DEFAULT#DEFAULT_GROUP@@bcd-wms-base","ip":"192.168.129.41","port":8015,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-base","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-25 09:19:18.445 [nacos-grpc-client-executor-67] INFO  com.alibaba.nacos.client.naming - current ips:(1) service: DEFAULT_GROUP@@bcd-wms-base@@DEFAULT -> [{"instanceId":"192.168.129.41#8015#DEFAULT#DEFAULT_GROUP@@bcd-wms-base","ip":"192.168.129.41","port":8015,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"DEFAULT","serviceName":"DEFAULT_GROUP@@bcd-wms-base","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2026-08-25 09:19:18.447 [nacos-grpc-client-executor-67] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11585
+2026-08-25 09:19:48.653 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:19:48.654 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:19:48.655 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:19:48.704 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:21:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:21:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:21:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:21:00.076 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:24:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:24:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:24:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:24:00.075 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:27:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:27:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:27:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:27:00.032 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:30:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:30:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:30:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:30:00.071 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:33:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:33:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:33:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:33:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:36:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:36:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:36:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:36:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:39:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:39:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:39:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:39:00.067 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:42:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:42:00.032 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:42:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:42:00.147 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:45:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:45:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:45:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:45:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:48:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:48:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:48:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:48:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:51:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:51:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:51:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:51:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:54:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:54:00.094 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 09:57:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 09:57:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 09:57:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 09:57:00.061 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:00:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:00:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:00:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:03:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:03:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:03:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:03:00.243 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:06:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:06:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:06:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:06:00.074 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:09:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:09:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:09:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:09:00.048 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:12:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:12:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:12:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:12:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:15:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:15:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:15:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:15:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:18:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:18:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:18:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:18:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:21:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:21:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:21:00.063 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:21:00.129 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:24:00.335 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:24:00.354 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:24:00.355 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:24:00.381 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:27:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:27:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:27:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:27:00.082 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:30:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:30:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:30:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:30:00.056 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:33:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:33:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:33:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:33:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:36:00.000 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:36:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:36:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:36:00.037 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:39:06.721 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:39:06.785 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:39:06.801 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:39:06.907 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:42:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:42:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:42:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:42:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:45:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:45:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:45:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:45:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:48:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:48:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:48:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:48:00.116 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:51:00.131 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:51:00.136 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:51:00.137 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:51:00.512 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:54:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:54:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:54:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:54:00.082 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 10:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 10:57:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 10:57:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 10:57:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:00:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:00:00.262 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:03:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:03:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:03:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:03:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:06:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:06:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:06:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:06:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:09:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:09:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:09:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:09:00.068 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:12:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:12:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:12:00.027 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:12:00.099 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:15:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:15:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:15:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:15:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:18:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:18:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:18:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:18:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:21:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:21:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:21:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:21:00.051 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:24:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:24:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:24:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:24:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:27:00.000 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:27:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:27:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:27:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 11:30:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 11:30:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 11:30:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 11:30:00.080 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:04:25.148 [nacos-grpc-client-executor-1655] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=ClientDetectionRequest,requestId=11700
+2026-08-25 13:04:25.161 [nacos-grpc-client-executor-1655] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=ClientDetectionRequest,requestId=11700
+2026-08-25 13:04:26.106 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 13:04:27.497 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] success to connect a server  [172.29.241.131:8001],connectionId=1787634267429_192.168.129.41_49713
+2026-08-25 13:04:27.497 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787620755995_192.168.129.41_49892
+2026-08-25 13:04:27.497 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Server healthy check fail,currentConnection=1787620755488_192.168.129.41_63638
+2026-08-25 13:04:27.500 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 13:04:27.502 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify disconnected event to listeners
+2026-08-25 13:04:27.549 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify connected event to listeners.
+2026-08-25 13:04:27.550 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-25 13:04:28.021 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787634268200_192.168.129.41_49736
+2026-08-25 13:04:28.022 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787620755488_192.168.129.41_63638
+2026-08-25 13:04:28.024 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 13:04:28.025 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 13:04:28.026 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 13:04:28.026 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 13:04:29.481 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-base
+2026-08-25 13:04:29.612 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-base#DEFAULT
+2026-08-25 13:04:30.043 [nacos-grpc-client-executor-1662] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11724
+2026-08-25 13:04:30.046 [nacos-grpc-client-executor-1662] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11724
+2026-08-25 13:06:17.466 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:06:17.467 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:06:17.468 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:06:17.549 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:09:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:09:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:09:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:09:00.103 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:12:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:12:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:12:00.063 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:15:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:15:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:15:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:15:00.095 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:18:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:18:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:18:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:18:00.079 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:21:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:21:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:21:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:21:00.092 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:24:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:24:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:24:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:24:00.181 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:27:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:27:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:27:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:27:00.136 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:30:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:30:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:30:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:30:00.052 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:33:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:33:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:33:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:33:00.066 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:36:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:36:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:36:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:36:00.289 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:39:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:39:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:39:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:39:00.211 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:42:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:42:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:42:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:42:00.050 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:45:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:45:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:45:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:45:00.077 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:48:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:48:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:48:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:48:00.071 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:51:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:51:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:51:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:51:00.074 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:54:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:54:00.054 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 13:57:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 13:57:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 13:57:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 13:57:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:00:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:00:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:00:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:00:00.307 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:03:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:03:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:03:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:03:00.095 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:06:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:06:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:06:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:06:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:06:08.860 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Server healthy check fail,currentConnection=1787634268200_192.168.129.41_49736
+2026-08-25 14:06:08.861 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 14:06:09.022 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787637969494_192.168.129.41_61495
+2026-08-25 14:06:09.022 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787634268200_192.168.129.41_49736
+2026-08-25 14:06:09.025 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 14:06:09.026 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 14:06:09.027 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 14:06:09.027 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 14:09:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:09:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:09:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:09:00.115 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:12:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:12:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:12:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:12:00.037 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:13:52.508 [nacos-grpc-client-executor-2510] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]receive server push request,request=ClientDetectionRequest,requestId=11798
+2026-08-25 14:13:52.511 [nacos-grpc-client-executor-2510] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]ack server push request,request=ClientDetectionRequest,requestId=11798
+2026-08-25 14:13:52.584 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Server healthy check fail,currentConnection=1787637969494_192.168.129.41_61495
+2026-08-25 14:13:52.584 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 14:13:52.904 [nacos-grpc-client-executor-2508] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=ClientDetectionRequest,requestId=11806
+2026-08-25 14:13:52.904 [nacos-grpc-client-executor-2508] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=ClientDetectionRequest,requestId=11806
+2026-08-25 14:13:52.913 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 14:13:53.017 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787638433207_192.168.129.41_56211
+2026-08-25 14:13:53.017 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787637969494_192.168.129.41_61495
+2026-08-25 14:13:53.018 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 14:13:53.018 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 14:13:53.018 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 14:13:53.019 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 14:13:53.019 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 14:13:53.093 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] success to connect a server  [172.29.241.131:8001],connectionId=1787638433543_192.168.129.41_56217
+2026-08-25 14:13:53.094 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787634267429_192.168.129.41_49713
+2026-08-25 14:13:53.095 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify disconnected event to listeners
+2026-08-25 14:13:53.096 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify connected event to listeners.
+2026-08-25 14:13:53.096 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-25 14:13:53.170 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787638433635_192.168.129.41_56219
+2026-08-25 14:13:53.170 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787638433207_192.168.129.41_56211
+2026-08-25 14:13:53.172 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 14:13:53.178 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 14:13:53.182 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 14:13:53.183 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 14:13:54.371 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-base
+2026-08-25 14:13:54.382 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-base#DEFAULT
+2026-08-25 14:13:54.964 [nacos-grpc-client-executor-2515] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11812
+2026-08-25 14:13:54.965 [nacos-grpc-client-executor-2515] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11812
+2026-08-25 14:15:31.075 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:15:31.102 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:15:31.103 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:15:31.187 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:18:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:18:00.099 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:18:00.102 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:18:00.267 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:21:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:21:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:21:00.039 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:21:00.193 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:24:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:24:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:24:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:24:00.059 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:27:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:27:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:27:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:27:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:30:00.120 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:30:00.179 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:30:00.181 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:30:00.236 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:33:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:33:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:33:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:33:00.090 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:36:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:36:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:36:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:36:00.062 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:39:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:39:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:39:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:39:00.104 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:42:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:42:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:42:00.022 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:42:00.078 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:45:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:45:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:45:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:45:00.100 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:48:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:48:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:48:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:48:00.061 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:51:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:51:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:51:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:51:00.075 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:54:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:54:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:54:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:54:00.147 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 14:57:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 14:57:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 14:57:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 14:57:00.083 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:00:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:00:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:00:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:00:00.078 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:03:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:03:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:03:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:03:00.066 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:06:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:06:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:06:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:06:00.085 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:09:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:09:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:09:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:09:00.092 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:12:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:12:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:12:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:12:00.060 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:15:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:15:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:15:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:15:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:18:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:18:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:18:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:18:00.053 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:21:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:21:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:21:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:21:00.052 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:24:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:24:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:24:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:24:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:27:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:27:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:27:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:27:00.074 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:30:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:30:00.036 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:30:00.038 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:30:00.086 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:33:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:33:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:33:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:33:00.056 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:36:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:36:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:36:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:36:00.040 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:39:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:39:00.135 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:39:00.139 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:39:00.345 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:42:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:42:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:42:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:42:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:45:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:45:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:45:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:45:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:48:00.200 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:48:00.628 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:48:00.628 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:48:00.859 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:51:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:51:00.025 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:51:00.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:51:00.081 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:54:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:54:00.019 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:54:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:54:00.088 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 15:57:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 15:57:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 15:57:00.020 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 15:57:00.071 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:00:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:00:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:00:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:00:00.064 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:03:00.846 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:03:00.848 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:03:00.848 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:03:00.950 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:06:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:06:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:06:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:06:00.067 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:09:01.128 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:09:01.128 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:09:01.128 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:09:01.168 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:12:03.143 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:12:03.145 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:12:03.149 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:12:03.203 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:15:00.001 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:15:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:15:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:15:00.078 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:18:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:18:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:18:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:18:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:21:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:21:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:21:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:21:00.061 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:24:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:24:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:24:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:24:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:27:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:27:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:27:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:27:00.116 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:30:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:30:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:30:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:30:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:30:42.899 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Server healthy check fail,currentConnection=1787638433635_192.168.129.41_56219
+2026-08-25 16:30:42.902 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 16:30:49.345 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] success to connect a server  [172.29.241.131:8001],connectionId=1787646648375_192.168.129.41_59006
+2026-08-25 16:30:49.349 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787638433635_192.168.129.41_56219
+2026-08-25 16:30:49.547 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify disconnected event to listeners
+2026-08-25 16:30:49.549 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] DisConnected,clear listen context...
+2026-08-25 16:30:49.558 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0]Notify connected event to listeners.
+2026-08-25 16:30:49.559 [com.alibaba.nacos.client.remote.worker] INFO  c.a.n.c.config.impl.ClientWorker - [7a072b0b-3d2b-4792-8f14-6e7f5d6d0883_config-0] Connected,notify listen context...
+2026-08-25 16:33:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:33:00.021 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:33:00.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:33:00.154 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:36:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:36:00.134 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:36:00.135 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:36:00.206 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:37:40.120 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Server healthy check fail,currentConnection=1787638433543_192.168.129.41_56217
+2026-08-25 16:37:40.129 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] try to re connect to a new server ,server is  not appointed,will choose a random server.
+2026-08-25 16:37:42.532 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] success to connect a server  [172.29.241.131:8001],connectionId=1787647062927_192.168.129.41_51752
+2026-08-25 16:37:42.532 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3] Abandon prev connection ,server is  172.29.241.131:8001, connectionId is 1787638433543_192.168.129.41_56217
+2026-08-25 16:37:42.553 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify disconnected event to listeners
+2026-08-25 16:37:42.561 [com.alibaba.nacos.client.remote.worker] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]Notify connected event to listeners.
+2026-08-25 16:37:42.567 [com.alibaba.nacos.client.remote.worker] INFO  com.alibaba.nacos.client.naming - Grpc connection connect
+2026-08-25 16:37:45.092 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo instance operation REGISTER for DEFAULT_GROUP@@bcd-wms-base
+2026-08-25 16:37:45.249 [com.alibaba.nacos.client.naming.grpc.redo.0] INFO  com.alibaba.nacos.client.naming - Redo subscriber operation REGISTER for DEFAULT_GROUP@@bcd-wms-base#DEFAULT
+2026-08-25 16:37:45.804 [nacos-grpc-client-executor-4266] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]receive server push request,request=NotifySubscriberRequest,requestId=11932
+2026-08-25 16:37:45.809 [nacos-grpc-client-executor-4266] INFO  c.alibaba.nacos.common.remote.client - [001d5567-db35-4bd4-b9b5-9ba89b021cf3]ack server push request,request=NotifySubscriberRequest,requestId=11932
+2026-08-25 16:39:00.281 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:39:00.309 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:39:00.309 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:39:00.402 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:42:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:42:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:42:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:42:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:45:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:45:00.144 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:45:00.147 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:45:00.248 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:48:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:48:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:48:00.005 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:48:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:51:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:51:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:51:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:51:00.056 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:54:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:54:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:54:00.018 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:54:00.073 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 16:57:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 16:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 16:57:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 16:57:00.072 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:00:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:00:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:00:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:00:00.063 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:03:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:03:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:03:00.017 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:03:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:06:00.003 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:06:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:06:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:06:00.036 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:09:00.029 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:09:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:09:00.049 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:09:00.165 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:12:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:12:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:12:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:15:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:15:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:15:00.016 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:15:00.042 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:18:00.009 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:18:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:18:00.015 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:18:00.055 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:21:00.002 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:21:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:21:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:21:00.053 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:24:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:24:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:24:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:24:00.053 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:27:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:27:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:27:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:27:00.040 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:30:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:30:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:30:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:30:00.051 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:33:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:33:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:33:00.008 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:33:00.031 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:36:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:36:00.027 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:39:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:39:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:39:00.010 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:39:00.026 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:42:00.011 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:42:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:42:00.012 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:42:00.047 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:45:00.013 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:45:00.014 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:45:00.046 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:48:00.004 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:48:00.006 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:48:00.007 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:48:00.044 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
+2026-08-25 17:51:01.160 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 准备获取平台租户发布版本
+2026-08-25 17:51:01.162 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求地址：http://172.29.241.131:10007/tenant/getReleaseVersion
+2026-08-25 17:51:01.162 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 发送请求
+2026-08-25 17:51:01.184 [scheduling-1] INFO  com.server.db.LoadMultiDataSource - 请求结果：{"res":true,"code":"200","errtype":0,"data":{"WHITE_VERSION":"3B78AC07-8A9E-8D71-D744-685AB71FE803","ROUTE_VERSION":"814e0fa6-362c-461b-a8d3-ef81e909c6f3","RELEASE_VERSION":"8b5f0ba5-7eaa-c063-d629-6816ed87ba82","SYSTEM_TYPE":"WMS"},"customValue":null}
