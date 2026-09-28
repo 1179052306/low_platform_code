@@ -1871,10 +1871,11 @@ const containerContentStyle = computed(() => {
   // el-container 已移除
   void sectionKey
   if (nodeType === 'el-row') {
+    const gutter = props.node.props.gutter ?? 0
     style.display = 'flex'
     style.flexDirection = 'row'
     style.flexWrap = 'wrap'
-    style.columnGap = `${props.node.props.gutter ?? 0}px`
+    style.columnGap = `${gutter}px`
     style.rowGap = `${props.node.props.rowGap ?? 0}px`
     style.justifyContent = (props.node.props.justify as string) || 'start'
     style.alignItems = (props.node.props.align as string) || 'stretch'
@@ -1882,6 +1883,7 @@ const containerContentStyle = computed(() => {
     style.height = 'auto'
     style.minHeight = '40px'
     style.boxSizing = 'border-box'
+    style['--col-gap'] = `${gutter}px`
   } else if (nodeType === 'el-splitter') {
     const dir = props.node.props.layout === 'vertical' ? 'column' : 'row'
     style.display = 'flex'
@@ -1981,11 +1983,13 @@ const wrapperStyle = computed(() => {
     }
   }
 
-  // 栅格列 flex (span/24)
+  // 栅格列 flex (span/24)，用 calc 减去列间距份额避免换行
   const span = props.node.props.span
   if (typeof span === 'number' && span > 0) {
-    style.flex = `0 0 ${((span / 24) * 100).toFixed(2)}%`
-    style.maxWidth = `${((span / 24) * 100).toFixed(2)}%`
+    const pct = ((span / 24) * 100).toFixed(2)
+    const colCount = 24 / span
+    style.flex = `0 0 calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
+    style.maxWidth = `calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
   }
   const offset = props.node.props.offset
   if (typeof offset === 'number' && offset > 0) {
