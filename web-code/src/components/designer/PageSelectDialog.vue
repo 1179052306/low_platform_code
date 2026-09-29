@@ -21,6 +21,8 @@ const props = defineProps<{
   modelValue?: string
   /** 需要过滤掉的页面 ID（通常是当前正在编辑的页面） */
   excludePageId?: string
+  /** 只显示指定页面类型（如 'basedata'），不传则显示全部 */
+  pageType?: string
 }>()
 
 const emit = defineEmits<{
@@ -148,6 +150,9 @@ function matchCondition(val: unknown, cond: SearchCondition): boolean {
 
 const filteredPages = computed(() => {
   let list = pages.value.filter((p) => p.enabled !== false)
+  if (props.pageType) {
+    list = list.filter((p) => p.pageType === props.pageType)
+  }
   if (props.excludePageId) {
     list = list.filter((p) => p.pageId !== props.excludePageId)
   }

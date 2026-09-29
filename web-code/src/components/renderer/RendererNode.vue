@@ -1983,13 +1983,21 @@ const wrapperStyle = computed(() => {
     }
   }
 
-  // 栅格列 flex (span/24)，用 calc 减去列间距份额避免换行
+  // 栅格列：span>0 用 span/24 栅格制，否则 flexEqual 用 flex:1 等宽
   const span = props.node.props.span
   if (typeof span === 'number' && span > 0) {
     const pct = ((span / 24) * 100).toFixed(2)
     const colCount = 24 / span
-    style.flex = `0 0 calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
-    style.maxWidth = `calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
+    style.flex = `0 0 calc(${pct}% - var(--col-gap, 0px) * ${(colCount - 1) / colCount})`
+    style.maxWidth = `calc(${pct}% - var(--col-gap, 0px) * ${(colCount - 1) / colCount})`
+  } else if (props.node.props.flexEqual === true) {
+    const flexCols = props.node.props.flexCols
+    if (typeof flexCols === 'number' && flexCols > 0) {
+      style.flex = `0 0 calc(100% / ${flexCols} - var(--col-gap, 0px) * ${(flexCols - 1) / flexCols})`
+      style.maxWidth = `calc(100% / ${flexCols} - var(--col-gap, 0px) * ${(flexCols - 1) / flexCols})`
+    } else {
+      style.flex = '1 1 0'
+    }
   }
   const offset = props.node.props.offset
   if (typeof offset === 'number' && offset > 0) {

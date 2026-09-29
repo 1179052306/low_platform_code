@@ -13,6 +13,7 @@ import ColumnEditorDialog from './ColumnEditorDialog.vue'
 import ToolbarItemsEditorDialog from './ToolbarItemsEditorDialog.vue'
 import SummaryEditorDialog from './SummaryEditorDialog.vue'
 import PageSelectDialog from './PageSelectDialog.vue'
+import FieldSelectDialog from './FieldSelectDialog.vue'
 import ApiSelectDialog from './ApiSelectDialog.vue'
 import ThemeSelectDialog from './ThemeSelectDialog.vue'
 
@@ -115,6 +116,12 @@ const baseDataPages = ref<SavedPageMeta[]>([])
 const refPageFields = ref<{ dbField: string; fieldName: string; displayText: string }[]>([])
 const refPagePrimaryKey = ref('')
 
+/** 基础资料页面选择弹窗 & 字段选择弹窗 */
+const refPageSelectVisible = ref(false)
+const refPageSelectId = ref('')
+const fieldSelectVisible = ref(false)
+const fieldSelectId = ref('')
+
 /** 加载基础资料页面列表 */
 async function loadBaseDataPages() {
   try {
@@ -124,7 +131,7 @@ async function loadBaseDataPages() {
   }
 }
 
-/** 加载指定基础资料页面的字段列表 */
+/** 加载指定基础资料页面的字段列表（优先取表格页面配置的列字段，回退表单节点） */
 async function loadRefPageFields(refPageId: string) {
   if (!refPageId) {
     refPageFields.value = []
@@ -140,21 +147,43 @@ async function loadRefPageFields(refPageId: string) {
     }
     refPagePrimaryKey.value = page.primaryKeyField || 'id'
     const fields: { dbField: string; fieldName: string; displayText: string }[] = []
-    const collect = (nodes: ComponentSchema[]) => {
-      for (const node of nodes) {
-        if (node.dbField) {
-          const label = (node.props?.label as string) || ''
-          const fieldName = node.fieldName || node.dbField
-          fields.push({
-            dbField: node.dbField,
-            fieldName,
-            displayText: label ? `${label} (${fieldName})` : fieldName,
-          })
-        }
-        if (node.children?.length) collect(node.children)
+
+    // 优先从表格模式（bizSchemas.table）的 dx-data-grid columns 获取
+    const tableSchema = page.bizSchemas?.table?.[0]
+    const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
+    if (Array.isArray(tableProps.columns)) {
+      const columns = tableProps.columns as Record<string, unknown>[]
+      for (const c of columns) {
+        if (c.visible === false) continue
+        const dataField = String(c.dataField || '')
+        if (!dataField) continue
+        const caption = String(c.caption || dataField)
+        fields.push({
+          dbField: dataField,
+          fieldName: caption,
+          displayText: `${caption} (${dataField})`,
+        })
       }
     }
-    collect(page.root || [])
+
+    // 表格列为空时回退到表单模式节点
+    if (!fields.length) {
+      const collect = (nodes: ComponentSchema[]) => {
+        for (const node of nodes) {
+          if (node.dbField) {
+            const label = (node.props?.label as string) || ''
+            const fieldName = node.fieldName || node.dbField
+            fields.push({
+              dbField: node.dbField,
+              fieldName,
+              displayText: label ? `${label} (${fieldName})` : fieldName,
+            })
+          }
+          if (node.children?.length) collect(node.children)
+        }
+      }
+      collect(page.root || [])
+    }
     refPageFields.value = fields
   } catch {
     refPageFields.value = []
@@ -197,6 +226,56 @@ function onValueFieldSelect(e: { value?: unknown }) {
   updateProps(node.id, 'valueField', val)
 }
 
+/** 打开基础资料页面选择弹窗 */
+function openRefPageSelectDialog() {
+  refPageSelectId.value = String(getEditable('refPageId') ?? '')
+  refPageSelectVisible.value = true
+}
+
+/** 基础资料页面选择弹窗确认回调 */
+function onRefPageSelectConfirm(pageId: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  setEditable('refPageId', pageId)
+  updateProps(node.id, 'refPageId', pageId)
+  node.refPageId = pageId
+  loadRefPageFields(pageId).then(() => {
+    const pk = refPagePrimaryKey.value
+    if (pk) {
+      setEditable('valueField', pk)
+      updateProps(node.id, 'valueField', pk)
+    }
+  })
+}
+
+/** 打开显示字段选择弹窗 */
+function openFieldSelectDialog() {
+  fieldSelectId.value = String(getEditable('displayField') ?? '')
+  fieldSelectVisible.value = true
+}
+
+/** 显示字段选择弹窗确认回调 */
+function onFieldSelectConfirm(dbField: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  setEditable('displayField', dbField)
+  updateProps(node.id, 'displayField', dbField)
+}
+
+/** 已选基础资料页面名称（用于按钮显示） */
+const refPageDisplayName = computed(() => {
+  const id = String(getEditable('refPageId') ?? '')
+  if (!id) return ''
+  return baseDataPages.value.find((p) => p.pageId === id)?.pageName || id
+})
+
+/** 已选显示字段文本（用于按钮显示） */
+const displayFieldText = computed(() => {
+  const field = String(getEditable('displayField') ?? '')
+  if (!field) return ''
+  return refPageFields.value.find((f) => f.dbField === field)?.displayText || field
+})
+
 /** 当前选中是否为 el-row 栅格布局 */
 const isRowLayout = computed(() => selectedNode.value?.type === 'el-row')
 
@@ -210,13 +289,19 @@ function generateGrid() {
   if (!node || node.type !== 'el-row') return
   const cols = Math.max(1, Math.min(24, gridCols.value))
   const rows = Math.max(1, Math.min(10, gridRows.value))
-  const span = Math.floor(24 / cols)
   pushHistory()
   node.children = []
   for (let i = 0; i < rows * cols; i++) {
     const col = createNode('el-col')
     if (col) {
-      Object.assign(col.props, { span, offset: 0, padding: '0', background: '#ffffff' })
+      Object.assign(col.props, {
+        span: 0,
+        flexEqual: true,
+        flexCols: cols,
+        offset: 0,
+        padding: '0',
+        background: '#ffffff',
+      })
       col.css = { padding: '0', margin: '0' }
       node.children.push(col)
     }
@@ -1473,26 +1558,40 @@ function onAddRuleSelect(e: Event) {
           <div class="prop-section-title">{{ t('基础资料配置') }}</div>
           <div class="prop-item">
             <div class="prop-label">{{ t('关联基础资料页面') }}</div>
-            <DxSelectBox
-              :items="baseDataPages"
-              display-expr="pageName"
-              value-expr="pageId"
-              :value="getEditable('refPageId')"
-              :placeholder="t('选择基础资料页面')"
-              :search-enabled="true"
-              @value-changed="onRefPageSelect"
-            />
+            <div class="page-open-setter">
+              <button
+                class="page-open-select-btn"
+                @click="openRefPageSelectDialog"
+              >
+                {{ refPageDisplayName || t('选择基础资料页面') }}
+              </button>
+              <button
+                v-if="getEditable('refPageId')"
+                class="page-open-clear-btn"
+                @click="onRefPageSelect({ value: '' })"
+              >
+                {{ t('清除') }}
+              </button>
+            </div>
           </div>
           <div class="prop-item">
             <div class="prop-label">{{ t('显示字段') }}</div>
-            <DxSelectBox
-              :items="refPageFields"
-              display-expr="displayText"
-              value-expr="dbField"
-              :value="getEditable('displayField')"
-              :placeholder="t('选择显示字段')"
-              @value-changed="onDisplayFieldSelect"
-            />
+            <div class="page-open-setter">
+              <button
+                class="page-open-select-btn"
+                :disabled="!getEditable('refPageId')"
+                @click="openFieldSelectDialog"
+              >
+                {{ displayFieldText || t('选择显示字段') }}
+              </button>
+              <button
+                v-if="getEditable('displayField')"
+                class="page-open-clear-btn"
+                @click="onDisplayFieldSelect({ value: '' })"
+              >
+                {{ t('清除') }}
+              </button>
+            </div>
           </div>
           <div class="prop-item">
             <div class="prop-label">{{ t('值字段（主键）') }}</div>
@@ -2290,6 +2389,21 @@ function onAddRuleSelect(e: Event) {
       :exclude-page-id="designerStore.pageId"
       @select="onPageSelect"
     />
+    <!-- 基础资料页面选择弹窗（仅过滤 basedata 类型） -->
+    <PageSelectDialog
+      v-model:visible="refPageSelectVisible"
+      v-model:model-value="refPageSelectId"
+      page-type="basedata"
+      @select="(id: string) => onRefPageSelectConfirm(id)"
+    />
+    <!-- 显示字段选择弹窗 -->
+    <FieldSelectDialog
+      v-model:visible="fieldSelectVisible"
+      v-model:model-value="fieldSelectId"
+      :fields="refPageFields"
+      :title="t('选择显示字段')"
+      @select="(field: string) => onFieldSelectConfirm(field)"
+    />
     <ApiSelectDialog
       v-model:visible="apiSelectDialogVisible"
       :model-value="String(getEditable(apiSelectDialogProp) || '')"
@@ -2844,6 +2958,10 @@ function onAddRuleSelect(e: Event) {
 }
 .page-open-select-btn:hover {
   background: #f3f4f6;
+}
+.page-open-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .page-open-clear-btn {
   border: none;

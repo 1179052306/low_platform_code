@@ -346,13 +346,21 @@ const boundProps = computed(() => {
 /** 外层包装样式：负责画布定位、占位尺寸，以及容器级 CSS 样式 */
 const wrapperStyle = computed(() => {
   const flexItem: Record<string, string> = {}
-  // 栅格列 flex (span/24)，用 calc 减去列间距份额避免换行
+  // 栅格列：span>0 用 span/24 栅格制，否则 flexEqual 用 flex:1 等宽
   const span = props.node.props.span
   if (typeof span === 'number' && span > 0) {
     const pct = ((span / 24) * 100).toFixed(2)
     const colCount = 24 / span
-    flexItem.flex = `0 0 calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
-    flexItem.maxWidth = `calc(${pct}% - var(--col-gap, 0px) / ${colCount})`
+    flexItem.flex = `0 0 calc(${pct}% - var(--col-gap, 0px) * ${(colCount - 1) / colCount})`
+    flexItem.maxWidth = `calc(${pct}% - var(--col-gap, 0px) * ${(colCount - 1) / colCount})`
+  } else if (props.node.props.flexEqual === true) {
+    const flexCols = props.node.props.flexCols
+    if (typeof flexCols === 'number' && flexCols > 0) {
+      flexItem.flex = `0 0 calc(100% / ${flexCols} - var(--col-gap, 0px) * ${(flexCols - 1) / flexCols})`
+      flexItem.maxWidth = `calc(100% / ${flexCols} - var(--col-gap, 0px) * ${(flexCols - 1) / flexCols})`
+    } else {
+      flexItem.flex = '1 1 0'
+    }
   }
   const offset = props.node.props.offset
   if (typeof offset === 'number' && offset > 0) {
