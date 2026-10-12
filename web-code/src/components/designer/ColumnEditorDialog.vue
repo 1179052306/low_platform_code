@@ -10,6 +10,7 @@ interface ColumnConfig {
   dataType: string
   width?: number
   visible?: boolean
+  isSystemField?: boolean
   allowEditing?: boolean
   allowSorting?: boolean
   allowFiltering?: boolean
@@ -46,6 +47,11 @@ interface ColumnConfig {
       writeBack?: boolean
     }[]
   }
+  baseDataRef?: {
+    refPageId: string
+    valueField: string
+    sourceField: string
+  }
 }
 
 const props = defineProps<{
@@ -53,7 +59,7 @@ const props = defineProps<{
   visible: boolean
   title?: string
   editingMode?: string
-  formFields?: { fieldName: string; dbField?: string; title: string }[]
+  formFields?: { fieldName: string; dbField?: string; title: string; children?: { fieldName: string; dbField: string; title: string }[]; refPageId?: string; valueField?: string; controlType?: string; selectItems?: { value: string; text: string }[] }[]
 }>()
 
 const emit = defineEmits<{
@@ -67,6 +73,8 @@ const mode = ref<'table' | 'json'>('table')
 const parseError = ref('')
 const expandedIdx = ref<number | null>(null)
 const searchKeyword = ref('')
+const dragIdx = ref<number | null>(null)
+const dragOverIdx = ref<number | null>(null)
 
 /** API 服务选择弹窗状态 */
 const apiSelectVisible = ref(false)
@@ -127,6 +135,44 @@ const filteredColumns = computed(() => {
       c.dataType?.toLowerCase().includes(kw)
   )
 })
+
+const selectedColIdx = ref<Set<number>>(new Set())
+const allColsSelected = computed(() =>
+  columns.value.length > 0 && selectedColIdx.value.size === columns.value.length
+)
+
+function toggleColSelect(realIdx: number) {
+  const s = new Set(selectedColIdx.value)
+  if (s.has(realIdx)) s.delete(realIdx)
+  else s.add(realIdx)
+  selectedColIdx.value = s
+}
+
+function toggleSelectAllCols() {
+  if (allColsSelected.value) {
+    selectedColIdx.value = new Set()
+  } else {
+    selectedColIdx.value = new Set(columns.value.map((_, i) => i))
+  }
+}
+
+function batchDeleteColumns() {
+  if (selectedColIdx.value.size === 0) return
+  const indices = Array.from(selectedColIdx.value).sort((a, b) => b - a)
+  for (const idx of indices) {
+    columns.value.splice(idx, 1)
+  }
+  if (expandedIdx.value !== null && selectedColIdx.value.has(expandedIdx.value)) {
+    expandedIdx.value = null
+  } else if (expandedIdx.value !== null) {
+    let shift = 0
+    for (const idx of indices) {
+      if (idx < expandedIdx.value) shift++
+    }
+    expandedIdx.value -= shift
+  }
+  selectedColIdx.value = new Set()
+}
 
 function getRealIndex(filteredIdx: number): number {
   const filtered = filteredColumns.value
@@ -218,10 +264,173 @@ function addColumn() {
 /** 从表单导入字段弹窗状态 */
 const formImportVisible = ref(false)
 const formImportSelected = ref<Set<string>>(new Set())
+const formImportSearch = ref('')
+const formImportExpanded = ref<Set<string>>(new Set())
+
+interface ImportTreeNode {
+  key: string
+  label: string
+  title: string
+  level: number
+  hasCheckbox: boolean
+  children?: ImportTreeNode[]
+}
+interface ImportFlatItem extends ImportTreeNode {
+  isExpanded: boolean
+}
+
+function buildChildTree(
+  children: { fieldName: string; title: string }[],
+  parentKey: string,
+  level: number,
+): ImportTreeNode[] {
+  const groups = new Map<string, { fieldName: string; title: string }[]>()
+  const direct: ImportTreeNode[] = []
+  for (const c of children) {
+    const dotIdx = c.fieldName.indexOf('.')
+    if (dotIdx > 0) {
+      const prefix = c.fieldName.substring(0, dotIdx)
+      if (!groups.has(prefix)) groups.set(prefix, [])
+      groups.get(prefix)!.push({
+        fieldName: c.fieldName.substring(dotIdx + 1),
+        title: c.title,
+      })
+    } else {
+      direct.push({
+        key: `${parentKey}.${c.fieldName}`,
+        label: c.fieldName,
+        title: c.title,
+        level,
+        hasCheckbox: true,
+      })
+    }
+  }
+  for (const [prefix, subChildren] of groups) {
+    const groupKey = `${parentKey}.${prefix}`
+    const childNodes = buildChildTree(subChildren, groupKey, level + 1)
+    direct.push({
+      key: groupKey,
+      label: prefix,
+      title: '',
+      level,
+      hasCheckbox: false,
+      children: childNodes,
+    })
+  }
+  return direct
+}
+
+function buildTree(fields: { fieldName: string; title: string; children?: { fieldName: string; title: string }[] }[]): ImportTreeNode[] {
+  return fields.map((f) => {
+    const node: ImportTreeNode = {
+      key: f.fieldName,
+      label: f.fieldName,
+      title: f.title,
+      level: 0,
+      hasCheckbox: true,
+    }
+    if (f.children?.length) {
+      node.children = buildChildTree(f.children, f.fieldName, 1)
+    }
+    return node
+  })
+}
+
+function flattenTree(nodes: ImportTreeNode[], expanded: Set<string>): ImportFlatItem[] {
+  const result: ImportFlatItem[] = []
+  for (const n of nodes) {
+    const isExpanded = expanded.has(n.key)
+    result.push({ ...n, isExpanded })
+    if (n.children?.length && isExpanded) {
+      result.push(...flattenTree(n.children, expanded))
+    }
+  }
+  return result
+}
+
+function nodeMatchesSearch(node: ImportTreeNode, kw: string): boolean {
+  if (!kw) return true
+  if (node.label.toLowerCase().includes(kw) || node.title.toLowerCase().includes(kw)) return true
+  return (node.children ?? []).some((c) => nodeMatchesSearch(c, kw))
+}
+
+function filterTree(nodes: ImportTreeNode[], kw: string): ImportTreeNode[] {
+  if (!kw) return nodes
+  const result: ImportTreeNode[] = []
+  for (const n of nodes) {
+    if (nodeMatchesSearch(n, kw)) {
+      result.push(n)
+    }
+  }
+  return result
+}
+
+function collectExpandKeys(nodes: ImportTreeNode[]): string[] {
+  const keys: string[] = []
+  for (const n of nodes) {
+    if (n.children?.length) {
+      keys.push(n.key)
+      keys.push(...collectExpandKeys(n.children))
+    }
+  }
+  return keys
+}
+
+const formImportFlatList = computed<ImportFlatItem[]>(() => {
+  const tree = buildTree(props.formFields ?? [])
+  const kw = formImportSearch.value.trim().toLowerCase()
+  const filtered = filterTree(tree, kw)
+  let expanded = formImportExpanded.value
+  if (kw) {
+    expanded = new Set([...expanded, ...collectExpandKeys(filtered)])
+  }
+  return flattenTree(filtered, expanded)
+})
+
+const formImportSelectedCount = computed(() => formImportSelected.value.size)
+
+function toggleFormImportExpand(key: string) {
+  const s = new Set(formImportExpanded.value)
+  if (s.has(key)) s.delete(key)
+  else s.add(key)
+  formImportExpanded.value = s
+}
 
 function openFormImport() {
-  formImportSelected.value = new Set()
+  formImportSearch.value = ''
+  formImportExpanded.value = new Set()
+  const existingDataFields = new Set(columns.value.map((c) => c.dataField))
+  const selected = new Set<string>()
+  for (const f of props.formFields ?? []) {
+    const fDbField = f.dbField || f.fieldName
+    if (existingDataFields.has(fDbField)) {
+      selected.add(f.fieldName)
+    }
+    for (const child of f.children ?? []) {
+      const childDbField = child.dbField || child.fieldName
+      const compositeKey = `${fDbField}.${childDbField}`
+      if (existingDataFields.has(compositeKey)) {
+        selected.add(`${f.fieldName}.${child.fieldName}`)
+      }
+    }
+  }
+  formImportSelected.value = selected
   formImportVisible.value = true
+}
+
+function formImportSelectAll() {
+  const selected = new Set<string>()
+  for (const f of props.formFields ?? []) {
+    selected.add(f.fieldName)
+    for (const child of f.children ?? []) {
+      selected.add(`${f.fieldName}.${child.fieldName}`)
+    }
+  }
+  formImportSelected.value = selected
+}
+
+function formImportDeselectAll() {
+  formImportSelected.value = new Set()
 }
 
 function toggleFormImportField(fieldName: string) {
@@ -234,18 +443,59 @@ function toggleFormImportField(fieldName: string) {
 /** 确认导入：把选中的表单字段添加为列，dataField 用 dbField（已存在的跳过） */
 function confirmFormImport() {
   const existing = new Set(columns.value.map((c) => c.dataField))
-  for (const fieldName of formImportSelected.value) {
-    const fieldMeta = props.formFields?.find((f) => f.fieldName === fieldName)
-    const dataField = fieldMeta?.dbField || fieldName
+  for (const key of formImportSelected.value) {
+    let dataField: string
+    let caption: string
+    let baseDataRef: { refPageId: string; valueField: string; sourceField: string } | undefined
+    if (key.includes('.')) {
+      const dotIdx = key.indexOf('.')
+      const parentFieldName = key.substring(0, dotIdx)
+      const childPath = key.substring(dotIdx + 1)
+      const parentMeta = props.formFields?.find((f) => f.fieldName === parentFieldName)
+      const childMeta = parentMeta?.children?.find((c) => c.fieldName === childPath)
+      if (!childMeta) continue
+      const parentDbField = parentMeta?.dbField || parentFieldName
+      const childDbField = childMeta.dbField || childPath
+      dataField = `${parentDbField}.${childDbField}`
+      const parentTitle = parentMeta?.title || parentFieldName
+      const childTitle = childMeta.title || childPath
+      caption = `${parentTitle}.${childTitle}`
+      if (parentMeta?.refPageId) {
+        baseDataRef = {
+          refPageId: parentMeta.refPageId,
+          valueField: parentMeta.valueField || 'id',
+          sourceField: parentMeta.dbField || '',
+        }
+      }
+    } else {
+      const fieldMeta = props.formFields?.find((f) => f.fieldName === key)
+      dataField = fieldMeta?.dbField || key
+      caption = fieldMeta?.title ?? key
+    }
     if (existing.has(dataField)) continue
+    const fieldMeta = key.includes('.')
+      ? undefined
+      : props.formFields?.find((f) => f.fieldName === key)
+    const isSelectBox = fieldMeta?.controlType === 'dx-select-box' && fieldMeta.selectItems?.length
     columns.value.push({
       dataField,
-      caption: fieldMeta?.title ?? fieldName,
+      caption,
       dataType: 'string',
-      editorType: 'default',
+      editorType: isSelectBox ? 'selectBox' : 'default',
+      ...(isSelectBox
+        ? {
+            lookup: {
+              dataSource: fieldMeta!.selectItems!,
+              valueExpr: 'value',
+              displayExpr: 'text',
+              dataSourceType: 'static' as const,
+            },
+          }
+        : {}),
       allowEditing: false,
       visible: true,
       permCode: dataField,
+      baseDataRef,
     })
   }
   formImportVisible.value = false
@@ -264,6 +514,23 @@ function removeColumn(realIdx: number) {
 function toggleExpand(realIdx: number) {
   expandedIdx.value = expandedIdx.value === realIdx ? null : realIdx
 }
+
+function onDragStart(realIdx: number) { dragIdx.value = realIdx }
+function onDragOver(realIdx: number) {
+  if (dragIdx.value === null || dragIdx.value === realIdx) return
+  dragOverIdx.value = realIdx
+}
+function onDrop(realIdx: number) {
+  if (dragIdx.value === null || dragIdx.value === realIdx) {
+    dragIdx.value = null; dragOverIdx.value = null; return
+  }
+  const from = dragIdx.value
+  const moved = columns.value.splice(from, 1)[0]
+  columns.value.splice(realIdx, 0, moved)
+  if (expandedIdx.value === from) expandedIdx.value = realIdx
+  dragIdx.value = null; dragOverIdx.value = null
+}
+function onDragEnd() { dragIdx.value = null; dragOverIdx.value = null }
 
 /** 根据数据类型返回默认格式化 */
 function defaultFormat(dataType: string): string | undefined {
@@ -420,6 +687,34 @@ function handleAutoInit() {
         editorType: 'default',
         allowEditing: false,
       },
+      {
+        dataField: 'CREATED_AT',
+        caption: t('创建时间'),
+        dataType: 'datetime',
+        editorType: 'default',
+        allowEditing: false,
+      },
+      {
+        dataField: 'UPDATED_AT',
+        caption: t('更新时间'),
+        dataType: 'datetime',
+        editorType: 'default',
+        allowEditing: false,
+      },
+      {
+        dataField: 'CREATED_BY',
+        caption: t('创建人'),
+        dataType: 'string',
+        editorType: 'default',
+        allowEditing: false,
+      },
+      {
+        dataField: 'UPDATED_BY',
+        caption: t('更新人'),
+        dataType: 'string',
+        editorType: 'default',
+        allowEditing: false,
+      },
     ]
   }
 }
@@ -464,6 +759,21 @@ watch(mode, () => {
             >
               {{ t('从表单导入') }}
             </button>
+            <label v-if="columns.length > 0" class="batch-select-all-label">
+              <input
+                type="checkbox"
+                :checked="allColsSelected"
+                @change="toggleSelectAllCols"
+              />
+              {{ t('全选') }}
+            </label>
+            <button
+              v-if="selectedColIdx.size > 0"
+              class="action-btn-batch-delete"
+              @click="batchDeleteColumns"
+            >
+              {{ t('批量删除') }} ({{ selectedColIdx.size }})
+            </button>
           </div>
 
           <div v-if="isEmpty && !parseError" class="table-empty-tip">
@@ -481,12 +791,25 @@ watch(mode, () => {
                 :class="{
                   expanded: expandedIdx === getRealIndex(fidx),
                   hidden: col.visible === false,
+                  'drag-over': dragOverIdx === getRealIndex(fidx),
+                  dragging: dragIdx === getRealIndex(fidx),
                 }"
+                draggable="true"
+                @dragstart="onDragStart(getRealIndex(fidx))"
+                @dragover.prevent="onDragOver(getRealIndex(fidx))"
+                @drop="onDrop(getRealIndex(fidx))"
+                @dragend="onDragEnd"
               >
                 <div
                   class="column-card-header"
                   @click="toggleExpand(getRealIndex(fidx))"
                 >
+                  <input
+                    type="checkbox"
+                    class="col-select-checkbox"
+                    :checked="selectedColIdx.has(getRealIndex(fidx))"
+                    @click.stop="toggleColSelect(getRealIndex(fidx))"
+                  />
                   <div class="column-card-summary">
                     <span class="col-badge" :class="`badge-${col.dataType}`">{{
                       col.dataType
@@ -973,25 +1296,58 @@ watch(mode, () => {
       >
         <div class="form-import-dialog">
           <div class="form-import-title">{{ t('从表单导入字段') }}</div>
+          <div class="form-import-toolbar">
+            <input
+              v-model="formImportSearch"
+              class="form-import-search"
+              :placeholder="t('搜索字段名或名称...')"
+            />
+            <button class="dialog-btn dialog-btn-confirm" @click="formImportSelectAll">
+              {{ t('全选') }}
+            </button>
+            <button class="dialog-btn dialog-btn-cancel" @click="formImportDeselectAll">
+              {{ t('取消全选') }}
+            </button>
+            <span class="form-import-count">{{ t('已选') }} {{ formImportSelectedCount }} {{ t('项') }}</span>
+          </div>
           <div class="form-import-list">
-            <label
-              v-for="f in props.formFields"
-              :key="f.fieldName"
-              class="form-import-item"
-            >
-              <input
-                type="checkbox"
-                :checked="formImportSelected.has(f.fieldName)"
-                @change="toggleFormImportField(f.fieldName)"
-              />
-              <span class="form-import-field">{{ f.fieldName }}</span>
-              <span class="form-import-title-label">{{ f.title }}</span>
-            </label>
+            <template v-for="item in formImportFlatList" :key="item.key">
+              <div
+                class="form-import-row"
+                :class="{ 'form-import-group': !item.hasCheckbox }"
+                :style="{ paddingLeft: 16 + item.level * 20 + 'px' }"
+              >
+                <span
+                  v-if="item.children?.length"
+                  class="form-import-toggle"
+                  @click="toggleFormImportExpand(item.key)"
+                >{{ item.isExpanded ? '▼' : '▶' }}</span>
+                <span v-else class="form-import-toggle-placeholder" />
+                <label v-if="item.hasCheckbox" class="form-import-item">
+                  <input
+                    type="checkbox"
+                    :checked="formImportSelected.has(item.key)"
+                    @change="toggleFormImportField(item.key)"
+                  />
+                  <span class="form-import-field">{{ item.label }}</span>
+                  <span v-if="item.title" class="form-import-title-label">{{ item.title }}</span>
+                </label>
+                <span v-else class="form-import-group-label">
+                  <span class="form-import-field">{{ item.label }}</span>
+                </span>
+              </div>
+            </template>
             <div
               v-if="!props.formFields || !props.formFields.length"
               class="form-import-empty"
             >
               {{ t('表单页面暂无控件字段，请先在表单页面添加控件') }}
+            </div>
+            <div
+              v-else-if="!formImportFlatList.length"
+              class="form-import-empty"
+            >
+              {{ t('未找到匹配的字段') }}
             </div>
           </div>
           <div class="dialog-footer">
@@ -1138,7 +1494,7 @@ watch(mode, () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: space-between;
+
 }
 .search-input {
   flex: 1;
@@ -1166,6 +1522,14 @@ watch(mode, () => {
   overflow: hidden;
   transition: border-color 0.15s;
 }
+.column-card.dragging {
+  opacity: 0.5;
+}
+.column-card.drag-over {
+  border-color: #1976d2;
+  border-style: dashed;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
 .column-card.expanded {
   border-color: #1976d2;
 }
@@ -1180,7 +1544,7 @@ watch(mode, () => {
 .column-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   padding: 7px 12px;
   background: #f5f7fa;
   cursor: pointer;
@@ -1192,6 +1556,8 @@ watch(mode, () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   flex-wrap: wrap;
 }
@@ -1255,6 +1621,7 @@ watch(mode, () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .expand-icon {
   color: #909399;
@@ -1476,6 +1843,34 @@ watch(mode, () => {
   background: #1976d2;
   color: #fff;
 }
+.batch-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #606266;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.action-btn-batch-delete {
+  border: 1px solid #f56c6c;
+  background: #fef0f0;
+  color: #f56c6c;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.action-btn-batch-delete:hover {
+  background: #f56c6c;
+  color: #fff;
+}
+.col-select-checkbox {
+  margin-right: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
 .action-btn-add.small {
   padding: 3px 10px;
   font-size: 11px;
@@ -1517,8 +1912,9 @@ watch(mode, () => {
 .form-import-dialog {
   background: #fff;
   border-radius: 8px;
-  width: 420px;
-  max-height: 70vh;
+  width: 720px;
+  max-width: 90vw;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -1529,29 +1925,100 @@ watch(mode, () => {
   padding: 14px 16px;
   border-bottom: 1px solid #e4e7ed;
 }
+.form-import-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e4e7ed;
+  flex-wrap: wrap;
+}
+.form-import-search {
+  flex: 1;
+  min-width: 180px;
+  padding: 6px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-import-search:focus {
+  border-color: #1976d2;
+}
+.form-import-count {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
 .form-import-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 16px;
+  padding: 4px 0;
+}
+.form-import-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 16px;
+  cursor: default;
+}
+.form-import-row:hover {
+  background: #f5f7fa;
+}
+.form-import-group {
+  font-weight: 600;
+  color: #303133;
+  background: #fafafa;
+}
+.form-import-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #909399;
+  flex-shrink: 0;
+  user-select: none;
+}
+.form-import-toggle:hover {
+  color: #1976d2;
+}
+.form-import-toggle-placeholder {
+  display: inline-block;
+  width: 16px;
+  flex-shrink: 0;
 }
 .form-import-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
   cursor: pointer;
   font-size: 13px;
-}
-.form-import-item:hover {
-  background: #f5f7fa;
+  flex: 1;
+  min-width: 0;
 }
 .form-import-field {
   font-weight: 500;
   color: #303133;
-  min-width: 120px;
+  white-space: nowrap;
 }
 .form-import-title-label {
   color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.form-import-group-label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.form-import-group-label .form-import-field {
+  font-weight: 600;
 }
 .form-import-empty {
   text-align: center;

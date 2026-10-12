@@ -67,20 +67,21 @@ public class SqlCompiler {
     public CompiledSql compileSelect(SelectQuery query, @Nullable String dbName) {
         List<SqlParam> params = new ArrayList<SqlParam>();
         StringBuilder sql = new StringBuilder("SELECT ");
+        SqlDialect dialect = dialectRegistry.dialect(dbName);
 
         if (query.distinct()) {
             sql.append("DISTINCT ");
         }
 
         appendColumns(sql, query.columns());
-        sql.append(" FROM ").append(query.table());
+        sql.append(" FROM ").append(dialect.quoteIdentifier(query.table()));
         if (query.alias() != null && !query.alias().isEmpty()) {
             sql.append(' ').append(query.alias());
         }
 
         for (JoinClause join : query.joins()) {
             sql.append(' ').append(join.type().sql())
-                    .append(' ').append(join.table());
+                    .append(' ').append(dialect.quoteIdentifier(join.table()));
             if (!join.alias().equals(join.table())) {
                 sql.append(' ').append(join.alias());
             }
@@ -101,7 +102,7 @@ public class SqlCompiler {
                 if (i > 0) {
                     sql.append(", ");
                 }
-                sql.append(Condition.upperCol(query.groupBy().get(i).column()));
+                sql.append(formatColumnRef(query.groupBy().get(i).column(), dialect));
             }
             if (query.having() != null) {
                 sql.append(" HAVING ");
@@ -115,13 +116,12 @@ public class SqlCompiler {
                 if (i > 0) {
                     sql.append(", ");
                 }
-                appendOrderBy(sql, query.orderBy().get(i));
+                appendOrderBy(sql, query.orderBy().get(i), dialect);
             }
         }
 
         String finalSql = sql.toString();
         if (query.hasPagination()) {
-            SqlDialect dialect = dialectRegistry.dialect(dbName);
             int limit = query.limit() == null ? Integer.MAX_VALUE : query.limit();
             finalSql = dialect.paginate(finalSql, limit, query.offset());
         }
@@ -135,14 +135,15 @@ public class SqlCompiler {
         List<SqlParam> params = new ArrayList<SqlParam>();
         List<String> columns = stmt.columns();
         Map<String, String> rawExprs = stmt.rawExpressions();
+        SqlDialect dialect = dialectRegistry.dialect(dbName);
 
         StringBuilder sql = new StringBuilder("INSERT INTO ");
-        sql.append(stmt.table()).append(" (");
+        sql.append(dialect.quoteIdentifier(stmt.table())).append(" (");
         for (int i = 0; i < columns.size(); i++) {
             if (i > 0) {
                 sql.append(", ");
             }
-            sql.append(columns.get(i));
+            sql.append(dialect.formatColumnRef(columns.get(i)));
         }
         sql.append(") VALUES (");
         for (int i = 0; i < columns.size(); i++) {
@@ -199,8 +200,9 @@ public class SqlCompiler {
 
     public CompiledSql compileUpdate(UpdateStatement stmt, @Nullable String dbName) {
         List<SqlParam> params = new ArrayList<SqlParam>();
+        SqlDialect dialect = dialectRegistry.dialect(dbName);
         StringBuilder sql = new StringBuilder("UPDATE ");
-        sql.append(stmt.table());
+        sql.append(dialect.quoteIdentifier(stmt.table()));
         if (stmt.alias() != null && !stmt.alias().isEmpty()) {
             sql.append(' ').append(stmt.alias());
         }
@@ -214,7 +216,7 @@ public class SqlCompiler {
                 sql.append(", ");
             }
             first = false;
-            sql.append(Condition.upperCol(column)).append('=');
+            sql.append(dialect.formatColumnRef(column)).append('=');
 
             switch (setExpr.kind()) {
                 case BIND:
@@ -222,7 +224,7 @@ public class SqlCompiler {
                     params.add(paramSetter.set(dbName, stmt.table(), column, setExpr.value()));
                     break;
                 case INCREMENT:
-                    sql.append(Condition.upperCol(column)).append('+').append('?');
+                    sql.append(dialect.formatColumnRef(column)).append('+').append('?');
                     params.add(paramSetter.set(dbName, stmt.table(), column, setExpr.value()));
                     break;
                 case RAW:
@@ -256,7 +258,7 @@ public class SqlCompiler {
         if (dialect.deleteNeedsFrom()) {
             sql.append("FROM ");
         }
-        sql.append(stmt.table());
+        sql.append(dialect.quoteIdentifier(stmt.table()));
         if (stmt.alias() != null && !stmt.alias().isEmpty()) {
             sql.append(' ').append(stmt.alias());
         }
@@ -267,7 +269,7 @@ public class SqlCompiler {
                 if (i > 0) {
                     sql.append(", ");
                 }
-                sql.append(stmt.usingTables().get(i));
+                sql.append(dialect.quoteIdentifier(stmt.usingTables().get(i)));
             }
         }
 
@@ -317,7 +319,8 @@ public class SqlCompiler {
     @SuppressWarnings("unchecked")
     private void compileLeaf(Condition.Leaf leaf, StringBuilder sql, List<SqlParam> params,
                              @Nullable String dbName, String tableName) {
-        String column = upperIfNoAlias(leaf.column());
+        SqlDialect dialect = dialectRegistry.dialect(dbName);
+        String column = formatColumnRef(leaf.column(), dialect);
         Op op = leaf.op();
 
         sql.append(column);
@@ -379,6 +382,17 @@ public class SqlCompiler {
 
     // ==================== 辅助方法 ====================
 
+    /**
+     * 格式化列引用（处理别名前缀）：T.column → T."column"（PG）或 T.COLUMN（Oracle）。
+     */
+    private String formatColumnRef(String column, SqlDialect dialect) {
+        int dot = column.indexOf('.');
+        if (dot >= 0) {
+            return column.substring(0, dot) + "." + dialect.formatColumnRef(column.substring(dot + 1));
+        }
+        return dialect.formatColumnRef(column);
+    }
+
     private void appendColumns(StringBuilder sql, List<String> columns) {
         if (columns.isEmpty()) {
             sql.append('*');
@@ -392,8 +406,8 @@ public class SqlCompiler {
         }
     }
 
-    private void appendOrderBy(StringBuilder sql, OrderBy item) {
-        sql.append(Condition.upperCol(item.column()));
+    private void appendOrderBy(StringBuilder sql, OrderBy item, SqlDialect dialect) {
+        sql.append(formatColumnRef(item.column(), dialect));
         if (item.direction() == OrderBy.Direction.DESC) {
             sql.append(" DESC");
         } else {
@@ -405,13 +419,7 @@ public class SqlCompiler {
     }
 
     /**
-     * 大写化列名（保留别名前缀，仅大写列部分）。
-     */
-    private String upperIfNoAlias(String column) {
-        return Condition.upperCol(column);
-    }
 
-    /**
      * 从 "alias.column" 提取纯列名。
      */
     private String bareColumn(String column) {

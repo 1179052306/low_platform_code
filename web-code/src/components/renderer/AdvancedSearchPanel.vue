@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { httpRequest, extractList } from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import type { QueryConfig } from '@/types/schema'
+import DxBaseData from '@/materials/components/DxBaseData.vue'
+import DxSelectBox from 'devextreme-vue/select-box'
 
 export interface GridColumn {
   dataField: string
@@ -9,6 +12,7 @@ export interface GridColumn {
   dataType: string
   visible?: boolean
   editorType?: string
+  isSystemField?: boolean
   lookup?: {
     dataSource: unknown[]
     valueExpr: string
@@ -16,6 +20,11 @@ export interface GridColumn {
     dataSourceType?: 'static' | 'remote'
     remoteUrl?: string
     method?: string
+  }
+  baseDataRef?: {
+    refPageId: string
+    displayField: string
+    valueField: string
   }
 }
 
@@ -35,6 +44,8 @@ interface SearchScheme {
 const props = defineProps<{
   columns: GridColumn[]
   gridId?: string
+  /** 查询配置（schema 驱动：限制可查询字段、默认过滤、排序、分页） */
+  queryConfig?: QueryConfig
 }>()
 
 const emit = defineEmits<{
@@ -51,9 +62,15 @@ const schemes = ref<SearchScheme[]>([])
 const schemeName = ref('')
 const showSchemeDialog = ref(false)
 
-const visibleColumns = computed(() =>
-  (props.columns || []).filter((c) => c.visible !== false)
-)
+const visibleColumns = computed(() => {
+  const cols = (props.columns || []).filter((c) => c.visible !== false)
+  // queryConfig 驱动：只保留 queryConfig.fields 中声明的可查询字段
+  if (props.queryConfig?.fields?.length) {
+    const allowed = new Set(props.queryConfig.fields.map((f) => f.fieldName))
+    return cols.filter((c) => allowed.has(c.dataField))
+  }
+  return cols
+})
 
 const activeConditions = computed(() =>
   conditions.value.filter((c) => {
@@ -138,12 +155,23 @@ function getOperators(dataType: string) {
   }
 }
 
+function getOperatorsForField(dataField: string) {
+  if (getColLookup(dataField)) {
+    return [
+      { label: '等于', value: '=' },
+      { label: '不等于', value: '<>' },
+    ]
+  }
+  return getOperators(getColType(dataField))
+}
+
+
 function onFieldChange(idx: number) {
   const col = visibleColumns.value.find(
     (c) => c.dataField === conditions.value[idx].field
   )
   if (col) {
-    const ops = getOperators(col.dataType)
+    const ops = getOperatorsForField(conditions.value[idx].field)
     if (
       ops.length > 0 &&
       !ops.find((o) => o.value === conditions.value[idx].operator)
@@ -165,6 +193,12 @@ function getColLookup(dataField: string): GridColumn['lookup'] | undefined {
   const col = visibleColumns.value.find((c) => c.dataField === dataField)
   if (col?.editorType === 'selectBox') return col.lookup
   return undefined
+}
+
+/** 获取列的基础资料引用配置（dx-base-data 控件） */
+function getColBaseDataRef(dataField: string): GridColumn['baseDataRef'] | undefined {
+  const col = visibleColumns.value.find((c) => c.dataField === dataField)
+  return col?.baseDataRef
 }
 
 /** 远程 lookup 数据缓存：dataField → 数据数组 */
@@ -366,7 +400,18 @@ onMounted(async () => {
       if (c.value2 === undefined) c.value2 = ''
     })
   } else {
-    ensureDefaultField(conditions.value[0])
+    // 无保存的查询方案：用 queryConfig.defaultFilters 初始化，否则空条件
+    if (props.queryConfig?.defaultFilters?.length) {
+      conditions.value = props.queryConfig.defaultFilters.map((f) => ({
+        field: f.field,
+        operator: f.operator,
+        value: String(f.value ?? ''),
+        value2: String(f.value2 ?? ''),
+      }))
+      conditions.value.forEach(ensureDefaultField)
+    } else {
+      ensureDefaultField(conditions.value[0])
+    }
   }
   // 监听条件网格容器宽度变化，自适应列数
   if (conditionsGridRef.value && typeof ResizeObserver !== 'undefined') {
@@ -408,7 +453,7 @@ onBeforeUnmount(() => {
             v-model="cond.field"
             @change="onFieldChange(idx)"
           >
-            <option value="">选择字段</option>
+
             <option
               v-for="col in visibleColumns"
               :key="col.dataField"
@@ -424,7 +469,7 @@ onBeforeUnmount(() => {
             @change="onOperatorChange(idx)"
           >
             <option
-              v-for="op in getOperators(getColType(cond.field))"
+              v-for="op in getOperatorsForField(cond.field)"
               :key="op.value"
               :value="op.value"
             >
@@ -432,20 +477,26 @@ onBeforeUnmount(() => {
             </option>
           </select>
 
-          <select
+          <DxSelectBox
             v-if="getColLookup(cond.field)"
-            class="value-input"
-            v-model="cond.value"
-          >
-            <option value="">请选择</option>
-            <option
-              v-for="item in getLookupOptions(cond.field)"
-              :key="String(item[getLookupExprs(cond.field).valueExpr])"
-              :value="item[getLookupExprs(cond.field).valueExpr]"
-            >
-              {{ item[getLookupExprs(cond.field).displayExpr] }}
-            </option>
-          </select>
+            class="value-input value-lookup-select"
+            :items="getLookupOptions(cond.field)"
+            :display-expr="getLookupExprs(cond.field).displayExpr"
+            :value-expr="getLookupExprs(cond.field).valueExpr"
+            :value="cond.value || null"
+            :show-clear-button="true"
+            @value-changed="(e: any) => { cond.value = e.value != null ? String(e.value) : '' }"
+          />
+          <DxBaseData
+            v-else-if="getColBaseDataRef(cond.field)"
+            class="value-input base-data-field"
+            :ref-page-id="getColBaseDataRef(cond.field)!.refPageId"
+            :display-field="getColBaseDataRef(cond.field)!.displayField"
+            :value-field="getColBaseDataRef(cond.field)!.valueField"
+            :value="cond.value || null"
+            placeholder="请选择"
+            @value-changed="(val: any) => { cond.value = val != null ? String(val) : '' }"
+          />
           <input
             v-else-if="getColType(cond.field) === 'date'"
             class="value-input"
@@ -478,20 +529,26 @@ onBeforeUnmount(() => {
           <!-- between 操作符的第二个值输入框（结束值） -->
           <template v-if="cond.operator === 'between'">
             <span class="between-sep">~</span>
-            <select
+            <DxSelectBox
               v-if="getColLookup(cond.field)"
-              class="value-input"
-              v-model="cond.value2"
-            >
-              <option value="">请选择</option>
-              <option
-                v-for="item in getLookupOptions(cond.field)"
-                :key="String(item[getLookupExprs(cond.field).valueExpr])"
-                :value="item[getLookupExprs(cond.field).valueExpr]"
-              >
-                {{ item[getLookupExprs(cond.field).displayExpr] }}
-              </option>
-            </select>
+              class="value-input value-lookup-select"
+              :items="getLookupOptions(cond.field)"
+              :display-expr="getLookupExprs(cond.field).displayExpr"
+              :value-expr="getLookupExprs(cond.field).valueExpr"
+              :value="cond.value2 || null"
+              :show-clear-button="true"
+              @value-changed="(e: any) => { cond.value2 = e.value != null ? String(e.value) : '' }"
+            />
+            <DxBaseData
+              v-else-if="getColBaseDataRef(cond.field)"
+              class="value-input base-data-field"
+              :ref-page-id="getColBaseDataRef(cond.field)!.refPageId"
+              :display-field="getColBaseDataRef(cond.field)!.displayField"
+              :value-field="getColBaseDataRef(cond.field)!.valueField"
+              :value="cond.value2 || null"
+              placeholder="请选择"
+              @value-changed="(val: any) => { cond.value2 = val != null ? String(val) : '' }"
+            />
             <input
               v-else-if="getColType(cond.field) === 'date'"
               class="value-input"
@@ -687,6 +744,16 @@ onBeforeUnmount(() => {
 }
 .value-input:focus {
   border-color: #1976d2;
+}
+.value-lookup-select {
+  flex: 1;
+  min-width: 70px;
+  height: 28px;
+}
+.value-lookup-select :deep(.dx-texteditor-input) {
+  height: 28px;
+  min-height: 28px;
+  font-size: 13px;
 }
 .between-sep {
   font-size: 12px;

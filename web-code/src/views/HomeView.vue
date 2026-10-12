@@ -71,7 +71,29 @@ const MENUS: MenuItem[] = [
               icon: '⚙',
               path: '/system-manage',
             },
-
+            {
+              title: '应用包管理',
+              desc: '管理应用包，打包发布与版本控制',
+              icon: '📦',
+              path: '/package-manage',
+            },
+          ],
+        },
+        {
+          title: '元数据',
+          items: [
+            {
+              title: '元数据管理',
+              desc: '统一元数据驱动，管理表/字段/关系元数据',
+              icon: '📋',
+              path: '/meta-manage',
+            },
+            {
+              title: '业务元数据',
+              desc: '业务对象/字段/动作/状态机配置',
+              icon: '📋',
+              path: '/biz-meta',
+            },
           ],
         },
       ],
@@ -91,6 +113,17 @@ const MENUS: MenuItem[] = [
               desc: '管理页面主题配色，预置/自定义主题与批量应用',
               icon: '🎨',
               path: '/theme-manage',
+            },
+          ],
+        },
+        {
+          title: '基础数据',
+          items: [
+            {
+              title: '数据字典',
+              desc: '管理数据字典分类与字典项，供下拉引用',
+              icon: '📚',
+              path: '/data-dict',
             },
           ],
         },
@@ -146,6 +179,43 @@ const MENUS: MenuItem[] = [
       ],
     },
   },
+  {
+    key: 'workflow',
+    title: '流程审批',
+    icon: '✓',
+    panel: {
+      groups: [
+        {
+          title: '审批流',
+          items: [
+            {
+              title: '流程设计',
+              desc: '设计审批流程，配置节点/审批人/条件分支',
+              icon: '✓',
+              path: '/workflow-designer',
+            },
+            {
+              title: '待办事项',
+              desc: '查看待办与已办任务，处理审批',
+              icon: '✓',
+              path: '/todo',
+            },
+          ],
+        },
+        {
+          title: '业务流',
+          items: [
+            {
+              title: '业务流设计',
+              desc: '设计跨单据业务流程，配置单据节点/自动/消息/网关',
+              icon: '⚙',
+              path: '/biz-flow-designer',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]
 
 /** 路由 → Tab 元数据（框架壳内可开 Tab 的路由） */
@@ -177,6 +247,34 @@ const ROUTE_TAB_META: Record<string, { title: string; componentName: string }> =
     '/theme-manage': {
       title: '主题管理',
       componentName: 'ThemeManageView',
+    },
+    '/meta-manage': {
+      title: '元数据管理',
+      componentName: 'MetaManageView',
+    },
+    '/biz-meta': {
+      title: '业务元数据',
+      componentName: 'BizMetaView',
+    },
+    '/data-dict': {
+      title: '数据字典',
+      componentName: 'DataDictView',
+    },
+    '/package-manage': {
+      title: '应用包管理',
+      componentName: 'PackageManagerView',
+    },
+    '/workflow-designer': {
+      title: '流程设计',
+      componentName: 'WorkflowDesignerView',
+    },
+    '/biz-flow-designer': {
+      title: '业务流设计',
+      componentName: 'BizFlowDesignerView',
+    },
+    '/todo': {
+      title: '待办事项',
+      componentName: 'TodoView',
     },
   }
 

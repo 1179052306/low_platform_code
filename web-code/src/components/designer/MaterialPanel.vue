@@ -29,7 +29,7 @@ const CATEGORY_ORDER = [
 
 /** 各业务模式允许的物料分类白名单（default 模式不过滤，显示全部） */
 const BIZ_MODE_CATEGORIES: Record<string, string[]> = {
-  form: ['布局', '表单', '操作', '基础', '弹层'],
+  form: ['布局', '表单', '数据', '操作', '基础', '图表', '弹层'],
   table: ['布局', '表单', '数据', '操作', '基础', '图表'],
   mobile: ['布局', '表单', '操作', '基础'],
 }
@@ -343,34 +343,32 @@ function isTreeExpanded(id: string): boolean {
               <span v-else class="tree-expand-placeholder"></span>
               <span class="tree-label">{{ nodeLabel(node) }}</span>
             </div>
-            <!-- 递归子节点（一层层展开） -->
+            <!-- 递归子节点（每个 child 紧跟其 grandchild 一起渲染） -->
             <template
               v-if="node.children.length && isTreeExpanded(node.id)"
             >
-              <div
-                v-for="child in node.children"
-                :key="child.id"
-                class="tree-item"
-                :class="{
-                  'tree-selected': designerStore.selectedId === child.id,
-                }"
-                :style="{ paddingLeft: '24px' }"
-                @click="onTreeNodeClick(child)"
-              >
-                <span
-                  v-if="child.children.length"
-                  class="tree-expand"
-                  @click.stop="toggleTreeNode(child.id)"
-                  >{{ isTreeExpanded(child.id) ? '▼' : '▶' }}</span
-                >
-                <span v-else class="tree-expand-placeholder"></span>
-                <span class="tree-label">{{ nodeLabel(child) }}</span>
-              </div>
-              <!-- 三层嵌套 -->
               <template
                 v-for="child in node.children"
-                :key="'sub-' + child.id"
+                :key="child.id"
               >
+                <div
+                  class="tree-item"
+                  :class="{
+                    'tree-selected': designerStore.selectedId === child.id,
+                  }"
+                  :style="{ paddingLeft: '24px' }"
+                  @click="onTreeNodeClick(child)"
+                >
+                  <span
+                    v-if="child.children.length"
+                    class="tree-expand"
+                    @click.stop="toggleTreeNode(child.id)"
+                    >{{ isTreeExpanded(child.id) ? '▼' : '▶' }}</span
+                  >
+                  <span v-else class="tree-expand-placeholder"></span>
+                  <span class="tree-label">{{ nodeLabel(child) }}</span>
+                </div>
+                <!-- 三层嵌套：紧跟该 child 的子节点 -->
                 <template
                   v-if="child.children.length && isTreeExpanded(child.id)"
                 >

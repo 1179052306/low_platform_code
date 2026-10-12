@@ -37,7 +37,23 @@ export function getBaseHeaders(): Record<string, string> {
   for (const [k, v] of Object.entries(_baseHeadersConfig)) {
     if (v !== undefined && v !== null) headers[k] = v
   }
+  // 调试请求头（仅开发模式，供后端远程联调定位）
+  if (import.meta.env.DEV) {
+    headers['X-Debug-Mode'] = 'true'
+    const pageId = _debugPageIdProvider?.()
+    if (pageId) headers['X-Debug-PageId'] = pageId
+  }
   return headers
+}
+
+/** 调试 pageId 提供者（由 designerStore 注入，避免 request ↔ designer 循环依赖） */
+let _debugPageIdProvider: (() => string | undefined) | null = null
+
+/** 设置调试 pageId 提供者（由 designerStore 在加载时注入） */
+export function setDebugPageIdProvider(
+  fn: (() => string | undefined) | null,
+): void {
+  _debugPageIdProvider = fn
 }
 
 // ---- 拦截器机制（供 B 层挂白名单 / 权限 / 日志） ----

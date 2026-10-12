@@ -14,6 +14,12 @@ import DxButton from 'devextreme-vue/button'
 import MaterialPanel from '@/components/designer/MaterialPanel.vue'
 import CanvasPanel from '@/components/designer/CanvasPanel.vue'
 import PropertyPanel from '@/components/designer/PropertyPanel.vue'
+import FieldEventRuleDialog from '@/components/designer/FieldEventRuleDialog.vue'
+import ComputeRuleDialog from '@/components/designer/ComputeRuleDialog.vue'
+import LayerDiffDialog from '@/components/designer/LayerDiffDialog.vue'
+import VersionHistoryPanel from '@/components/designer/VersionHistoryPanel.vue'
+import { LAYER_OPTIONS } from '@/composables/useLayer'
+import { setLayer, setMergePreview } from '@/store/designer'
 import {
   designerStore,
   undo,
@@ -40,6 +46,7 @@ import {
   setBizMode,
   addNode,
   validateFormBeforeSave,
+  setComputeRules,
 } from '@/store/designer'
 import { getConfig } from '@/materials'
 import { savePage, loadLatestPage, loadPage } from '@/store/persistence'
@@ -77,7 +84,19 @@ watch(
       newMode === 'table' &&
       designerStore.schema.length === 0
     ) {
-      addNode('dx-data-grid', null, 0, true, { dataSourceType: 'remote' })
+      addNode('dx-data-grid', null, 0, true, {
+        dataSourceType: 'remote',
+        advancedSearch: true,
+        toolbar: {
+          visible: true,
+          items: [
+            { name: 'add', caption: '新增', icon: 'add', visible: true, location: 'after' },
+            { name: 'edit', caption: '修改', icon: 'edit', visible: true, location: 'after' },
+            { name: 'delete', caption: '删除', icon: 'trash', visible: true, location: 'after' },
+            { name: 'refresh', caption: '刷新', icon: 'refresh', visible: true, location: 'after' },
+          ],
+        },
+      })
       const node = designerStore.schema[0]
       if (node) {
         node.css = { width: '100%', height: '100%', padding: '0', margin: '0' }
@@ -107,6 +126,16 @@ function isEditing(): boolean {
   return false
 }
 
+/** 判断是否有弹窗打开（Element Plus ElDialog 或自定义 dialog-overlay） */
+function isAnyDialogOpen(): boolean {
+  if (document.querySelector('.dialog-overlay')) return true
+  const wrappers = document.querySelectorAll<HTMLElement>('.el-dialog')
+  for (const w of wrappers) {
+    if (w.offsetParent !== null) return true
+  }
+  return false
+}
+
 function handleKeydown(e: KeyboardEvent): void {
   const ctrlOrMeta = e.ctrlKey || e.metaKey
 
@@ -120,7 +149,7 @@ function handleKeydown(e: KeyboardEvent): void {
         el.tagName === 'SELECT' ||
         el.isContentEditable ||
         el.closest('.dialog-overlay'))
-    if (inEditable) return
+    if (inEditable || isAnyDialogOpen()) return
     e.preventDefault()
     if (e.shiftKey) redo()
     else undo()
@@ -134,8 +163,8 @@ function handleKeydown(e: KeyboardEvent): void {
     return
   }
 
-  // 以下编辑类快捷键：输入框中不拦截（保留原生复制粘贴等）
-  if (isEditing()) return
+  // 以下编辑类快捷键：输入框或弹窗打开时不拦截
+  if (isEditing() || isAnyDialogOpen()) return
 
   // 复制节点：Ctrl+D 原地复制选中节点
   if (ctrlOrMeta && e.key.toLowerCase() === 'd') {
@@ -367,6 +396,11 @@ function onPreview(): void {
     tableName: designerStore.tableName,
     pageCss: designerStore.pageCss,
     pageId: designerStore.pageId,
+    computeRules: designerStore.computeRules,
+    fieldChangeEvents: designerStore.fieldChangeEvents,
+    pageType: designerStore.pageType,
+    bizSchemas: designerStore.bizSchemas,
+    lastBizMode: designerStore.bizMode,
   }
   sessionStorage.setItem('lowcode-preview-data', JSON.stringify(previewData))
   const url = `${window.location.origin}${window.location.pathname}#/preview`
@@ -377,6 +411,23 @@ function onPreview(): void {
 
 const showSchema = ref(false)
 const showVueCode = ref(false)
+/** 字段变更事件配置弹窗显隐（FE-S1） */
+const showFieldEventRuleDialog = ref(false)
+/** 页面级计算规则弹窗显隐（FE-S10） */
+const showComputeRuleDialog = ref(false)
+/** 表单字段名列表（供计算规则选择触发字段和目标字段） */
+const formFieldNames = computed(() => {
+  return collectAllNodes(designerStore.schema)
+    .filter((n) => {
+      if (!n.fieldName) return false
+      const c = getConfig(n.type)
+      return c?.category === '表单'
+    })
+    .map((n) => n.fieldName as string)
+})
+/** 层间 diff 弹窗显隐（FE-S3） */
+const showLayerDiffDialog = ref(false)
+const showVersionHistory = ref(false)
 
 /** Schema 编辑器文本（打开时初始化，允许用户修改） */
 const schemaText = ref('')
@@ -408,6 +459,16 @@ function applySchema(): void {
     schemaError.value =
       t('JSON 解析错误：') +
       `${err instanceof Error ? err.message : String(err)}`
+  }
+}
+
+/** 复制 Schema 内容到剪贴板 */
+async function copySchema(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(schemaText.value)
+    ElMessage.success(t('已复制到剪贴板'))
+  } catch {
+    ElMessage.error(t('复制失败'))
   }
 }
 
@@ -960,6 +1021,7 @@ async function restoreLastPage(): Promise<void> {
 
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
+  document.body.classList.add('designer-page')
   await loadAllTranslations()
   restoreLastPage()
   if (import.meta.env.DEV) {
@@ -970,16 +1032,19 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  document.body.classList.remove('designer-page')
 })
 
 // Tab 页签场景（keep-alive）：停用时卸载全局键盘监听，激活时重新挂载，
 // 避免切到其他 Tab 后 Delete/Ctrl 组合键仍操作设计器
 onActivated(() => {
   window.addEventListener('keydown', handleKeydown)
+  document.body.classList.add('designer-page')
 })
 
 onDeactivated(() => {
   window.removeEventListener('keydown', handleKeydown)
+  document.body.classList.remove('designer-page')
 })
 
 // 监听 URL pageId 变化，设计器已挂载时切换页面也能加载
@@ -1065,6 +1130,33 @@ watch(
           @click="onPreview"
         />
       </div>
+      <!-- FE-S3：分层继承层选择器 + 合并预览切换 + 层 diff -->
+      <div class="header-layer-tools">
+        <select
+          class="layer-select"
+          :value="designerStore.currentLayer"
+          @change="(e: Event) => setLayer((e.target as HTMLSelectElement).value as any)"
+          :title="t('当前编辑层')"
+        >
+          <option v-for="opt in LAYER_OPTIONS" :key="opt.value" :value="opt.value">
+            {{ t(opt.label) }}
+          </option>
+        </select>
+        <button
+          class="layer-toggle-btn"
+          :class="{ active: designerStore.mergePreview }"
+          @click="setMergePreview(!designerStore.mergePreview)"
+          :title="t('合并预览/当前层切换')"
+        >
+          {{ designerStore.mergePreview ? t('合并预览') : t('当前层') }}
+        </button>
+        <button class="layer-diff-btn" @click="showLayerDiffDialog = true">
+          {{ t('层差异') }}
+        </button>
+        <button class="layer-diff-btn" @click="showVersionHistory = true">
+          {{ t('版本历史') }}
+        </button>
+      </div>
     </header>
 
     <div class="designer-body">
@@ -1125,11 +1217,34 @@ watch(
               styling-mode="outlined"
               @click="openSchemaDialog"
             />
+            <DxButton
+              v-if="!isTableMode"
+              :text="t('字段事件')"
+              icon="event"
+              styling-mode="outlined"
+              @click="showFieldEventRuleDialog = true"
+            />
+            <DxButton
+              v-if="!isTableMode"
+              :text="t('计算规则')"
+              icon="math"
+              styling-mode="outlined"
+              @click="showComputeRuleDialog = true"
+            />
           </div>
         </div>
         <CanvasPanel />
       </div>
       <PropertyPanel v-if="showPropertyPanel" />
+      <FieldEventRuleDialog v-model:visible="showFieldEventRuleDialog" />
+      <ComputeRuleDialog
+        v-model="showComputeRuleDialog"
+        :fields="formFieldNames"
+        :rules="designerStore.computeRules ?? []"
+        @confirm="(rules) => setComputeRules(rules)"
+      />
+      <LayerDiffDialog v-model:visible="showLayerDiffDialog" />
+      <VersionHistoryPanel v-model:visible="showVersionHistory" :meta-key="designerStore.pageName" :page-id="designerStore.pageId" />
     </div>
 
     <!-- 查看 Schema 对话框 -->
@@ -1149,6 +1264,7 @@ watch(
             <span v-if="schemaError" class="schema-error">{{
               schemaError
             }}</span>
+            <DxButton :text="t('复制内容')" icon="copy" styling-mode="outlined" @click="copySchema" />
             <DxButton :text="t('应用')" type="default" @click="applySchema" />
           </div>
         </div>
@@ -1200,6 +1316,8 @@ watch(
   display: flex;
   align-items: center;
   padding: 0 12px;
+  position: relative;
+  z-index: 100001;
 }
 .header-left {
   display: flex;
@@ -1326,6 +1444,35 @@ watch(
   background: #fff;
   border-radius: 6px;
   border-bottom: 1px solid #e4e7ed;
+}
+.header-layer-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+.layer-select {
+  height: 28px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.layer-toggle-btn,
+.layer-diff-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.layer-toggle-btn.active {
+  background: #ecf5ff;
+  color: #409eff;
+  border-color: #409eff;
 }
 .canvas-toolbar-left {
   display: flex;

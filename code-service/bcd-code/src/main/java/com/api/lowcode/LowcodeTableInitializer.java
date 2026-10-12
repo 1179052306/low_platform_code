@@ -69,18 +69,33 @@ public class LowcodeTableInitializer implements CommandLineRunner {
           BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
         StringBuilder sb = new StringBuilder();
         String line;
+        boolean inDollarQuote = false;
         while ((line = reader.readLine()) != null) {
           String trimmed = line.trim();
           if (trimmed.isEmpty() || trimmed.startsWith("--")) {
             continue;
           }
           sb.append(line).append("\n");
-          if (trimmed.endsWith(";")) {
+          // 跟踪 $$ 定界符状态（PostgreSQL DO $$ ... $$ 块内可能含 ; 不能按 ; 分割）
+          int idx = 0;
+          while ((idx = line.indexOf("$$", idx)) >= 0) {
+            inDollarQuote = !inDollarQuote;
+            idx += 2;
+          }
+          if (!inDollarQuote && trimmed.endsWith(";")) {
             String stmt = sb.toString().trim();
             stmt = stmt.substring(0, stmt.length() - 1).trim();
             if (!stmt.isEmpty()) {
               log.info("执行DDL: {}", stmt.substring(0, Math.min(80, stmt.length())));
-              jdbc.execute(stmt);
+              try {
+                jdbc.execute(stmt);
+              } catch (Exception ex) {
+                if (stmt.toUpperCase().startsWith("ALTER TABLE")) {
+                  log.warn("ALTER TABLE 跳过(列可能已存在): {}", ex.getMessage());
+                } else {
+                  throw ex;
+                }
+              }
             }
             sb.setLength(0);
           }

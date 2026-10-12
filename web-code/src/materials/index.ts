@@ -16,6 +16,7 @@ import ImageView from './components/ImageView.vue'
 import LinkView from './components/LinkView.vue'
 import IframeView from './components/IframeView.vue'
 import DxBaseData from './components/DxBaseData.vue'
+import ApprovalBarWidget from './components/ApprovalBarWidget.vue'
 
 /** 只读/输出状态属性：不是可配置项，配了也不会产生可预期的外观变化 */
 const NON_CONFIGURABLE_PROPS = new Set([
@@ -279,12 +280,32 @@ export const materialComponents: Record<string, Component> = {
   'el-splitter-panel': ElSplitterPanel,
   'el-tabs': ElTabs,
   'el-tab-pane': ElTabPane,
+  'approval-bar': ApprovalBarWidget,
 }
 
 /** 物料元数据配置列表（DevExtreme 物料 + 自定义控件 + 布局控件，决定物料面板与属性面板） */
 export const materialConfigs: MaterialConfig[] = [
   // ---- DevExtreme 物料 ----
   ...dxConfigsWithAllProps,
+
+  // ---- 审批操作栏物料（FE-S8） ----
+  {
+    type: 'approval-bar',
+    title: '审批操作栏',
+    enName: 'ApprovalBar',
+    category: '表单',
+    icon: '✓',
+    defaultProps: {
+      bizCode: '',
+      bizId: '',
+      currentNode: '',
+    },
+    propSetters: [
+      { prop: 'bizCode', label: '业务编码', type: 'input' },
+      { prop: 'bizId', label: '业务数据ID', type: 'input' },
+      { prop: 'currentNode', label: '当前节点', type: 'input' },
+    ],
+  },
 
   // ---- 自定义基础控件 ----
   {
@@ -362,6 +383,7 @@ export const materialConfigs: MaterialConfig[] = [
       labelPosition: 'top',
       required: false,
       requiredPosition: 'after',
+      readOnly: false,
       tooltipEnabled: false,
       tooltipText: '',
     },
@@ -376,6 +398,7 @@ export const materialConfigs: MaterialConfig[] = [
       { prop: 'labelPosition', label: '标签位置', type: 'select', options: [{ label: '左侧', value: 'left' }, { label: '上方', value: 'top' }] },
       { prop: 'required', label: '必填', type: 'switch' },
       { ...{ prop: 'requiredPosition', label: '星号位置', type: 'select', options: [{ label: '标签后', value: 'after' }, { label: '标签前', value: 'before' }] }, visibleIf: { prop: 'required', equals: true } },
+      { prop: 'readOnly', label: '只读', type: 'switch' },
       { prop: 'tooltipEnabled', label: '启用介绍', type: 'switch' },
       { ...{ prop: 'tooltipText', label: '介绍内容', type: 'input' }, visibleIf: { prop: 'tooltipEnabled', equals: true } },
     ],

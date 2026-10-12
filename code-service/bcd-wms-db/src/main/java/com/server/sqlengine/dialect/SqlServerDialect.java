@@ -33,7 +33,7 @@ public class SqlServerDialect implements SqlDialect {
 
     @Override
     public String quoteIdentifier(String identifier) {
-        return "[" + identifier + "]";
+        return identifier;
     }
 
     @Override
@@ -165,7 +165,7 @@ public class SqlServerDialect implements SqlDialect {
     @Override
     public String queryTableColumnsSql() {
         return "SELECT column_name FROM information_schema.columns "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT SCHEMA_NAME()) "
                 + "ORDER BY ordinal_position";
     }
@@ -173,14 +173,8 @@ public class SqlServerDialect implements SqlDialect {
     @Override
     public String checkTableExistsSql() {
         return "SELECT 1 FROM information_schema.tables "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT SCHEMA_NAME())";
-    }
-
-    @Override
-    public String normalizeSchemaIdentifier(String identifier) {
-        // SQL Server 默认排序规则通常不区分大小写，原样返回
-        return identifier;
     }
 
     @Override
@@ -189,7 +183,7 @@ public class SqlServerDialect implements SqlDialect {
                 + "character_maximum_length AS DATA_LENGTH, numeric_precision AS DATA_PRECISION, "
                 + "numeric_scale AS DATA_SCALE, is_nullable AS IS_NULLABLE "
                 + "FROM information_schema.columns "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT SCHEMA_NAME()) "
                 + "ORDER BY ordinal_position";
     }

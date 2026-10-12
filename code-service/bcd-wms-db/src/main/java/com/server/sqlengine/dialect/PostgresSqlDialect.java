@@ -36,7 +36,12 @@ public class PostgresSqlDialect implements SqlDialect {
 
     @Override
     public String quoteIdentifier(String identifier) {
-        return "\"" + identifier + "\"";
+        return identifier.toLowerCase(Locale.ROOT);
+    }
+
+    @Override
+    public String formatColumnRef(String column) {
+        return column.toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -167,7 +172,7 @@ public class PostgresSqlDialect implements SqlDialect {
     @Override
     public String queryTableColumnsSql() {
         return "SELECT column_name FROM information_schema.columns "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT current_schema()) "
                 + "ORDER BY ordinal_position";
     }
@@ -175,14 +180,8 @@ public class PostgresSqlDialect implements SqlDialect {
     @Override
     public String checkTableExistsSql() {
         return "SELECT 1 FROM information_schema.tables "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT current_schema())";
-    }
-
-    @Override
-    public String normalizeSchemaIdentifier(String identifier) {
-        // PostgreSQL 不带引号的标识符折叠为小写，information_schema 存小写
-        return identifier.toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -191,7 +190,7 @@ public class PostgresSqlDialect implements SqlDialect {
                 + "character_maximum_length AS DATA_LENGTH, numeric_precision AS DATA_PRECISION, "
                 + "numeric_scale AS DATA_SCALE, is_nullable AS IS_NULLABLE "
                 + "FROM information_schema.columns "
-                + "WHERE table_name = ? "
+                + "WHERE LOWER(table_name) = LOWER(?) "
                 + "AND table_schema = (SELECT current_schema()) "
                 + "ORDER BY ordinal_position";
     }

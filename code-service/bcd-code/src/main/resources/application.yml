@@ -52,3 +52,5 @@ rocketmq:
     retry-times-when-send-failed: 2
     retry-times-when-send-async-failed: 2
     max-message-size: 4194304
+snowflake:
+  worker-id: ${SNOWFLAKE_WORKER_ID:-1}

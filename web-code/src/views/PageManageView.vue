@@ -158,6 +158,12 @@ const pageDialogType = ref<PageType>('document')
 const editingPageId = ref<string | null>(null)
 const copySourcePageId = ref<string | null>(null)
 const pageDialogError = ref('')
+/** 新增页面弹框当前步骤：1=选择类型，2=填写信息 */
+const pageDialogStep = ref(1)
+
+/** 预览类型选择浮层（业务页面选表单/表格/移动端） */
+const previewMenuPage = ref<SavedPageMeta | null>(null)
+const previewMenuPos = ref({ x: 0, y: 0 })
 
 const moduleDialogVisible = ref(false)
 const moduleDialogName = ref('')
@@ -196,6 +202,34 @@ const pageTypeOptions: { label: string; value: PageType }[] = [
   { label: '基础资料', value: 'basedata' },
   { label: '自定义', value: 'custom' },
 ]
+
+/** 页面类型卡片（第一步选择） */
+const pageTypeCards: { label: string; value: PageType; icon: string; desc: string }[] = [
+  {
+    label: '单据',
+    value: 'document',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+    desc: '业务单据，支持表单/表格/移动端',
+  },
+  {
+    label: '基础资料',
+    value: 'basedata',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="2.5"/><path d="M5 5v14c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>',
+    desc: '基础数据维护，如物料、客户',
+  },
+  {
+    label: '自定义',
+    value: 'custom',
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1"/></svg>',
+    desc: '自由设计，灵活布局',
+  },
+]
+
+/** 第一步：点击卡片选择页面类型并进入第二步 */
+function selectPageType(type: PageType) {
+  pageDialogType.value = type
+  pageDialogStep.value = 2
+}
 
 /** 页面类型 → 中文标签 */
 function pageTypeLabel(t?: PageType): string {
@@ -376,6 +410,7 @@ function openAddPageDialog() {
   pageDialogType.value = 'document'
   editingPageId.value = null
   pageDialogError.value = ''
+  pageDialogStep.value = 1
   pageDialogVisible.value = true
 }
 
@@ -388,6 +423,7 @@ function openEditPageDialog(p: SavedPageMeta) {
   pageDialogType.value = p.pageType || 'document'
   editingPageId.value = p.pageId
   pageDialogError.value = ''
+  pageDialogStep.value = 2
   pageDialogVisible.value = true
 }
 
@@ -479,7 +515,10 @@ function editPage(p: SavedPageMeta) {
   window.open(url, '_blank')
 }
 
-async function previewPage(p: SavedPageMeta) {
+async function previewPage(
+  p: SavedPageMeta,
+  bizMode?: 'form' | 'table' | 'mobile',
+) {
   const page = await loadPage(p.pageId)
   if (page) {
     sessionStorage.setItem(
@@ -490,13 +529,47 @@ async function previewPage(p: SavedPageMeta) {
         tableName: page.tableName || '',
         pageCss: page.pageCss || { background: '#ffffff' },
         schema: page.root,
-      })
+        computeRules: page.computeRules,
+        fieldChangeEvents: page.fieldChangeEvents,
+        pageType: page.pageType,
+        bizSchemas: page.bizSchemas,
+        lastBizMode: bizMode || page.lastBizMode,
+      }),
     )
   }
+  const params = new URLSearchParams()
+  params.set('pageId', p.pageId)
+  if (bizMode) params.set('mode', bizMode)
   window.open(
-    `${window.location.origin}${window.location.pathname}#/preview`,
-    '_blank'
+    `${window.location.origin}${window.location.pathname}#/preview?${params.toString()}`,
+    '_blank',
   )
+}
+
+/** 点击预览按钮：业务页面弹出类型选择浮层，自定义页面直接预览 */
+function onPreviewClick(p: SavedPageMeta, event: MouseEvent) {
+  if (p.pageType === 'custom' || !p.pageType) {
+    previewPage(p)
+    return
+  }
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  previewMenuPos.value = { x: rect.left, y: rect.bottom + 4 }
+  previewMenuPage.value = p
+}
+
+/** 选择预览类型后打开预览 */
+function previewWithType(bizMode: 'form' | 'table' | 'mobile') {
+  if (previewMenuPage.value) {
+    previewPage(previewMenuPage.value, bizMode)
+  }
+  previewMenuPage.value = null
+}
+
+/** 预览类型图标（扁平化 SVG 线条） */
+const previewTypeIcons: Record<string, string> = {
+  form: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="12" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>',
+  table: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>',
+  mobile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg>',
 }
 
 async function removePage(p: SavedPageMeta) {
@@ -531,6 +604,7 @@ function copyPageHandler(p: SavedPageMeta) {
   copySourcePageId.value = p.pageId
   editingPageId.value = null
   pageDialogError.value = ''
+  pageDialogStep.value = 2
   pageDialogVisible.value = true
 }
 
@@ -677,6 +751,9 @@ function formatTime(iso: string): string {
       </div>
 
       <div class="pm-header-right">
+        <button class="pm-btn" @click="router.push('/package-manage')">
+          {{ t('打包') }}
+        </button>
         <button class="pm-btn" @click="router.push('/api-manage')">
           {{ t('API 服务管理') }}
         </button>
@@ -824,7 +901,10 @@ function formatTime(iso: string): string {
               >
                 {{ t('编辑') }}
               </button>
-              <button class="pm-btn pm-btn-sm" @click="previewPage(p)">
+              <button
+                class="pm-btn pm-btn-sm"
+                @click="onPreviewClick(p, $event)"
+              >
                 {{ t('预览') }}
               </button>
               <button class="pm-btn pm-btn-sm" @click="copyPageHandler(p)">
@@ -852,7 +932,12 @@ function formatTime(iso: string): string {
         class="pm-dialog-overlay"
         @click.self="pageDialogVisible = false"
       >
-        <div class="pm-dialog">
+        <div
+          class="pm-dialog"
+          :class="{
+            'pm-dialog-wide': pageDialogMode === 'add' && pageDialogStep === 1,
+          }"
+        >
           <h3 class="pm-dialog-title">
             {{
               pageDialogMode === 'add'
@@ -862,7 +947,31 @@ function formatTime(iso: string): string {
                 : t('编辑页面')
             }}
           </h3>
-          <div class="pm-dialog-body">
+
+          <!-- 第一步：选择页面类型（仅新增模式） -->
+          <div
+            v-if="pageDialogMode === 'add' && pageDialogStep === 1"
+            class="pm-dialog-body"
+          >
+            <div class="pm-type-cards">
+              <div
+                v-for="card in pageTypeCards"
+                :key="card.value"
+                class="pm-type-card"
+                :class="{
+                  'pm-type-card-active': pageDialogType === card.value,
+                }"
+                @click="selectPageType(card.value)"
+              >
+                <div class="pm-type-card-icon" v-html="card.icon"></div>
+                <div class="pm-type-card-title">{{ t(card.label) }}</div>
+                <div class="pm-type-card-desc">{{ t(card.desc) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第二步：填写信息 -->
+          <div v-else class="pm-dialog-body">
             <label class="pm-dialog-label pm-required">{{
               t('页面编码')
             }}</label>
@@ -881,14 +990,16 @@ function formatTime(iso: string): string {
               @value-changed="(e: any) => (pageDialogName = e.value)"
               @enter-key="confirmPageDialog"
             />
-            <label class="pm-dialog-label">{{ t('类型') }}</label>
-            <DxSelectBox
-              :value="pageDialogType"
-              :data-source="pageTypeOptions"
-              display-expr="label"
-              value-expr="value"
-              @value-changed="(e: any) => (pageDialogType = e.value)"
-            />
+            <template v-if="pageDialogMode !== 'add'">
+              <label class="pm-dialog-label">{{ t('类型') }}</label>
+              <DxSelectBox
+                :value="pageDialogType"
+                :data-source="pageTypeOptions"
+                display-expr="label"
+                value-expr="value"
+                @value-changed="(e: any) => (pageDialogType = e.value)"
+              />
+            </template>
             <label class="pm-dialog-label pm-required">{{
               t('所属系统')
             }}</label>
@@ -913,13 +1024,69 @@ function formatTime(iso: string): string {
               {{ pageDialogError }}
             </div>
           </div>
+
           <div class="pm-dialog-footer">
-            <DxButton :text="t('取消')" @click="pageDialogVisible = false" />
             <DxButton
-              :text="t('确定')"
-              type="default"
-              @click="confirmPageDialog"
+              v-if="pageDialogMode === 'add' && pageDialogStep === 1"
+              :text="t('取消')"
+              @click="pageDialogVisible = false"
             />
+            <template v-else>
+              <DxButton
+                v-if="pageDialogMode === 'add'"
+                :text="t('上一步')"
+                @click="pageDialogStep = 1"
+              />
+              <DxButton
+                :text="t('取消')"
+                @click="pageDialogVisible = false"
+              />
+              <DxButton
+                :text="t('确定')"
+                type="default"
+                @click="confirmPageDialog"
+              />
+            </template>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 预览类型选择浮层（业务页面） -->
+    <Teleport to="body">
+      <div
+        v-if="previewMenuPage"
+        class="pm-preview-menu-overlay"
+        @click="previewMenuPage = null"
+      >
+        <div
+          class="pm-preview-menu"
+          :style="{
+            left: previewMenuPos.x + 'px',
+            top: previewMenuPos.y + 'px',
+          }"
+          @click.stop
+        >
+          <div class="pm-preview-menu-item" @click="previewWithType('form')">
+            <span
+              class="pm-preview-menu-icon"
+              v-html="previewTypeIcons.form"
+            ></span>
+            {{ t('表单') }}
+          </div>
+          <div class="pm-preview-menu-item" @click="previewWithType('table')">
+            <span
+              class="pm-preview-menu-icon"
+              v-html="previewTypeIcons.table"
+            ></span>
+            {{ t('表格') }}
+          </div>
+          <div class="pm-preview-menu-item" @click="previewWithType('mobile')">
+            <span
+              class="pm-preview-menu-icon"
+              v-html="previewTypeIcons.mobile"
+            ></span>
+            {{ t('移动端') }}
           </div>
         </div>
       </div>
@@ -1614,6 +1781,105 @@ function formatTime(iso: string): string {
 }
 .pm-dialog-sm {
   width: 360px;
+}
+.pm-dialog-wide {
+  width: 520px;
+}
+.pm-type-cards {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+.pm-type-card {
+  flex: 1;
+  max-width: 150px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 24px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.pm-type-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+.pm-type-card-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.pm-type-card-icon {
+  width: 40px;
+  height: 40px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pm-type-card-icon :deep(svg) {
+  width: 40px;
+  height: 40px;
+}
+.pm-type-card-active .pm-type-card-icon {
+  color: #2563eb;
+}
+.pm-type-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.pm-type-card-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+.pm-preview-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+}
+.pm-preview-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 4px 0;
+  min-width: 130px;
+  z-index: 10002;
+}
+.pm-preview-menu-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1f2937;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pm-preview-menu-item:hover {
+  background: #f3f4f6;
+}
+.pm-preview-menu-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.pm-preview-menu-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
 }
 .pm-dialog-title {
   margin: 0;

@@ -171,9 +171,9 @@ public class JsonConditionConverter {
             return null;
         }
 
-        // 带别名的列名（大写化，与旧元数据约定一致）
+        // 带别名的列名（保留原始大小写，方言相关的格式化由 formatColumnRef 处理）
         String qualifiedColumn = (alias != null && !alias.isEmpty())
-                ? alias.toUpperCase() + "." + column.toUpperCase() : column.toUpperCase();
+                ? alias + "." + column : column;
 
         if (symbol == null || symbol.isEmpty()) {
             symbol = "=";
@@ -195,22 +195,22 @@ public class JsonConditionConverter {
         Op op = parseOp(symbol);
         if (op == null) {
             // 不识别的符号，按等值处理（兼容旧逻辑）
-            return Condition.eq(qualifiedColumn, rawValue);
+            return Condition.eq(qualifiedColumn, convertValue(rawValue));
         }
 
         switch (op) {
             case EQ:
-                return Condition.eq(qualifiedColumn, rawValue);
+                return Condition.eq(qualifiedColumn, convertValue(rawValue));
             case NE:
-                return Condition.ne(qualifiedColumn, rawValue);
+                return Condition.ne(qualifiedColumn, convertValue(rawValue));
             case LT:
-                return Condition.lt(qualifiedColumn, rawValue);
+                return Condition.lt(qualifiedColumn, convertValue(rawValue));
             case LE:
-                return Condition.le(qualifiedColumn, rawValue);
+                return Condition.le(qualifiedColumn, convertValue(rawValue));
             case GT:
-                return Condition.gt(qualifiedColumn, rawValue);
+                return Condition.gt(qualifiedColumn, convertValue(rawValue));
             case GE:
-                return Condition.ge(qualifiedColumn, rawValue);
+                return Condition.ge(qualifiedColumn, convertValue(rawValue));
             case LIKE:
                 return Condition.like(qualifiedColumn, "%" + rawValue + "%");
             case NOT_LIKE:
@@ -252,22 +252,31 @@ public class JsonConditionConverter {
 
     @SuppressWarnings("unchecked")
     private Condition parseInCondition(String column, Object value, boolean negate) {
-        List<?> values;
-        if (value instanceof List) {
-            values = (List<?>) value;
+        List<Object> values;
+        if (value instanceof List && !(value instanceof JSONArray)) {
+            values = new ArrayList<Object>((List<?>) value);
         } else if (value instanceof JSONArray) {
-            values = ((JSONArray) value).toJavaList(Object.class);
+            JSONArray arr = (JSONArray) value;
+            values = new ArrayList<Object>(arr.size());
+            for (int i = 0; i < arr.size(); i++) {
+                values.add(arr.get(i));
+            }
         } else {
             String strVal = String.valueOf(value);
             if (strVal.startsWith("[")) {
-                values = JSONArray.parse(strVal).toJavaList(Object.class);
+                values = new ArrayList<Object>(JSONArray.parse(strVal).toJavaList(Object.class));
             } else {
                 String[] parts = strVal.split(",");
-                List<Object> list = new ArrayList<Object>();
+                values = new ArrayList<Object>();
                 for (String p : parts) {
-                    list.add(p.trim());
+                    values.add(p.trim());
                 }
-                values = list;
+            }
+        }
+        for (int i = 0; i < values.size(); i++) {
+            Object v = values.get(i);
+            if (v instanceof String) {
+                values.set(i, tryParseNumber((String) v));
             }
         }
         return negate ? Condition.notIn(column, values) : Condition.in(column, values);
@@ -305,5 +314,12 @@ public class JsonConditionConverter {
                 }
             }
         }
+    }
+
+    private Object convertValue(Object value) {
+        if (value instanceof String) {
+            return tryParseNumber((String) value);
+        }
+        return value;
     }
 }

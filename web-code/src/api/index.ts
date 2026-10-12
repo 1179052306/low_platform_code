@@ -19,10 +19,13 @@ import {
   checkUrlPermission,
   getGovernanceMode,
   resolveApi,
+  registerDefaultApis,
   _recordBlocked,
   _recordWarned,
   type ApiService,
 } from './registry'
+import { hasActionPermission } from '@/utils/permission'
+import { t } from '@/store/lang'
 
 export * from './registry'
 
@@ -32,6 +35,8 @@ let _installed = false
 export function setupApiGovernance(): void {
   if (_installed) return
   _installed = true
+
+  registerDefaultApis()
 
   interceptors.request.use(async (config: RequestConfig) => {
     const mode = getGovernanceMode()
@@ -150,4 +155,24 @@ export async function apiCall(
 /** 获取服务声明（供属性面板 serviceId 选择器展示） */
 export function getService(serviceId: string): ApiService | undefined {
   return resolveApi(serviceId).service
+}
+/**
+ * 统一业务网关调用：bizCode + action + payload。
+ * 调用前预校验操作权限（hasActionPermission），无权限直接抛错不发请求（后端是最终校验）。
+ * 后端网关未就绪时会走 httpRequest 抛错，调用方 catch 处理。
+ */
+export async function gatewayCall(
+  bizCode: string,
+  action: string,
+  payload: unknown,
+): Promise<ApiCallResult> {
+  if (!hasActionPermission(bizCode, action)) {
+    throw new Error(t('无权限执行此操作'))
+  }
+  const result = await apiCall('lowcodeGateway', { data: { bizCode, action, payload } })
+  const resData = result.data as Record<string, unknown> | undefined
+  if (resData && resData.res === false) {
+    throw new Error(String(resData.msg || t('操作失败')))
+  }
+  return result
 }

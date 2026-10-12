@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import DxTextBox from 'devextreme-vue/text-box'
 import DxNumberBox from 'devextreme-vue/number-box'
 import DxSwitch from 'devextreme-vue/switch'
@@ -14,8 +14,14 @@ import ToolbarItemsEditorDialog from './ToolbarItemsEditorDialog.vue'
 import SummaryEditorDialog from './SummaryEditorDialog.vue'
 import PageSelectDialog from './PageSelectDialog.vue'
 import FieldSelectDialog from './FieldSelectDialog.vue'
+import DependFilterDialog, { type DependFilterCondition } from './DependFilterDialog.vue'
 import ApiSelectDialog from './ApiSelectDialog.vue'
 import ThemeSelectDialog from './ThemeSelectDialog.vue'
+import FieldEventRuleDialog from './FieldEventRuleDialog.vue'
+
+
+import { ElMessage, ElSelect, ElOption } from 'element-plus'
+import { listWorkflows } from '@/store/workflow'
 
 import { getConfig, getDxAllPropSetters } from '@/materials'
 import {
@@ -26,6 +32,18 @@ import {
   type ValidationType,
 } from '@/materials/dx-validation'
 import { getEvents } from '@/materials/dx-events'
+
+const DX_ICONS: string[] = [
+  'plus', 'add', 'minus', 'remove', 'trash', 'edit', 'save', 'revert', 'close', 'check',
+  'checkmarkcircle', 'clear', 'refresh', 'export', 'download', 'upload', 'print', 'copy', 'paste', 'cut',
+  'undo', 'redo', 'filter', 'find', 'search', 'group', 'column', 'card', 'chart', 'clock',
+  'user', 'info', 'help', 'warning', 'favorites', 'menu', 'more', 'message', 'chat', 'comment',
+  'link', 'image', 'photo', 'video', 'doc', 'folder', 'file', 'csv', 'attach', 'send',
+  'share', 'bookmark', 'map', 'home', 'globe', 'lock', 'unlock', 'key', 'expand', 'collapse',
+  'back', 'right', 'box', 'cart', 'bell', 'coffee', 'like', 'pin', 'diagram', 'codeblock',
+  'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'chevrondown', 'chevronup', 'chevronleft', 'chevronright',
+  'bold', 'alignleft', 'alignright', 'aligncenter', 'alignjustify', 'bulletlist',
+]
 import {
   designerStore,
   getSelectedNode,
@@ -39,6 +57,7 @@ import {
   removeEvent,
   updateFieldName,
   updateDbField,
+  updateNodeProperty,
   updatePageCss,
   updateNodeCss,
   selectSingleNode,
@@ -47,13 +66,19 @@ import {
   removeNode,
   createNode,
   pushHistory,
+  isPropOverridden,
+  restoreProp,
+  normalizeIdentifier,
+  fetchDbType,
 } from '@/store/designer'
 import type { PropSetterConfig, NodeCss, Theme } from '@/types/schema'
 import { dxPropMeta, type DxPropMeta } from '@/materials/dx-prop-meta'
 import { translatePropName } from '@/materials/prop-labels'
 
-import { listApiServices } from '@/store/api-store'
+import { listApiServices, listDataDicts } from '@/store/api-store'
 import type { ApiService } from '@/api/registry'
+import type { DataDict } from '@/types/dict'
+import NumberRuleDialog from './NumberRuleDialog.vue'
 import { t, loadModule } from '@/store/lang'
 import { loadThemes } from '@/composables/useTheme'
 import { listBaseDataPages, loadPage, type SavedPageMeta } from '@/store/persistence'
@@ -62,6 +87,24 @@ import type { ComponentSchema } from '@/types/schema'
 const themeDialogVisible = ref(false)
 const themeList = ref<Theme[]>([])
 const currentThemeName = ref('')
+
+/** 审批流列表（单据页面绑定审批流用） */
+const workflowOptions = ref<{ id: string; name: string }[]>([])
+function onWorkflowChange(e: { value?: string | null }): void {
+  designerStore.workflowId = e.value ?? undefined
+}
+onMounted(async () => {
+  fetchDbType()
+  try {
+    const wfs = await listWorkflows()
+    workflowOptions.value = wfs
+      .filter((w) => w.enabled)
+      .map((w) => ({ id: w.id, name: w.name }))
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : String(err))
+    workflowOptions.value = []
+  }
+})
 
 async function refreshThemeName() {
   if (!designerStore.themeId) {
@@ -108,6 +151,155 @@ const isFormField = computed(() => {
   return c?.category === '表单'
 })
 
+/** FE-S10: 所有字段名列表（供计算表达式触发字段多选用） */
+const allFieldNames = computed(() => {
+  return collectAllNodes(designerStore.schema)
+    .map((n) => n.fieldName)
+    .filter((f): f is string => !!f)
+})
+
+/** 日期/时间控件类型集合 */
+const DATE_CONTROL_TYPES = new Set(['dx-date-box', 'dx-date-range-box', 'dx-calendar'])
+
+/** FE-S10 P2: 表单控件字段列表（仅 category='表单'，供编号规则编码来源选择） */
+const formFieldNames = computed(() => {
+  return collectAllNodes(designerStore.schema)
+    .filter((n) => {
+      if (!n.fieldName) return false
+      const c = getConfig(n.type)
+      return c?.category === '表单'
+    })
+    .map((n) => n.fieldName as string)
+})
+
+/** FE-S10 P2: 日期/时间类型表单字段列表（供业务对象日期选择） */
+const dateFieldNames = computed(() => {
+  return collectAllNodes(designerStore.schema)
+    .filter((n) => {
+      if (!n.fieldName) return false
+      return DATE_CONTROL_TYPES.has(n.type)
+    })
+    .map((n) => n.fieldName as string)
+})
+
+/** FE-S10 P2: 非日期/时间类型表单字段列表（供业务对象字段选择） */
+const nonDateFieldNames = computed(() => {
+  return collectAllNodes(designerStore.schema)
+    .filter((n) => {
+      if (!n.fieldName) return false
+      const c = getConfig(n.type)
+      if (c?.category !== '表单') return false
+      return !DATE_CONTROL_TYPES.has(n.type)
+    })
+    .map((n) => n.fieldName as string)
+})
+
+/** FE-S10 P2: 数据字典列表（供引用字典选择） */
+const dataDictList = ref<DataDict[]>([])
+const showNumberRuleDialog = ref(false)
+
+
+/** FE-S10 P2: 当前节点的编号规则表达式 */
+const currentNodeNumberExpr = computed(() => {
+  return (selectedNode.value?.props.defaultValueExpr as string) || ''
+})
+
+/** FE-S10 P2: 编号规则预览文本（解析 JSON 配置生成可读预览） */
+const currentNodeNumberPreview = computed(() => {
+  const expr = currentNodeNumberExpr.value
+  if (!expr) return ''
+  try {
+    const config = JSON.parse(expr) as { segments: Array<Record<string, unknown>> }
+    if (!config.segments || !Array.isArray(config.segments)) return expr
+    const parts: string[] = []
+    for (const seg of config.segments) {
+      let part = ''
+      const type = seg.type as string
+      switch (type) {
+        case 'constant':
+          part = (seg.value as string) || ''
+          break
+        case 'random':
+          part = 'X'.repeat((seg.length as number) || 8)
+          break
+        case 'sysDate':
+        case 'bizDate':
+          part = (seg.dateFormat as string) || 'yyyyMMdd'
+          break
+        case 'bizField':
+          part = (seg.fieldName as string) || 'field'
+          break
+        case 'sequence': {
+          const len = (seg.seqLength as number) || 4
+          const start = (seg.seqStart as number) || 1
+          const zeroPad = seg.seqZeroPad !== false
+          part = zeroPad ? String(start).padStart(len, '0') : String(start)
+          break
+        }
+      }
+      parts.push(part)
+      if (seg.separator) parts.push(seg.separator as string)
+    }
+    return parts.join('')
+  } catch {
+    return expr
+  }
+})
+
+/** FE-S10 P2: 当前节点引用的字典编码 */
+const currentNodeDictCode = computed(() => {
+  return (selectedNode.value?.props.dictCode as string) || ''
+})
+
+/** FE-S3: 当前节点被覆盖的属性列表 */
+const overriddenProps = computed(() => {
+  const node = selectedNode.value
+  if (!node?.overrideProps) return []
+  return Object.keys(node.overrideProps)
+})
+
+/** FE-S3: 恢复单个覆盖属性 */
+function onRestoreProp(prop: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  restoreProp(node.id, prop)
+}
+
+/** FE-S3: 恢复所有覆盖属性 */
+function onRestoreAllProps() {
+  const node = getSelectedNode()
+  if (!node) return
+  for (const prop of overriddenProps.value) {
+    restoreProp(node.id, prop)
+  }
+}
+
+async function loadDataDicts() {
+  try {
+    dataDictList.value = await listDataDicts()
+  } catch {
+    dataDictList.value = []
+  }
+}
+
+/** FE-S10 P2: 设置引用字典 */
+function onDictSelectChange(e: Event) {
+  const value = (e.target as HTMLSelectElement).value
+  const node = getSelectedNode()
+  if (!node) return
+  updateProps(node.id, 'dictCode', value || undefined)
+}
+
+/** FE-S10 P2: 编号规则保存 */
+function onSaveNumberRule(expr: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  updateProps(node.id, 'defaultValueExpr', expr)
+}
+
+// FE-S10 P2: 初始化加载数据字典列表
+loadDataDicts()
+
 /** 当前控件是否为 dx-base-data 基础资料控件 */
 const isBaseDataControl = computed(() => selectedNode.value?.type === 'dx-base-data')
 
@@ -121,6 +313,8 @@ const refPageSelectVisible = ref(false)
 const refPageSelectId = ref('')
 const fieldSelectVisible = ref(false)
 const fieldSelectId = ref('')
+const valueFieldSelectVisible = ref(false)
+const valueFieldSelectId = ref('')
 
 /** 加载基础资料页面列表 */
 async function loadBaseDataPages() {
@@ -149,14 +343,16 @@ async function loadRefPageFields(refPageId: string) {
     const fields: { dbField: string; fieldName: string; displayText: string }[] = []
 
     // 优先从表格模式（bizSchemas.table）的 dx-data-grid columns 获取
+    // 不过滤 visible=false 的列：过滤条件需要能选所有表字段（包括隐藏的主键/标识字段）
     const tableSchema = page.bizSchemas?.table?.[0]
     const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
     if (Array.isArray(tableProps.columns)) {
       const columns = tableProps.columns as Record<string, unknown>[]
       for (const c of columns) {
-        if (c.visible === false) continue
         const dataField = String(c.dataField || '')
         if (!dataField) continue
+        // 排除 baseDataRef 导入的关联字段（带点号），不是表本身字段
+        if (dataField.includes('.')) continue
         const caption = String(c.caption || dataField)
         fields.push({
           dbField: dataField,
@@ -166,11 +362,12 @@ async function loadRefPageFields(refPageId: string) {
       }
     }
 
-    // 表格列为空时回退到表单模式节点
-    if (!fields.length) {
-      const collect = (nodes: ComponentSchema[]) => {
-        for (const node of nodes) {
-          if (node.dbField) {
+    // 同时从表单模式节点收集字段（基础资料控件绑定的标识字段在表单中定义）
+    // 注意：root 可能存的是 lastBizMode 对应的节点（如表格模式），表单控件在 bizSchemas.form 中
+    const collect = (nodes: ComponentSchema[]) => {
+      for (const node of nodes) {
+        if (node.dbField && !node.dbField.includes('.')) {
+          if (!fields.some((f) => f.dbField === node.dbField)) {
             const label = (node.props?.label as string) || ''
             const fieldName = node.fieldName || node.dbField
             fields.push({
@@ -179,11 +376,19 @@ async function loadRefPageFields(refPageId: string) {
               displayText: label ? `${label} (${fieldName})` : fieldName,
             })
           }
-          if (node.children?.length) collect(node.children)
         }
+        if (node.children?.length) collect(node.children)
       }
-      collect(page.root || [])
     }
+    collect(page.root || [])
+    if (page.bizSchemas?.form?.length) collect(page.bizSchemas.form)
+
+    // 确保基础资料标识（值字段/主键）在列表中，依赖过滤条件需要能选它
+    const pk = refPagePrimaryKey.value
+    if (pk && !fields.some((f) => f.dbField === pk)) {
+      fields.unshift({ dbField: pk, fieldName: pk, displayText: pk })
+    }
+
     refPageFields.value = fields
   } catch {
     refPageFields.value = []
@@ -262,6 +467,20 @@ function onFieldSelectConfirm(dbField: string) {
   updateProps(node.id, 'displayField', dbField)
 }
 
+/** 打开值字段选择弹窗 */
+function openValueFieldSelectDialog() {
+  valueFieldSelectId.value = String(getEditable('valueField') ?? '')
+  valueFieldSelectVisible.value = true
+}
+
+/** 值字段选择弹窗确认回调 */
+function onValueFieldSelectConfirm(dbField: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  setEditable('valueField', dbField)
+  updateProps(node.id, 'valueField', dbField)
+}
+
 /** 已选基础资料页面名称（用于按钮显示） */
 const refPageDisplayName = computed(() => {
   const id = String(getEditable('refPageId') ?? '')
@@ -273,7 +492,46 @@ const refPageDisplayName = computed(() => {
 const displayFieldText = computed(() => {
   const field = String(getEditable('displayField') ?? '')
   if (!field) return ''
+  const parts = field.split(',').map((f) => f.trim()).filter(Boolean)
+  const texts = parts.map((f) => refPageFields.value.find((p) => p.dbField === f)?.displayText || f)
+  return texts.join(', ')
+})
+
+/** 已选值字段文本（用于按钮显示） */
+const valueFieldText = computed(() => {
+  const field = String(getEditable('valueField') ?? '')
+  if (!field) return ''
   return refPageFields.value.find((f) => f.dbField === field)?.displayText || field
+})
+
+/** 级联依赖字段变更 */
+function onDependFieldChange(e: Event): void {
+  const n = getSelectedNode()
+  if (n) updateProps(n.id, 'dependField', (e.target as HTMLSelectElement).value || undefined)
+}
+function onDependFilterFieldChange(e: Event): void {
+  const n = getSelectedNode()
+  if (n) updateProps(n.id, 'dependFilterField', (e.target as HTMLSelectElement).value || undefined)
+}
+function onDependOperatorChange(e: Event): void {
+  const n = getSelectedNode()
+  if (n) updateProps(n.id, 'dependOperator', (e.target as HTMLSelectElement).value || '=')
+}
+
+const dependFilterDialogVisible = ref(false)
+
+function openDependFilterDialog(): void {
+  dependFilterDialogVisible.value = true
+}
+
+function onDependFilterSave(conditions: DependFilterCondition[]): void {
+  const n = getSelectedNode()
+  if (n) updateProps(n.id, 'dependFilters', conditions.length ? conditions : undefined)
+}
+
+const dependFilterCount = computed(() => {
+  const filters = selectedNode.value?.props?.dependFilters as DependFilterCondition[] | undefined
+  return filters?.length ?? 0
 })
 
 /** 当前选中是否为 el-row 栅格布局 */
@@ -337,7 +595,8 @@ watch(
 function onDbFieldInput(e: Event): void {
   const node = getSelectedNode()
   if (!node) return
-  const value = (e.target as HTMLInputElement).value
+  const raw = (e.target as HTMLInputElement).value
+  const value = normalizeIdentifier(raw)
   dbFieldInput.value = value
   const result = updateDbField(node.id, value)
   if (!result.ok) {
@@ -355,6 +614,11 @@ function onDbFieldBlur(): void {
   }
 }
 
+function onTableNameInput(e: Event): void {
+  const raw = (e.target as HTMLInputElement).value
+  designerStore.tableName = normalizeIdentifier(raw)
+}
+
 const cfg = computed(() =>
   selectedNode.value ? getConfig(selectedNode.value.type) : undefined
 )
@@ -369,6 +633,9 @@ const gridEditingMode = computed(() => {
 const activeTab = ref<'basic' | 'css' | 'layout' | 'events' | 'validation'>(
   'basic'
 )
+
+/** 字段变更事件配置弹窗显隐（FE-S1，页面级配置入口） */
+const showFieldEventRuleDialog = ref(false)
 
 /** 控件搜索（已由 DxSelectBox 内置搜索处理） */
 
@@ -462,6 +729,52 @@ function onJsonDialogConfirm(value: string) {
   }
   jsonDialogVisible.value = false
 }
+
+const optionsDialogVisible = ref(false)
+const optionsDialogProp = ref('')
+const optionsDialogValue = ref('')
+
+/** 选项编辑器：锁定 value/text 两列 */
+function openOptionsDialog(prop: string, currentValue: unknown) {
+  optionsDialogProp.value = prop
+  if (typeof currentValue === 'string') {
+    optionsDialogValue.value = currentValue
+  } else {
+    try {
+      optionsDialogValue.value = JSON.stringify(currentValue ?? [], null, 2)
+    } catch {
+      optionsDialogValue.value = String(currentValue ?? '')
+    }
+  }
+  optionsDialogVisible.value = true
+}
+
+function onOptionsDialogConfirm(value: string) {
+  if (!selectedNode.value) return
+  try {
+    const parsed = JSON.parse(value)
+    setEditable(optionsDialogProp.value, parsed)
+    updateProps(selectedNode.value.id, optionsDialogProp.value, parsed)
+  } catch {
+    setEditable(optionsDialogProp.value, value)
+    updateProps(selectedNode.value.id, optionsDialogProp.value, value)
+  }
+  optionsDialogVisible.value = false
+}
+
+/** itemsSelect 的下拉选项：从当前节点 items 生成（兼容字符串数组和对象数组） */
+const selectItemsOptions = computed(() => {
+  const node = selectedNode.value
+  if (!node) return []
+  const items = node.props.items
+  if (!Array.isArray(items)) return []
+  return items.map((item: any) => {
+    if (typeof item === 'object' && item !== null) {
+      return { value: String(item.value ?? ''), text: String(item.text ?? item.value ?? '') }
+    }
+    return { value: String(item), text: String(item) }
+  })
+})
 
 function openColumnDialog(prop: string, currentValue: unknown) {
   columnDialogProp.value = prop
@@ -567,6 +880,7 @@ function getPageOpenConfig(prop: string): {
   params: string
   mode: string
   title: string
+  bizMode: string
 } {
   const val = getEditable(prop) as Record<string, unknown> | undefined
   return {
@@ -574,6 +888,7 @@ function getPageOpenConfig(prop: string): {
     params: val?.params ? JSON.stringify(val.params) : '',
     mode: (val?.mode as string) || 'popup',
     title: (val?.title as string) || '',
+    bizMode: (val?.bizMode as string) || 'form',
   }
 }
 
@@ -716,7 +1031,9 @@ watch(
 function onFieldNameInput(e: Event): void {
   const node = getSelectedNode()
   if (!node) return
-  const value = (e.target as HTMLInputElement).value.trim()
+  const raw = (e.target as HTMLInputElement).value.trim()
+  const value = normalizeIdentifier(raw)
+  fieldNameInput.value = value
   if (!value) {
     fieldNameError.value = t('字段名称不能为空')
     return
@@ -828,24 +1145,108 @@ const normalizedKeyword = computed(() =>
 )
 
 /** 表单页面的控件字段列表（供表格列配置选择导入，仅表单输入类控件） */
-const formFieldOptions = computed(() => {
-  const formSchema = designerStore.bizSchemas.form
-  const nodes = collectAllNodes(formSchema)
-  return nodes
-    .filter((n) => {
-      if (!n.fieldName) return false
+interface FormFieldOption {
+  fieldName: string
+  dbField?: string
+  title: string
+  children?: { fieldName: string; dbField: string; title: string }[]
+  refPageId?: string
+  valueField?: string
+  controlType?: string
+  selectItems?: { value: string; text: string }[]
+}
+const formFieldOptions = ref<FormFieldOption[]>([])
+
+async function collectBaseDataChildren(
+  pageId: string,
+  visited: Set<string>,
+): Promise<{ fieldName: string; dbField: string; title: string }[]> {
+  if (visited.has(pageId)) return []
+  visited.add(pageId)
+  const page = await loadPage(pageId)
+  if (!page) return []
+  const children: { fieldName: string; dbField: string; title: string }[] = []
+  const tableSchema = page.bizSchemas?.table?.[0]
+  const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
+  if (Array.isArray(tableProps.columns)) {
+    for (const col of tableProps.columns as Record<string, unknown>[]) {
+      if (col.visible === false) continue
+      const dataField = String(col.dataField || '')
+      if (!dataField) continue
+      children.push({
+        fieldName: dataField,
+        dbField: dataField,
+        title: String(col.caption || dataField),
+      })
+    }
+  }
+  const formNodes = collectAllNodes(page.bizSchemas?.form || [])
+  for (const fn of formNodes) {
+    if (fn.type === 'dx-base-data' && fn.refPageId && fn.fieldName) {
+      const nested = await collectBaseDataChildren(fn.refPageId, visited)
+      for (const nc of nested) {
+        const prefixed = `${fn.fieldName}.${nc.fieldName}`
+        if (!children.some((c) => c.fieldName === prefixed)) {
+          children.push({ fieldName: prefixed, dbField: prefixed, title: nc.title })
+        }
+      }
+    }
+  }
+  if (!children.length) {
+    const collect = (nodes: ComponentSchema[]) => {
+      for (const node of nodes) {
+        if (node.dbField) {
+          children.push({
+            fieldName: node.dbField,
+            dbField: node.dbField,
+            title: (node.props?.label as string) || node.fieldName || node.dbField,
+          })
+        }
+        if (node.children?.length) collect(node.children)
+      }
+    }
+    collect(page.root || [])
+  }
+  return children
+}
+
+watch(
+  () => designerStore.bizSchemas.form,
+  async () => {
+    const formSchema = designerStore.bizSchemas.form
+    const nodes = collectAllNodes(formSchema)
+    const result: FormFieldOption[] = []
+    for (const n of nodes) {
+      if (!n.fieldName) continue
       const c = getConfig(n.type)
-      return c?.category === '表单'
-    })
-    .map((n) => {
+      if (c?.category !== '表单') continue
       const cfg = getConfig(n.type)
-      return {
+      const item: FormFieldOption = {
         fieldName: n.fieldName as string,
         dbField: n.dbField ?? '',
-        title: cfg?.title ?? n.type,
+        title: (n.props.label as string) || cfg?.title || n.type,
       }
-    })
-})
+      if (n.type === 'dx-select-box') {
+        item.controlType = 'dx-select-box'
+        const items = n.props.items as { value: string; text: string }[] | undefined
+        if (Array.isArray(items)) {
+          item.selectItems = items
+        }
+      }
+      if (n.type === 'dx-base-data' && n.refPageId) {
+        item.refPageId = n.refPageId
+        item.valueField = (n.props.valueField as string) || 'id'
+        try {
+          const children = await collectBaseDataChildren(n.refPageId, new Set())
+          if (children.length) item.children = children
+        } catch { /* ignore */ }
+      }
+      result.push(item)
+    }
+    formFieldOptions.value = result
+  },
+  { immediate: true, deep: true },
+)
 
 const filteredCommonSetters = computed(() => {
   const setters = cfg.value?.propSetters ?? []
@@ -1370,6 +1771,7 @@ function onAddRuleSelect(e: Event) {
           v-model="designerStore.tableName"
           class="page-input"
           :placeholder="t('请输入数据表名')"
+          @input="onTableNameInput"
         />
       </div>
       <div class="prop-item">
@@ -1379,6 +1781,13 @@ function onAddRuleSelect(e: Event) {
           class="page-input"
           :placeholder="t('请输入主键字段名，如 id')"
         />
+      </div>
+      <div class="prop-item">
+        <div class="prop-label">{{ t('主键策略') }}</div>
+        <select v-model="designerStore.keyStrategy" class="page-input">
+          <option value="UUID">UUID 字符串</option>
+          <option value="SNOWFLAKE">Snowflake 数字</option>
+        </select>
       </div>
       <div class="prop-item">
         <div class="prop-label">{{ t('页面唯一标识') }}</div>
@@ -1406,6 +1815,19 @@ function onAddRuleSelect(e: Event) {
         >
           {{ currentThemeName || t('未选择') }}
         </button>
+      </div>
+      <!-- 审批流绑定（仅单据页面显示） -->
+      <div v-if="designerStore.pageType === 'document'" class="prop-item">
+        <div class="prop-label">{{ t('绑定审批流') }}</div>
+        <DxSelectBox
+          :items="workflowOptions"
+          display-expr="name"
+          value-expr="id"
+          :value="designerStore.workflowId"
+          :placeholder="t('选择审批流')"
+          :show-clear-button="true"
+          @value-changed="onWorkflowChange"
+        />
       </div>
       <div class="page-tip">{{ t('点击画布空白处即可设置页面信息') }}</div>
       <ThemeSelectDialog
@@ -1491,7 +1913,13 @@ function onAddRuleSelect(e: Event) {
       <!-- ====== 基础属性标签页 ====== -->
       <div v-if="activeTab === 'basic'" class="prop-tab-content">
         <div class="prop-section">
-          <div class="prop-section-title">{{ t('控件标识') }}</div>
+          <div class="prop-section-title">
+            {{ t('控件标识') }}
+            <span v-if="overriddenProps.length" class="override-badge">
+              {{ t('覆盖') }} {{ overriddenProps.length }}
+              <button class="override-restore" @click="onRestoreAllProps">{{ t('恢复全部') }}</button>
+            </span>
+          </div>
           <div class="prop-item">
             <div class="prop-label">{{ t('字段名称') }}</div>
             <input
@@ -1516,6 +1944,46 @@ function onAddRuleSelect(e: Event) {
             />
             <div v-if="dbFieldError" class="field-name-error">
               {{ dbFieldError }}
+            </div>
+          </div>
+        </div>
+
+
+        <!-- FE-S10 P2: 引用字典 + 编号规则（仅表单字段控件显示） -->
+        <div v-if="isFormField" class="prop-section">
+          <div class="prop-section-title">{{ t('数据字典与编号') }}</div>
+          <div class="prop-item">
+            <div class="prop-label">{{ t('引用字典') }}</div>
+            <select
+              class="page-input"
+              :value="currentNodeDictCode"
+              @change="onDictSelectChange"
+            >
+              <option value="">{{ t('不引用') }}</option>
+              <option
+                v-for="d in dataDictList"
+                :key="d.code"
+                :value="d.code"
+                :selected="currentNodeDictCode === d.code"
+              >{{ d.name }} ({{ d.code }})</option>
+            </select>
+          </div>
+          <div class="prop-item">
+            <div class="prop-label">{{ t('编号规则') }}</div>
+            <div class="prop-number-rule">
+              <input
+                class="page-input"
+                type="text"
+                readonly
+                :value="currentNodeNumberPreview"
+                :placeholder="t('点击配置编号规则')"
+                @click="showNumberRuleDialog = true"
+              />
+              <button
+                v-if="currentNodeNumberExpr"
+                class="prop-clear-btn"
+                @click="() => { const n = getSelectedNode(); if (n) updateProps(n.id, 'defaultValueExpr', undefined) }"
+              >{{ t('清除') }}</button>
             </div>
           </div>
         </div>
@@ -1594,15 +2062,48 @@ function onAddRuleSelect(e: Event) {
             </div>
           </div>
           <div class="prop-item">
-            <div class="prop-label">{{ t('值字段（主键）') }}</div>
-            <input
+            <div class="prop-label">{{ t('值字段') }}</div>
+            <div class="page-open-setter">
+              <button
+                class="page-open-select-btn"
+                disabled
+              >
+                {{ valueFieldText || refPagePrimaryKey || t('值字段') }}
+              </button>
+            </div>
+          </div>
+          <div class="prop-item">
+            <div class="prop-label">{{ t('依赖字段（级联父控件）') }}</div>
+            <select
               class="page-input"
-              :value="getEditable('valueField') || refPagePrimaryKey"
-              readonly
-              :placeholder="t('自动取关联页面主键字段')"
-            />
+              :value="selectedNode?.props?.dependField ?? ''"
+              @change="onDependFieldChange"
+            >
+              <option value="">{{ t('无（独立选择）') }}</option>
+              <option
+                v-for="fn in formFieldNames"
+                :key="fn"
+                :value="fn"
+              >{{ fn }}</option>
+            </select>
+          </div>
+          <div v-if="selectedNode?.props?.dependField" class="prop-item">
+            <div class="prop-label">{{ t('过滤条件') }}</div>
+            <button
+              class="page-open-select-btn"
+              @click="openDependFilterDialog"
+            >
+              {{ dependFilterCount > 0 ? t('已配置') + dependFilterCount + t('个条件') : t('配置过滤条件') }}
+            </button>
           </div>
         </div>
+
+        <DependFilterDialog
+          v-model:visible="dependFilterDialogVisible"
+          :conditions="selectedNode?.props?.dependFilters as DependFilterCondition[] | undefined"
+          :fields="refPageFields"
+          @save="onDependFilterSave"
+        />
 
         <!-- 必填验证开关（仅可验证控件显示） -->
         <div v-if="isValidatable" class="prop-section">
@@ -1774,6 +2275,26 @@ function onAddRuleSelect(e: Event) {
                 {{ t('清除') }}
               </button>
             </div>
+            <ElSelect
+              v-else-if="setter.type === 'iconSelect'"
+              :model-value="String(getEditable(setter.prop) || '')"
+              filterable
+              clearable
+              :placeholder="t('搜索选择图标')"
+              popper-class="lc-icon-select-popper"
+              style="width: 100%"
+              @update:model-value="(val: string) => makeHandler(setter)({ value: val })"
+            >
+              <ElOption
+                v-for="ic in DX_ICONS"
+                :key="ic"
+                :label="ic"
+                :value="ic"
+              >
+                <i :class="`dx-icon-${ic}`" style="margin-right: 8px; vertical-align: middle" />
+                <span>{{ ic }}</span>
+              </ElOption>
+            </ElSelect>
             <DxColorBox
               v-else-if="setter.type === 'color'"
               :value="String(getEditable(setter.prop) ?? '#333333')"
@@ -1808,6 +2329,24 @@ function onAddRuleSelect(e: Event) {
                 }}{{ jsonError[jsonKey(selectedNode.id, setter.prop)] }}
               </div>
             </template>
+            <!-- 选项编辑器：值+显示两列 -->
+            <div v-else-if="setter.type === 'optionsEditor'" class="columns-setter">
+              <button
+                class="column-edit-btn"
+                @click="openOptionsDialog(setter.prop, getEditable(setter.prop))"
+              >
+                {{ t('▦ 编辑选项') }}
+              </button>
+            </div>
+            <!-- 从 items 中选择默认值 -->
+            <DxSelectBox
+              v-else-if="setter.type === 'itemsSelect' && selectedNode"
+              :items="selectItemsOptions"
+              display-expr="text"
+              value-expr="value"
+              :value="getEditable(setter.prop)"
+              @value-changed="makeHandler(setter)($event)"
+            />
             <!-- 列配置编辑器 -->
             <div v-else-if="setter.type === 'columns'" class="columns-setter">
               <button
@@ -1877,6 +2416,21 @@ function onAddRuleSelect(e: Event) {
               >
                 <option value="popup">{{ t('弹窗') }}</option>
                 <option value="drawer">{{ t('抽屉') }}</option>
+              </select>
+              <select
+                class="page-open-mode"
+                :value="getPageOpenConfig(setter.prop).bizMode || 'form'"
+                @change="
+                  setPageOpenField(
+                    setter.prop,
+                    'bizMode',
+                    ($event.target as HTMLSelectElement).value
+                  )
+                "
+              >
+                <option value="form">{{ t('表单') }}</option>
+                <option value="table">{{ t('表格') }}</option>
+                <option value="mobile">{{ t('移动端') }}</option>
               </select>
               <input
                 class="page-open-title"
@@ -2202,6 +2756,26 @@ function onAddRuleSelect(e: Event) {
         </div>
       </div>
 
+      <!-- ====== 字段变更事件（页面级，FE-S1） ====== -->
+      <div
+        v-if="activeTab === 'events'"
+        class="prop-tab-content"
+      >
+        <div class="prop-section">
+          <div class="prop-section-title">{{ t('字段变更事件') }}</div>
+          <div class="events-tip">
+            {{ t('配置字段变更触发的业务事件（后端触发，前端只配置）') }}
+          </div>
+          <button
+            class="editor-btn"
+            style="width: auto; padding: 4px 12px"
+            @click="showFieldEventRuleDialog = true"
+          >
+            {{ t('配置字段变更事件') }}
+          </button>
+        </div>
+      </div>
+
       <!-- ====== 事件标签页 ====== -->
       <div
         v-if="activeTab === 'events' && availableEvents.length"
@@ -2356,6 +2930,14 @@ function onAddRuleSelect(e: Event) {
       :columns="jsonDialogColumns"
       @update:model-value="onJsonDialogConfirm"
     />
+    <JsonTableEditorDialog
+      v-model:model-value="optionsDialogValue"
+      v-model:visible="optionsDialogVisible"
+      :title="t('选项编辑')"
+      :columns="['value', 'text']"
+      :column-labels="{ value: t('值'), text: t('显示') }"
+      @update:model-value="onOptionsDialogConfirm"
+    />
     <ColumnEditorDialog
       v-model:model-value="columnDialogValue"
       v-model:visible="columnDialogVisible"
@@ -2401,8 +2983,17 @@ function onAddRuleSelect(e: Event) {
       v-model:visible="fieldSelectVisible"
       v-model:model-value="fieldSelectId"
       :fields="refPageFields"
+      :multiple="true"
       :title="t('选择显示字段')"
       @select="(field: string) => onFieldSelectConfirm(field)"
+    />
+    <!-- 值字段选择弹窗 -->
+    <FieldSelectDialog
+      v-model:visible="valueFieldSelectVisible"
+      v-model:model-value="valueFieldSelectId"
+      :fields="refPageFields"
+      :title="t('选择值字段')"
+      @select="(field: string) => onValueFieldSelectConfirm(field)"
     />
     <ApiSelectDialog
       v-model:visible="apiSelectDialogVisible"
@@ -2448,6 +3039,15 @@ function onAddRuleSelect(e: Event) {
         </div>
       </div>
     </Teleport>
+    <FieldEventRuleDialog v-model:visible="showFieldEventRuleDialog" />
+    <!-- FE-S10 P2: 编号规则配置弹窗 -->
+    <NumberRuleDialog
+      v-model:visible="showNumberRuleDialog"
+      :expr="currentNodeNumberExpr"
+      :date-field-names="dateFieldNames"
+      :non-date-field-names="nonDateFieldNames"
+      @save="onSaveNumberRule"
+    />
   </aside>
 </template>
 
@@ -3094,4 +3694,45 @@ function onAddRuleSelect(e: Event) {
   font-size: 13px;
   word-break: break-all;
 }
+.prop-number-rule {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.prop-clear-btn {
+  padding: 2px 8px;
+  background: #f56c6c;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.prop-clear-btn:hover {
+  background: #f78989;
+}
+.override-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: #fdf6ec;
+  border: 1px solid #f5dab1;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #e6a23c;
+  font-weight: 400;
+}
+.override-restore {
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  color: #409eff;
+  cursor: pointer;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
 </style>

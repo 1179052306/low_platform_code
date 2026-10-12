@@ -1,6 +1,7 @@
 import { reactive, computed, ref, type InjectionKey } from 'vue'
-import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType } from '@/types/schema'
+import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule } from '@/types/schema'
 import { getConfig } from '@/materials'
+import { httpRequest, extractPayload, setDebugPageIdProvider } from '@/utils/request'
 import {
   LAYOUT_CONTAINER_TYPES,
   STRUCTURAL_CHILD_TYPES,
@@ -99,6 +100,8 @@ export const designerStore = reactive({
   tableName: '' as string,
   /** 主键字段名 */
   primaryKeyField: '' as string,
+  /** 主键生成策略：UUID=字符串主键, SNOWFLAKE=数字主键(默认) */
+  keyStrategy: 'SNOWFLAKE' as string,
   /** 页面类型：custom=自定义，document=单据，basedata=基础资料 */
   pageType: 'custom' as PageType,
   pageCss: { background: '#ffffff' } as PageCss,
@@ -127,7 +130,43 @@ export const designerStore = reactive({
     table: [] as ComponentSchema[],
     mobile: [] as ComponentSchema[],
   } as BizSchemas,
+  /** 查询配置（列表页/查询页，对应 PageSchema.queryConfig） */
+  queryConfig: undefined as QueryConfig | undefined,
+  /** 主从表配置（对应 PageSchema.masterDetail） */
+  masterDetail: undefined as MasterDetailConfig | undefined,
+  /** 字段变更事件规则（对应 PageSchema.fieldChangeEvents，后端触发，前端只配置） */
+  fieldChangeEvents: undefined as FieldBChangeEventRule[] | undefined,
+  /** 页面级计算规则（对应 PageSchema.computeRules，前端运行时求值） */
+  computeRules: undefined as ComputeRule[] | undefined,
+  /** 分层继承：当前编辑层（方向一，默认 CUSTOMER） */
+  currentLayer: 'CUSTOMER' as MetaLayer,
+  /** 分层继承：是否显示合并预览（true=看合并后 schema，false=看当前层） */
+  mergePreview: false,
+  /** 绑定的审批流 ID（单据页面走审批流时使用） */
+  workflowId: undefined as string | undefined,
+  /** 当前数据库类型（Oracle=1/DM=4 转大写，PG=3/Kingbase=5/MySQL=0/SQLite=6 转小写，SQLServer=2 原样） */
+  dbType: '' as string,
 })
+
+/** 根据当前数据库类型自动转换标识符大小写（Oracle/DM→大写，PG/MySQL/SQLite/Kingbase→小写，SQLServer→原样） */
+export function normalizeIdentifier(name: string): string {
+  if (!name) return name
+  const t = designerStore.dbType
+  if (t === '1' || t === '4') return name.toUpperCase()
+  if (t === '0' || t === '3' || t === '5' || t === '6') return name.toLowerCase()
+  return name
+}
+
+/** 拉取当前数据源的数据库类型 */
+export async function fetchDbType(): Promise<void> {
+  try {
+    const res = await httpRequest('/api/lowcode/page/db-type', { method: 'POST' })
+    const data = (res as any)?.data ?? res
+    designerStore.dbType = String(data ?? '')
+  } catch {
+    designerStore.dbType = ''
+  }
+}
 
 /** 历史记录（撤销/重做） */
 const history = reactive({
@@ -141,9 +180,11 @@ function snapshot(): string {
     pageName: designerStore.pageName,
     tableName: designerStore.tableName,
     primaryKeyField: designerStore.primaryKeyField,
+    keyStrategy: designerStore.keyStrategy,
     pageCss: designerStore.pageCss,
     themeId: designerStore.themeId,
     pageId: designerStore.pageId,
+    workflowId: designerStore.workflowId,
   })
 }
 
@@ -163,8 +204,10 @@ export function undo(): void {
   designerStore.pageName = state.pageName ?? '未命名页面'
   designerStore.tableName = state.tableName ?? ''
   designerStore.primaryKeyField = state.primaryKeyField ?? ''
+  designerStore.keyStrategy = state.keyStrategy ?? 'SNOWFLAKE'
   designerStore.pageCss = state.pageCss ?? { background: '#ffffff' }
   designerStore.themeId = state.themeId
+  designerStore.workflowId = state.workflowId
   designerStore.pageId = state.pageId ?? designerStore.pageId
   // 迁移属性：撤销到旧快照时也补全新增属性
   collectAllNodes(designerStore.schema).forEach(migrateNodeProps)
@@ -181,8 +224,10 @@ export function redo(): void {
   designerStore.pageName = state.pageName ?? '未命名页面'
   designerStore.tableName = state.tableName ?? ''
   designerStore.primaryKeyField = state.primaryKeyField ?? ''
+  designerStore.keyStrategy = state.keyStrategy ?? 'SNOWFLAKE'
   designerStore.pageCss = state.pageCss ?? { background: '#ffffff' }
   designerStore.themeId = state.themeId
+  designerStore.workflowId = state.workflowId
   designerStore.pageId = state.pageId ?? designerStore.pageId
   // 迁移属性：重做时也补全新增属性
   collectAllNodes(designerStore.schema).forEach(migrateNodeProps)
@@ -961,6 +1006,26 @@ export function updateDbField(id: string, dbField: string): { ok: boolean; error
   return { ok: true }
 }
 
+/**
+ * 通用节点属性更新（用于 ComponentSchema 直接属性，如 computeExpr/computeTriggerFields）。
+ * 值为 undefined 时删除该属性。
+ */
+export function updateNodeProperty(
+  id: string,
+  key: keyof ComponentSchema,
+  value: unknown,
+): void {
+  const found = findNode(designerStore.schema, id)
+  if (!found) return
+  pushHistory()
+  if (value === undefined || value === null || value === '') {
+    delete (found.node as unknown as Record<string, unknown>)[key as string]
+  } else {
+    ;(found.node as unknown as Record<string, unknown>)[key as string] = value
+  }
+  designerStore.schemaRevision += 1
+}
+
 /** 表单模式保存前校验：检查表名和所有表单控件的 dbField */
 export function validateFormBeforeSave(): { ok: boolean; errors: string[] } {
   const errors: string[] = []
@@ -973,6 +1038,15 @@ export function validateFormBeforeSave(): { ok: boolean; errors: string[] } {
     errors.push('请先填写数据表名（tableName）')
   } else if (!IDENTIFIER_RE.test(designerStore.tableName.trim())) {
     errors.push('数据表名只能以字母开头，仅含字母、数字、下划线')
+  }
+  // 检查主键字段（单据/基础资料必须配置主键）
+  if (designerStore.pageType === 'document' || designerStore.pageType === 'basedata') {
+    const pk = designerStore.primaryKeyField?.trim()
+    if (!pk) {
+      errors.push('请填写主键字段名（用于建表主键和 CRUD 定位记录）')
+    } else if (!IDENTIFIER_RE.test(pk)) {
+      errors.push('主键字段名只能以字母开头，仅含字母、数字、下划线')
+    }
   }
   // 检查所有表单控件（category='表单'）的 dbField
   const formSchema = designerStore.bizSchemas.form
@@ -991,6 +1065,7 @@ export function validateFormBeforeSave(): { ok: boolean; errors: string[] } {
       dbFields.add(node.dbField)
     }
   }
+
   return { ok: errors.length === 0, errors }
 }
 export function updatePageCss(patch: Partial<PageCss>): void {
@@ -1152,10 +1227,14 @@ export function exportSchema(): PageSchema {
     pageName: designerStore.pageName,
     tableName: designerStore.tableName,
     primaryKeyField: designerStore.primaryKeyField,
+    keyStrategy: designerStore.keyStrategy,
     pageType: designerStore.pageType,
     pageCss: { ...designerStore.pageCss },
     themeId: designerStore.themeId,
+    workflowId: designerStore.workflowId,
     root: designerStore.schema,
+    fieldChangeEvents: designerStore.fieldChangeEvents,
+    computeRules: designerStore.computeRules,
   }
   // 业务形态：同步当前 schema 到槽位，并输出三份独立内容
   if (designerStore.mode === 'biz') {
@@ -1219,9 +1298,13 @@ export function importSchema(page: PageSchema): boolean {
   designerStore.pageName = page.pageName || '未命名页面'
   designerStore.tableName = page.tableName || ''
   designerStore.primaryKeyField = page.primaryKeyField || ''
+  designerStore.keyStrategy = page.keyStrategy || 'SNOWFLAKE'
   designerStore.pageType = page.pageType || designerStore.pageType
   designerStore.pageCss = page.pageCss ? { ...page.pageCss } : { background: '#ffffff' }
   designerStore.themeId = page.themeId
+  designerStore.workflowId = page.workflowId
+  designerStore.fieldChangeEvents = page.fieldChangeEvents
+  designerStore.computeRules = page.computeRules
   // 业务形态：加载三份独立内容，当前 schema 指向当前模式槽位
   if (designerStore.mode === 'biz') {
     // 恢复上次使用的子模式（持久化）
@@ -1267,15 +1350,159 @@ export function clearCanvas(): void {
 export interface RenderStore {
   schema: ComponentSchema[]
   schemaRevision: number
+  computeRules?: ComputeRule[]
+  primaryKeyField?: string
+  tableName?: string
+  selectMode?: boolean
+  selectedRowData?: Record<string, unknown> | null
 }
 
 /** designer store 的 injection key，用于 provide/inject 隔离子页面渲染 */
 export const DESIGNER_STORE_KEY: InjectionKey<RenderStore> = Symbol('designerStore')
 
 /** 创建独立渲染 store（用于子页面弹窗隔离渲染上下文） */
-export function createRenderStore(): RenderStore {
+export function createRenderStore(primaryKeyField?: string, tableName?: string, selectMode?: boolean): RenderStore {
   return reactive({
     schema: [] as ComponentSchema[],
     schemaRevision: 0,
+    primaryKeyField: primaryKeyField || 'id',
+    tableName: tableName || '',
+    selectMode: selectMode ?? false,
+    selectedRowData: null as Record<string, unknown> | null,
   })
+}
+// ================ FE-S0：运行时渲染契约（G5/G1/G2/G3） ================
+
+/**
+ * 加载合并后 schema（分层继承后运行时渲染用）。
+ * 调后端 POST /api/lowcode/meta/merged { pageId }，返回合并后 PageSchema。
+ * 后端未就绪时抛错，调用方应 fallback 到 designerStore.schema（单层等价于合并）。
+ */
+export async function loadMergedSchema(pageId: string): Promise<PageSchema> {
+  const res = await httpRequest('/api/lowcode/meta/merged', {
+    method: 'POST',
+    body: JSON.stringify({ pageId }),
+  })
+  if (!res.ok) {
+    throw new Error('加载合并 schema 失败：后端连接异常')
+  }
+  const raw = res.data as { data?: PageSchema } | PageSchema | undefined
+  let schema: PageSchema | undefined
+  if (raw && typeof raw === 'object' && 'data' in raw && raw.data) {
+    schema = raw.data
+  } else if (raw && typeof raw === 'object') {
+    schema = raw as PageSchema
+  }
+  if (!schema) throw new Error('加载合并 schema 失败：响应格式异常')
+  return fillDefaults(schema)
+}
+
+/** 更新查询配置（编辑操作，入撤销栈） */
+export function updateQueryConfig(config: QueryConfig): void {
+  pushHistory()
+  designerStore.queryConfig = config
+}
+
+/** 更新主从表配置（编辑操作，入撤销栈） */
+export function updateMasterDetail(config: MasterDetailConfig): void {
+  pushHistory()
+  designerStore.masterDetail = config
+}
+
+/**
+ * schema 默认值补全（新增可选字段向后兼容）。
+ * 旧页面 schema 加载时调用，确保新增字段有合理默认值，不升级 schema version。
+ */
+export function fillDefaults(schema: PageSchema): PageSchema {
+  return {
+    ...schema,
+    queryConfig: schema.queryConfig,
+    masterDetail: schema.masterDetail,
+    root: schema.root || [],
+    bizSchemas: schema.bizSchemas ?? { form: [], table: [], mobile: [] },
+  }
+}
+// 注入调试 pageId 提供者（供 request.ts 开发模式注入 X-Debug-PageId 请求头）
+setDebugPageIdProvider(() => designerStore.pageId)
+// ================ FE-S1：字段变更事件配置（后端第 13 章） ================
+
+/** 新增字段变更事件规则（编辑操作，入撤销栈） */
+export function addFieldEventRule(rule: FieldBChangeEventRule): void {
+  pushHistory()
+  if (!designerStore.fieldChangeEvents) designerStore.fieldChangeEvents = []
+  designerStore.fieldChangeEvents.push(rule)
+}
+
+/** 更新字段变更事件规则（按 eventCode 匹配，编辑操作，入撤销栈） */
+export function updateFieldEventRule(eventCode: string, rule: FieldBChangeEventRule): void {
+  if (!designerStore.fieldChangeEvents) return
+  const idx = designerStore.fieldChangeEvents.findIndex((r) => r.eventCode === eventCode)
+  if (idx < 0) return
+  pushHistory()
+  designerStore.fieldChangeEvents[idx] = rule
+}
+
+/** 删除字段变更事件规则（编辑操作，入撤销栈） */
+export function removeFieldEventRule(eventCode: string): void {
+  if (!designerStore.fieldChangeEvents) return
+  const idx = designerStore.fieldChangeEvents.findIndex((r) => r.eventCode === eventCode)
+  if (idx < 0) return
+  pushHistory()
+  designerStore.fieldChangeEvents.splice(idx, 1)
+}
+/** 整体替换字段变更事件规则（弹窗编辑确认时用，编辑操作，入撤销栈） */
+export function setFieldEventRules(rules: FieldBChangeEventRule[]): void {
+  pushHistory()
+  designerStore.fieldChangeEvents = rules
+}
+// ================ FE-S10：页面级计算规则 ================
+
+/** 整体替换页面级计算规则（弹窗编辑确认时用，编辑操作，入撤销栈） */
+export function setComputeRules(rules: ComputeRule[]): void {
+  pushHistory()
+  designerStore.computeRules = rules
+}
+// ================ FE-S3：分层继承（方向一） ================
+
+/** 切换当前编辑层（视图切换，不入撤销栈） */
+export function setLayer(layer: MetaLayer): void {
+  designerStore.currentLayer = layer
+}
+
+/** 切换合并预览/当前层视图（视图切换，不入撤销栈） */
+export function setMergePreview(preview: boolean): void {
+  designerStore.mergePreview = preview
+}
+
+/**
+ * 客户层覆盖产品层属性（编辑操作，入撤销栈）。
+ * 在客户层编辑产品层节点的某属性时，记录到 overrideProps 而非直接改 props。
+ */
+export function overrideProp(id: string, prop: string, value: unknown): void {
+  const found = findNode(designerStore.schema, id)
+  if (!found) return
+  pushHistory()
+  if (!found.node.overrideProps) found.node.overrideProps = {}
+  found.node.overrideProps[prop] = value
+}
+
+/** 恢复产品层原值（删除覆盖，编辑操作，入撤销栈） */
+export function restoreProp(id: string, prop: string): void {
+  const found = findNode(designerStore.schema, id)
+  if (!found?.node.overrideProps) return
+  if (!(prop in found.node.overrideProps)) return
+  pushHistory()
+  delete found.node.overrideProps[prop]
+}
+
+/** 判断节点某属性是否被当前层覆盖 */
+export function isPropOverridden(id: string, prop: string): boolean {
+  const found = findNode(designerStore.schema, id)
+  return !!(found?.node.overrideProps && prop in found.node.overrideProps)
+}
+
+/** 获取节点的覆盖属性值（无覆盖返回 undefined） */
+export function getOverridePropValue(id: string, prop: string): unknown {
+  const found = findNode(designerStore.schema, id)
+  return found?.node.overrideProps?.[prop]
 }

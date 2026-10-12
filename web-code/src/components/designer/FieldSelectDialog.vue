@@ -10,12 +10,14 @@ export interface FieldOption {
 
 const props = defineProps<{
   visible: boolean
-  /** 当前选中的字段 dbField */
+  /** 当前选中的字段 dbField（multiple 模式下为逗号分隔） */
   modelValue?: string
   /** 可选字段列表 */
   fields: FieldOption[]
   /** 弹窗标题 */
   title?: string
+  /** 是否多选 */
+  multiple?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -24,7 +26,21 @@ const emit = defineEmits<{
   select: [dbField: string, displayText: string]
 }>()
 
-const selectedField = ref('')
+const selectedFields = ref<string[]>([])
+
+function toggleField(dbField: string) {
+  if (props.multiple) {
+    const idx = selectedFields.value.indexOf(dbField)
+    if (idx >= 0) selectedFields.value.splice(idx, 1)
+    else selectedFields.value.push(dbField)
+  } else {
+    selectedFields.value = [dbField]
+  }
+}
+
+function isFieldSelected(dbField: string) {
+  return selectedFields.value.includes(dbField)
+}
 const searchKey = ref('')
 
 const filteredFields = computed(() => {
@@ -39,10 +55,12 @@ const filteredFields = computed(() => {
 })
 
 function confirmSelect() {
-  if (!selectedField.value) return
-  const f = props.fields.find((x) => x.dbField === selectedField.value)
-  emit('select', selectedField.value, f?.displayText || '')
-  emit('update:modelValue', selectedField.value)
+  if (!selectedFields.value.length) return
+  const dbFields = selectedFields.value
+  const texts = dbFields.map((f) => props.fields.find((x) => x.dbField === f)?.displayText || f)
+  const result = dbFields.join(',')
+  emit('select', result, texts.join(', '))
+  emit('update:modelValue', result)
   emit('update:visible', false)
 }
 
@@ -54,7 +72,8 @@ watch(
   () => props.visible,
   (val) => {
     if (val) {
-      selectedField.value = props.modelValue || ''
+      const raw = props.modelValue || ''
+      selectedFields.value = raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []
       searchKey.value = ''
     }
   },
@@ -82,9 +101,10 @@ watch(
               v-for="f in filteredFields"
               :key="f.dbField"
               class="fsd-item"
-              :class="{ 'fsd-item-active': f.dbField === selectedField }"
-              @click="selectedField = f.dbField"
+              :class="{ 'fsd-item-active': isFieldSelected(f.dbField) }"
+              @click="toggleField(f.dbField)"
             >
+              <span v-if="multiple" class="fsd-item-check">{{ isFieldSelected(f.dbField) ? '☑' : '☐' }}</span>
               <span class="fsd-item-text">{{ f.displayText }}</span>
               <span class="fsd-item-field">{{ f.dbField }}</span>
             </div>
@@ -94,8 +114,8 @@ watch(
           </div>
         </div>
         <div class="fsd-footer">
-          <span class="fsd-selected-info" v-if="selectedField">
-            {{ t('已选：') }}{{ selectedField }}
+          <span class="fsd-selected-info" v-if="selectedFields.length">
+            {{ t('已选：') }}{{ selectedFields.join(', ') }}
           </span>
           <div class="fsd-footer-actions">
             <button class="fsd-btn" @click="closeDialog">
@@ -103,7 +123,7 @@ watch(
             </button>
             <button
               class="fsd-btn fsd-btn-primary"
-              :disabled="!selectedField"
+              :disabled="!selectedFields.length"
               @click="confirmSelect"
             >
               {{ t('确定') }}
@@ -205,6 +225,12 @@ watch(
 .fsd-item-text {
   font-size: 13px;
   color: #333;
+  flex: 1;
+}
+.fsd-item-check {
+  font-size: 14px;
+  margin-right: 6px;
+  color: #2563eb;
 }
 .fsd-item-field {
   font-size: 12px;

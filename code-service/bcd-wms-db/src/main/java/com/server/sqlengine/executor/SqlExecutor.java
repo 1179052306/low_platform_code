@@ -289,13 +289,44 @@ public class SqlExecutor {
             return;
         }
         for (int i = 0; i < params.size(); i++) {
-            Object value = params.get(i).value();
+            SqlParam param = params.get(i);
+            Object value = param.value();
             if (value == null) {
                 ps.setNull(i + 1, Types.NULL);
             } else {
-                ps.setObject(i + 1, value);
+                Object converted = convertValueByTypeHint(value, param.typeHint());
+                ps.setObject(i + 1, converted);
             }
         }
+    }
+
+    /** 根据列类型提示转换值：String → Long/Double/Boolean */
+    private Object convertValueByTypeHint(Object value, String typeHint) {
+        if (value == null || typeHint == null || !(value instanceof String)) {
+            return value;
+        }
+        String strValue = (String) value;
+        if (strValue.isEmpty()) {
+            return value;
+        }
+        String t = typeHint.toLowerCase(Locale.ROOT);
+        if (t.contains("bigint") || t.contains("int") || t.contains("numeric") || t.contains("decimal")) {
+            try {
+                return Long.parseLong(strValue);
+            } catch (NumberFormatException e1) {
+                try {
+                    return Double.parseDouble(strValue);
+                } catch (NumberFormatException e2) {
+                    return value;
+                }
+            }
+        }
+        if (t.contains("boolean") || t.contains("bool")) {
+            if ("true".equalsIgnoreCase(strValue) || "1".equals(strValue) || "t".equals(strValue)) return Boolean.TRUE;
+            if ("false".equalsIgnoreCase(strValue) || "0".equals(strValue) || "f".equals(strValue)) return Boolean.FALSE;
+            return value;
+        }
+        return value;
     }
 
     // ==================== 慢 SQL 监控 ====================
@@ -356,7 +387,8 @@ public class SqlExecutor {
     }
 
     /**
-     * 特殊列类型值转换 —— CLOB/NCLOB 转为 String，其余原样返回。
+     * 特殊列类型值转换 —— CLOB/NCLOB 转为 String；
+     * Long/BigInteger 超过 JS 安全整数范围（2^53-1）转为 String，避免前端精度丢失。
      */
     private Object convertValue(Object value) throws SQLException {
         if (value == null) {
@@ -367,6 +399,21 @@ public class SqlExecutor {
         }
         if (value instanceof Clob) {
             return clobToString((Clob) value);
+        }
+        if (value instanceof Long) {
+            long lv = (Long) value;
+            if (lv > 9007199254740991L || lv < -9007199254740991L) {
+                return String.valueOf(lv);
+            }
+            return value;
+        }
+        if (value instanceof java.math.BigInteger) {
+            java.math.BigInteger bi = (java.math.BigInteger) value;
+            java.math.BigInteger limit = java.math.BigInteger.valueOf(9007199254740991L);
+            if (bi.abs().compareTo(limit) > 0) {
+                return bi.toString();
+            }
+            return value;
         }
         return value;
     }

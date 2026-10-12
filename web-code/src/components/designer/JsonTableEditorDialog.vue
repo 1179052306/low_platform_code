@@ -7,6 +7,7 @@ const props = defineProps<{
   visible: boolean
   title?: string
   columns?: string[]
+  columnLabels?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -300,7 +301,7 @@ watch(mode, () => {
                   <th v-for="col in columns" :key="col" class="table-header">
                     <div class="th-content">
                       <template v-if="isColumnsLocked">
-                        <span class="th-locked-label">{{ col }}</span>
+                        <span class="th-locked-label">{{ columnLabels?.[col] || col }}</span>
                       </template>
                       <template v-else>
                         <input

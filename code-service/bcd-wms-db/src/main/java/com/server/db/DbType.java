@@ -20,6 +20,10 @@ public final class DbType {
     public static final String POSTGRESQL = "3";
     /** 达梦 DM */
     public static final String DM = "4";
+    /** 电科金仓 Kingbase */
+    public static final String KINGBASE = "5";
+    /** SQLite */
+    public static final String SQLITE = "6";
 
     private DbType() {
     }

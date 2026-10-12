@@ -83,7 +83,12 @@ public class BaseDataInitializer {
           l1Caches.size(), guards.size());
 
     } catch (Exception e) {
-      log.error("[BaseData] 初始化失败: {}", e.getMessage(), e);
+      String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+      if (msg.contains("does not exist") || msg.contains("relation") || msg.contains("base_data_entity")) {
+        log.warn("[BaseData] 元数据表尚未创建，跳过初始化（将在 LowcodeTableInitializer 建表后于下次启动生效）: {}", e.getMessage());
+      } else {
+        log.error("[BaseData] 初始化失败: {}", e.getMessage(), e);
+      }
     }
   }
 

@@ -160,3 +160,199 @@ export function _recordBlocked(): void {
 export function _recordWarned(): void {
   _warnedCount++
 }
+// ---- 默认 API 注册（统一网关 + 元数据 + 查询 + 流程 + 审批 + 待办） ----
+
+/**
+ * 注册默认 API 服务（统一网关 + 元数据 + 查询引擎 + 流程 + 审批 + 待办）。
+ * 在 setupApiGovernance 中调用，幂等（重复注册覆盖同 id）。
+ */
+export function registerDefaultApis(): void {
+  registerApis([
+    {
+      id: 'lowcodeGateway',
+      url: '/api/lowcode/gateway',
+      method: 'POST',
+      description: '统一业务网关（bizCode+action+payload）',
+    },
+    {
+      id: 'metaMerged',
+      url: '/api/lowcode/meta/merged',
+      method: 'POST',
+      description: '合并后 schema 查询（分层继承）',
+    },
+    {
+      id: 'metaList',
+      url: '/api/lowcode/meta/list',
+      method: 'POST',
+      description: '元数据列表查询（统一元数据注册表）',
+    },
+    {
+      id: 'metaSave',
+      url: '/api/lowcode/meta/save',
+      method: 'POST',
+      description: '元数据项保存',
+    },
+    {
+      id: 'metaVersionHistory',
+      url: '/api/lowcode/meta/version-history',
+      method: 'POST',
+      description: '元数据版本历史',
+    },
+    {
+      id: 'workflowDef',
+      url: '/api/lowcode/workflow',
+      method: 'POST',
+      description: '流程定义保存',
+    },
+    {
+      id: 'approvalAction',
+      url: '/api/lowcode/approval/action',
+      method: 'POST',
+      description: '审批操作（同意/驳回/转办/加签）',
+    },
+    {
+      id: 'todoList',
+      url: '/api/lowcode/todo/list',
+      method: 'POST',
+      description: '待办/已办列表',
+    },
+    {
+      id: 'gatewayPermList',
+      url: '/api/lowcode/permission/gateway/list',
+      method: 'POST',
+      description: '网关权限矩阵列表查询',
+    },
+    {
+      id: 'gatewayPermSave',
+      url: '/api/lowcode/permission/gateway/save',
+      method: 'POST',
+      description: '网关权限规则保存',
+    },
+    {
+      id: 'gatewayPermDelete',
+      url: '/api/lowcode/permission/gateway/delete',
+      method: 'POST',
+      description: '网关权限规则删除',
+    },
+    {
+      id: 'fieldPermList',
+      url: '/api/lowcode/permission/field/list',
+      method: 'POST',
+      description: '字段权限列表查询',
+    },
+    {
+      id: 'fieldPermSave',
+      url: '/api/lowcode/permission/field/save',
+      method: 'POST',
+      description: '字段权限规则保存',
+    },
+    {
+      id: 'fieldPermDelete',
+      url: '/api/lowcode/permission/field/delete',
+      method: 'POST',
+      description: '字段权限规则删除',
+    },
+    {
+      id: 'roleList',
+      url: '/api/lowcode/role/list',
+      method: 'POST',
+      description: '角色列表查询（权限配置选择用）',
+    },
+    {
+      id: 'dictList',
+      url: '/api/lowcode/dict/list',
+      method: 'POST',
+      description: '数据字典列表查询',
+    },
+    {
+      id: 'dictSave',
+      url: '/api/lowcode/dict/save',
+      method: 'POST',
+      description: '数据字典保存',
+    },
+    {
+      id: 'dictDelete',
+      url: '/api/lowcode/dict/delete',
+      method: 'POST',
+      description: '数据字典删除',
+    },
+    {
+      id: 'dictItemList',
+      url: '/api/lowcode/dict/item/list',
+      method: 'POST',
+      description: '字典项列表查询',
+    },
+    {
+      id: 'dictItemSave',
+      url: '/api/lowcode/dict/item/save',
+      method: 'POST',
+      description: '字典项保存',
+    },
+    {
+      id: 'dictItemDelete',
+      url: '/api/lowcode/dict/item/delete',
+      method: 'POST',
+      description: '字典项删除',
+    },
+    {
+      id: 'attachmentUpload',
+      url: '/api/lowcode/attachment/upload',
+      method: 'POST',
+      description: '附件上传',
+    },
+    {
+      id: 'attachmentList',
+      url: '/api/lowcode/attachment/list',
+      method: 'POST',
+      description: '附件列表查询',
+    },
+    {
+      id: 'attachmentDelete',
+      url: '/api/lowcode/attachment/delete',
+      method: 'POST',
+      description: '附件删除',
+    },
+    {
+      id: 'metaRollback',
+      url: '/api/lowcode/meta/rollback',
+      method: 'POST',
+      description: '元数据版本回滚',
+    },
+    {
+      id: 'metaCheckBreaking',
+      url: '/api/lowcode/meta/check-breaking',
+      method: 'POST',
+      description: 'BREAKING 变更检测',
+    },
+    {
+      id: 'packageList',
+      url: '/api/lowcode/package/list',
+      method: 'POST',
+      description: '应用包列表查询',
+    },
+    {
+      id: 'packageSave',
+      url: '/api/lowcode/package/save',
+      method: 'POST',
+      description: '应用包保存',
+    },
+    {
+      id: 'packageDelete',
+      url: '/api/lowcode/package/delete',
+      method: 'POST',
+      description: '应用包删除',
+    },
+    {
+      id: 'workflowList',
+      url: '/api/lowcode/workflow',
+      method: 'POST',
+      description: '流程定义列表查询',
+    },
+    {
+      id: 'todoQuery',
+      url: '/api/lowcode/todo/list',
+      method: 'POST',
+      description: '待办查询',
+    },
+  ])
+}

@@ -230,28 +230,28 @@ public class SqlTemplateEngine {
                 ? qualifiedCol.substring(qualifiedCol.indexOf('.') + 1)
                 : qualifiedCol;
         if (op == null) {
-            params.add(new SqlParam(colName, value));
+            params.add(new SqlParam(colName, tryConvertValue(value)));
             return " AND " + qualifiedCol + " = ?";
         }
 
         switch (op) {
             case EQ:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " = ?";
             case NE:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " <> ?";
             case LT:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " < ?";
             case LE:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " <= ?";
             case GT:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " > ?";
             case GE:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " >= ?";
             case LIKE:
                 params.add(new SqlParam(colName, "%" + value + "%"));
@@ -270,18 +270,30 @@ public class SqlTemplateEngine {
             case BETWEEN:
                 return buildBetweenClause(colName, qualifiedCol, value, params);
             default:
-                params.add(new SqlParam(colName, value));
+                params.add(new SqlParam(colName, tryConvertValue(value)));
                 return " AND " + qualifiedCol + " = ?";
         }
+    }
+
+    private Object tryConvertValue(Object value) {
+        if (value instanceof String) {
+            return tryParseNumber((String) value);
+        }
+        return value;
     }
 
     @SuppressWarnings("unchecked")
     private String buildInClause(String colName, String col, Object value, List<SqlParam> params, boolean negate) {
         List<?> values;
-        if (value instanceof List) {
+        if (value instanceof List && !(value instanceof JSONArray)) {
             values = (List<?>) value;
         } else if (value instanceof JSONArray) {
-            values = ((JSONArray) value).toJavaList(Object.class);
+            JSONArray arr = (JSONArray) value;
+            List<Object> list = new ArrayList<Object>(arr.size());
+            for (int i = 0; i < arr.size(); i++) {
+                list.add(arr.get(i));
+            }
+            values = list;
         } else {
             String strVal = String.valueOf(value);
             if (strVal.startsWith("[")) {
@@ -303,7 +315,11 @@ public class SqlTemplateEngine {
                 sb.append(", ");
             }
             sb.append('?');
-            params.add(new SqlParam(colName, values.get(i)));
+            Object v = values.get(i);
+            if (v instanceof String) {
+                v = tryParseNumber((String) v);
+            }
+            params.add(new SqlParam(colName, v));
         }
         sb.append(')');
         return sb.toString();

@@ -4,6 +4,8 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.server.sqlengine.SqlEngineJson;
 import com.api.lowcode.common.BusinessTableSyncService;
+import com.api.lowcode.common.MetaSyncService;
+import com.api.lowcode.meta.MetaService;
 import com.api.lowcode.perm.PagePermService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,12 @@ public class PageService {
 
   @Resource
   private BusinessTableSyncService tableSyncService;
+
+  @Resource
+  private MetaSyncService metaSyncService;
+
+  @Resource
+  private MetaService metaService;
 
   private static final String TABLE = "lowcode_page";
 
@@ -87,6 +95,16 @@ public class PageService {
       syncMsg = tableSyncService.syncTable(schema);
       // 同步字段关联（dx-base-data 控件关联的基础资料页面）
       syncFieldRefs(pageId, schema);
+    }
+
+    // 元数据同步：任何模式保存都触发（schema 中始终包含 bizSchemas.form 字段定义）
+    metaSyncService.syncMeta(schema);
+
+    // 记录版本历史（metaKey 用 pageName，与前端 VersionHistoryPanel 查询一致）
+    try {
+      metaService.recordVersion(schema.getString("pageName"), schema);
+    } catch (Exception ve) {
+      log.warn("版本历史记录失败（不影响保存）: {}", ve.getMessage());
     }
 
     // 记录保存日志

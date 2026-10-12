@@ -12,6 +12,7 @@ import {
   provide,
 } from 'vue'
 import type { ComponentSchema } from '@/types/schema'
+import type { DetailTableConfig } from '@/types/schema'
 import { materialComponents, getConfig, resolveNodeProps } from '@/materials'
 import {
   designerStore,
@@ -25,6 +26,7 @@ import {
 import { DxValidator } from 'devextreme-vue/validator'
 import DxDropDownBox from 'devextreme-vue/drop-down-box'
 import DxDataGrid from 'devextreme-vue/data-grid'
+import { DxMasterDetail } from 'devextreme-vue/data-grid'
 import DxToolbar from 'devextreme-vue/toolbar'
 import {
   VALIDATABLE_TYPES,
@@ -39,8 +41,13 @@ import type { SearchCondition } from './AdvancedSearchPanel.vue'
 import { pageModal } from './pageModal'
 import { httpRequest, extractPayload, extractList } from '@/utils/request'
 import { apiCall, resolveApi, type ApiCallResult } from '@/api'
+import { isFieldHidden, isFieldReadonly, isFrozen, isActionFrozen } from '@/utils/permission'
+import { evaluateExpr, pickFields } from '@/utils/compute-expr'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { createSandboxedFunction } from '@/utils/sandbox'
+import { gatewayCall } from '@/api'
 import { t } from '@/store/lang'
+import BatchActionDialog from './BatchActionDialog.vue'
 
 const props = defineProps<{
   node: ComponentSchema
@@ -50,6 +57,21 @@ const props = defineProps<{
 }>()
 
 const cfg = getConfig(props.node.type)
+
+/** 字段权限：当前节点是否因权限隐藏（G3 权限驱动渲染，permissions 未加载时放行） */
+const nodeFieldHidden = computed(() => {
+  if (!props.node.fieldName) return false
+  return isFieldHidden(designerStore.pageName, props.node.fieldName)
+})
+
+/** 字段权限：当前节点是否只读（permissions 未加载时放行） */
+const nodeFieldReadonly = computed(() => {
+  if (!props.node.fieldName) return false
+  if (isFieldReadonly(designerStore.pageName, props.node.fieldName)) return true
+  // 数据冻结：冻结状态下 edit 操作被禁用时，所有字段只读
+  if (isActionFrozen(designerStore.pageName, 'edit')) return true
+  return false
+})
 
 /** 表单控件类型集合（需要渲染独立 label） */
 const FORM_CONTROL_TYPES = new Set([
@@ -76,6 +98,10 @@ const FORM_CONTROL_TYPES = new Set([
   'dx-base-data',
 ])
 
+/** 计算规则运行时深度计数器（模块级，防止规则链无限循环） */
+let computeRuleDepth = 0
+const COMPUTE_RULE_MAX_DEPTH = 10
+
 /** 当前渲染上下文的 store（通过 inject 获取，子页面弹窗使用独立实例） */
 const store = inject(DESIGNER_STORE_KEY, designerStore) as RenderStore
 // 向下提供，确保子 RendererNode 继承同一 store
@@ -98,9 +124,120 @@ function getGridInstance(): any {
   return inst
 }
 
+/** 复制文本到系统剪贴板，返回是否成功 */
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // 回退到 execCommand
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.top = '-9999px'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+/** 取单元格显示文本（优先 DOM 文本，回退到行数据字段值） */
+function getCellDisplayText(grid: any, row: any, column: any): string {
+  try {
+    if (grid && row && column) {
+      const el = grid.getCellElement?.(row.rowIndex, column.index)
+      if (el) {
+        const text = (el as HTMLElement).textContent ?? ''
+        if (text.trim()) return text.trim()
+      }
+    }
+  } catch {
+    // 回退
+  }
+  if (row?.data && column?.dataField) {
+    const v = (row.data as Record<string, unknown>)[column.dataField]
+    return v == null ? '' : String(v)
+  }
+  return ''
+}
+
+/** 取一行数据按可见列顺序的 TSV 文本（方便粘贴到 Excel） */
+function getRowTsv(grid: any, row: any): string {
+  let cols: any[] = []
+  try {
+    cols = grid?.getVisibleColumns?.() ?? []
+  } catch {
+    cols = []
+  }
+  const data = (row?.data ?? {}) as Record<string, unknown>
+  const cells: string[] = []
+  for (const col of cols) {
+    if (!col.dataField) continue
+    let text = ''
+    try {
+      const el = grid?.getCellElement?.(row.rowIndex, col.index)
+      if (el) {
+        const t = (el as HTMLElement).textContent ?? ''
+        if (t.trim()) text = t.trim()
+      }
+    } catch {
+      // 回退
+    }
+    if (!text) {
+      const v = data[col.dataField]
+      text = v == null ? '' : String(v)
+    }
+    cells.push(text.replace(/\t/g, ' ').replace(/\r?\n/g, ' '))
+  }
+  return cells.join('\t')
+}
+
+/** 为 dx-data-grid 构造内置右键复制菜单项 */
+function buildCopyContextMenuItems(e: any): any[] {
+  const items: any[] = []
+  const grid = getGridInstance()
+  const target = e?.target
+  const row = e?.row
+  const column = e?.column
+  if (target === 'content' && row && column && column.dataField) {
+    items.push({
+      text: '复制单元格内容',
+      onItemClick: async () => {
+        const text = getCellDisplayText(grid, row, column)
+        const ok = await copyTextToClipboard(text)
+        if (ok) ElMessage.success('已复制单元格内容')
+        else ElMessage.error('复制失败')
+      },
+    })
+  }
+  if (row) {
+    items.push({
+      text: '复制行数据',
+      onItemClick: async () => {
+        const tsv = getRowTsv(grid, row)
+        const ok = await copyTextToClipboard(tsv)
+        if (ok) ElMessage.success('已复制行数据')
+        else ElMessage.error('复制失败')
+      },
+    })
+  }
+  return items
+}
+
 /** DataGrid 工具栏是否显示 */
 const showGridToolbar = computed(() => {
   if (props.node.type !== 'dx-data-grid') return false
+  if (store.selectMode) return false
   const toolbar = props.node.props.toolbar as
     | Record<string, unknown>
     | undefined
@@ -110,30 +247,116 @@ const showGridToolbar = computed(() => {
 /** 高级查询是否显示 */
 const showAdvancedSearch = computed(() => {
   if (props.node.type !== 'dx-data-grid') return false
+
   return props.node.props.advancedSearch === true
+})
+
+/** 表单 schema 中下拉框字段的选项映射（dbField 大写 → items），用于表格列自动注入下拉筛选 */
+const formSelectBoxMap = computed(() => {
+  const map = new Map<string, { value: string; text: string }[]>()
+  try {
+    const formSchema = (store as any).bizSchemas?.form
+    if (!Array.isArray(formSchema)) return map
+    for (const n of collectAllNodes(formSchema)) {
+      if (n.type === 'dx-select-box' && n.dbField) {
+        const items = n.props?.items as { value: string; text: string }[] | undefined
+        if (Array.isArray(items) && items.length) {
+          map.set((n.dbField as string).toUpperCase(), items)
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return map
+})
+
+/** 表单 schema 中基础资料控件映射（dbField 大写 → { refPageId, displayField, valueField }），用于高级查询渲染基础资料控件 */
+const formBaseDataMap = computed(() => {
+  const map = new Map<string, { refPageId: string; displayField: string; valueField: string }>()
+  try {
+    const formSchema = (store as any).bizSchemas?.form
+    if (!Array.isArray(formSchema)) return map
+    for (const n of collectAllNodes(formSchema)) {
+      if (n.type === 'dx-base-data' && n.dbField) {
+        const p = n.props as any
+        if (p?.refPageId && p?.displayField) {
+          map.set((n.dbField as string).toUpperCase(), {
+            refPageId: p.refPageId,
+            displayField: p.displayField,
+            valueField: p.valueField || 'id',
+          })
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return map
 })
 
 /** DataGrid 列配置（用于高级查询面板） */
 const gridColumns = computed(() => {
   const cols = props.node.props.columns as Record<string, unknown>[] | undefined
   if (!Array.isArray(cols)) return []
-  return cols.map((c) => ({
-    dataField: c.dataField as string,
-    caption: (c.caption as string) || (c.dataField as string),
-    dataType: (c.dataType as string) || 'string',
-    visible: c.visible !== false,
-    editorType: c.editorType as string | undefined,
-    lookup: c.lookup as
-      | {
-          dataSource: unknown[]
-          valueExpr: string
-          displayExpr: string
-          dataSourceType?: 'static' | 'remote'
-          remoteUrl?: string
-          method?: string
+  const selectBoxMap = formSelectBoxMap.value
+  const baseDataMap = formBaseDataMap.value
+  return cols
+    .filter((c) => {
+      const df = c.dataField
+      return typeof df === 'string' && df && !df.includes('.')
+    })
+    .map((c) => {
+      const dataField = c.dataField as string
+      const editorType = c.editorType as string | undefined
+      const colLookup = c.lookup as
+        | {
+            dataSource: unknown[]
+            valueExpr: string
+            displayExpr: string
+            dataSourceType?: 'static' | 'remote'
+            remoteUrl?: string
+            method?: string
+          }
+        | undefined
+      if (editorType !== 'selectBox' && !colLookup) {
+        const formItems = selectBoxMap.get(dataField.toUpperCase())
+        if (formItems) {
+          return {
+            dataField,
+            caption: (c.caption as string) || dataField,
+            dataType: (c.dataType as string) || 'string',
+            visible: c.visible !== false,
+            editorType: 'selectBox' as string,
+            isSystemField: c.isSystemField as boolean | undefined,
+            lookup: {
+              dataSource: JSON.parse(JSON.stringify(formItems)),
+              valueExpr: 'value',
+              displayExpr: 'text',
+              dataSourceType: 'static' as const,
+            },
+          }
         }
-      | undefined,
-  }))
+        const baseDataInfo = baseDataMap.get(dataField.toUpperCase())
+        if (baseDataInfo) {
+          return {
+            dataField,
+            caption: (c.caption as string) || dataField,
+            dataType: (c.dataType as string) || 'string',
+            visible: c.visible !== false,
+            editorType,
+            isSystemField: c.isSystemField as boolean | undefined,
+            lookup: colLookup,
+            baseDataRef: baseDataInfo,
+          }
+        }
+      }
+      return {
+        dataField,
+        caption: (c.caption as string) || dataField,
+        dataType: (c.dataType as string) || 'string',
+        visible: c.visible !== false,
+        editorType,
+        isSystemField: c.isSystemField as boolean | undefined,
+        lookup: colLookup,
+      }
+    })
 })
 
 /** 高级查询触发搜索 */
@@ -202,6 +425,37 @@ const gridBoundProps = computed<Record<string, unknown>>(() => {
       }
     }
   }
+  // FE-S10: 表格选中行追踪（供批量操作用）
+  base.onSelectionChanged = onGridSelectionChanged
+
+  // 选择模式：强制单选 + 行双击回填
+  if (store.selectMode) {
+    base.selection = { mode: 'single', showCheckBoxesMode: 'none' }
+    base.onRowDblClick = onGridRowDblClick
+  }
+
+  // 内置右键复制功能：复制单元格内容 / 复制行数据
+  if (props.node.type === 'dx-data-grid') {
+    const userContextMenu = base.onContextMenuPreparing as
+      | ((e: any) => void)
+      | undefined
+    base.onContextMenuPreparing = (e: any) => {
+      if (typeof userContextMenu === 'function') {
+        try {
+          userContextMenu(e)
+        } catch (err) {
+          console.error('[内置右键菜单] 用户 contextMenuPreparing 错误:', err)
+        }
+      }
+      const builtItems = buildCopyContextMenuItems(e)
+      if (builtItems.length) {
+        if (!Array.isArray(e.items)) e.items = []
+        e.items.push(...builtItems)
+      }
+    }
+
+  }
+
   return base
 })
 
@@ -220,11 +474,28 @@ const gridToolbarItems = computed(() => {
         location?: string
         isCustom?: boolean
         onClick?: string
+        type?: 'default' | 'normal' | 'success' | 'danger' | 'warning'
+        stylingMode?: 'contained' | 'outlined' | 'text'
+        showIcon?: boolean
+        bgColor?: string
+        textColor?: string
+        hoverColor?: string
+        itemType?: 'button' | 'dropdown'
+        children?: {
+          name: string
+          caption: string
+          icon: string
+          visible: boolean
+          onClick?: string
+          showIcon?: boolean
+        }[]
         openPage?: {
           pageId?: string
           params?: Record<string, unknown>
           mode?: string
           title?: string
+          bizMode?: 'form' | 'table' | 'mobile'
+          passSelectedRow?: boolean
         }
       }[]
     | undefined
@@ -265,34 +536,98 @@ const gridToolbarItems = computed(() => {
           const grid = getGridInstance()
           if (!grid) return
           switch (item.name) {
-            case 'add':
-              if (typeof grid.addRow === 'function') grid.addRow()
+            case 'add': {
+              const openCfg = item.openPage
+              const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
+              if (openCfg?.pageId && designerStore.previewMode) {
+                const targetPageId = openCfg.pageId === '__current__' ? designerStore.pageId : openCfg.pageId
+                if (targetPageId) {
+                  pageModal.openPage(
+                    targetPageId,
+                    { tableName: designerStore.tableName, ...(openCfg.params || {}) },
+                    {
+                      bizMode: openCfg.bizMode || 'form',
+                      title: openCfg.title || t('新增'),
+                      mode: (openCfg.mode as 'popup' | 'drawer') || 'popup',
+                      width: mc?.width ?? 900, height: mc?.height ?? 600,
+                      maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true,
+                    },
+                  ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+                }
+              } else if (designerStore.previewMode && designerStore.pageId) {
+                pageModal.openPage(
+                  designerStore.pageId,
+                  { tableName: designerStore.tableName },
+                  { bizMode: 'form', title: t('新增'), width: mc?.width ?? 900, height: mc?.height ?? 600, maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true },
+                ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+              } else if (typeof grid.addRow === 'function') {
+                grid.addRow()
+              }
               break
+            }
             case 'delete': {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
               if (!sel || !sel.length) break
-              const keyExpr = props.node.props.keyExpr as string
-              const key = keyExpr ? sel[0][keyExpr] : sel[0]
-              if (typeof grid.getRowIndexByKey === 'function') {
-                const idx = grid.getRowIndexByKey(key)
-                if (
-                  idx !== undefined &&
-                  idx >= 0 &&
-                  typeof grid.deleteRow === 'function'
-                ) {
-                  grid.deleteRow(idx)
+              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+              const key = sel[0][keyExpr]
+              if (key === undefined || key === null) break
+              const bizCode = designerStore.tableName
+              if (!bizCode) break
+              void (async () => {
+                try {
+                  await ElMessageBox.confirm(t('确认删除选中的记录？'), t('提示'), {
+                    type: 'warning',
+                  })
+                } catch {
+                  return
                 }
-              }
+                try {
+                  await gatewayCall(bizCode, 'delete', { [keyExpr]: key })
+                  ElMessage.success(t('删除成功'))
+                  if (typeof grid.refresh === 'function') grid.refresh()
+                } catch (err) {
+                  ElMessage.error(err instanceof Error ? err.message : String(err))
+                }
+              })()
               break
             }
             case 'edit': {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
               if (!sel || !sel.length) break
-              const keyExpr = props.node.props.keyExpr as string
+              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
               const key = keyExpr ? sel[0][keyExpr] : sel[0]
-              if (typeof grid.getRowIndexByKey === 'function') {
+              const openCfg = item.openPage
+              const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
+              const passRow = openCfg?.passSelectedRow !== false
+              if (openCfg?.pageId && designerStore.previewMode) {
+                const targetPageId = openCfg.pageId === '__current__' ? designerStore.pageId : openCfg.pageId
+                if (targetPageId) {
+                  const editParams: Record<string, unknown> = { tableName: designerStore.tableName, ...(openCfg.params || {}) }
+                  if (passRow) {
+                    editParams.rowData = sel[0]
+                    if (sel.length > 1) editParams.rowDataList = sel
+                  }
+                  pageModal.openPage(
+                    targetPageId,
+                    editParams,
+                    {
+                      bizMode: openCfg.bizMode || 'form',
+                      title: openCfg.title || t('修改'),
+                      mode: (openCfg.mode as 'popup' | 'drawer') || 'popup',
+                      width: mc?.width ?? 900, height: mc?.height ?? 600,
+                      maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true,
+                    },
+                  ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+                }
+              } else if (designerStore.previewMode && designerStore.pageId) {
+                pageModal.openPage(
+                  designerStore.pageId,
+                  { rowData: sel[0], tableName: designerStore.tableName, rowDataList: sel.length > 1 ? sel : undefined },
+                  { bizMode: 'form', title: t('修改'), width: mc?.width ?? 900, height: mc?.height ?? 600, maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true },
+                ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+              } else if (typeof grid.getRowIndexByKey === 'function') {
                 const idx = grid.getRowIndexByKey(key)
                 if (
                   idx !== undefined &&
@@ -320,35 +655,139 @@ const gridToolbarItems = computed(() => {
           }
         }
       }
-      // 如果配置了打开页面，包装点击事件
+      // 如果配置了打开页面，包装点击事件（add/edit 预设按钮已在 switch 中处理 openPage，跳过避免重复打开）
       const openPageCfg = item.openPage
-      if (openPageCfg?.pageId) {
+      const skipWrapper = (item.name === 'add' || item.name === 'edit') && !item.isCustom
+      if (openPageCfg?.pageId && !skipWrapper) {
         const baseOnClick = onClick
         onClick = async (e: unknown) => {
           if (typeof baseOnClick === 'function') baseOnClick(e)
           try {
             const api = createRuntimeApi()
-            await api.openPage(openPageCfg.pageId!, openPageCfg.params || {}, {
+            const targetPageId = openPageCfg.pageId === '__current__' ? designerStore.pageId : openPageCfg.pageId
+            if (!targetPageId) return
+            await api.openPage(targetPageId, openPageCfg.params || {}, {
               mode: (openPageCfg.mode as 'popup' | 'drawer') || 'popup',
               title: openPageCfg.title,
+              bizMode: openPageCfg.bizMode,
             })
           } catch (err) {
             console.error(`[工具栏按钮打开页面失败] ${openPageCfg.pageId}`, err)
           }
         }
       }
+      // 下拉按钮类型：渲染为 dxDropDownButton
+      if (item.itemType === 'dropdown') {
+        const childItems = (item.children || [])
+          .filter((c) => c.visible !== false)
+          .map((c) => ({
+            name: c.name,
+            text: c.caption || c.name,
+            icon: c.showIcon === false ? undefined : (c.icon || c.name),
+          }))
+        return {
+          widget: 'dxDropDownButton',
+          location: item.location || 'after',
+          options: {
+            text: item.caption || item.name,
+            icon: item.showIcon === false ? undefined : (item.icon || item.name),
+            type: item.type || 'normal',
+            stylingMode: item.stylingMode || 'text',
+            items: childItems,
+            onItemClick: (e: { itemData?: { name?: string } }) => {
+              const grid = getGridInstance()
+              if (!grid) return
+              const childName = e.itemData?.name || ''
+              handleExportAction(childName, grid)
+            },
+            ...((item.bgColor || item.textColor || item.hoverColor)
+              ? {
+                  elementAttr: {
+                    class: [
+                      item.bgColor ? 'lc-btn-has-bg' : '',
+                      item.textColor ? 'lc-btn-has-text' : '',
+                      item.hoverColor ? 'lc-btn-has-hover' : '',
+                    ].filter(Boolean).join(' '),
+                    style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
+                  },
+                }
+              : {}),
+          },
+        }
+      }
       return {
         widget: 'dxButton',
         location: item.location || 'before',
         options: {
-          icon: item.icon || item.name,
+          icon: item.showIcon === false ? undefined : (item.icon || item.name),
           text: item.caption || item.name,
           onClick,
-          stylingMode: 'text',
+          type: item.type || 'normal',
+          stylingMode: item.stylingMode || (item.type && item.type !== 'normal' ? 'contained' : 'text'),
+          ...((item.bgColor || item.textColor || item.hoverColor)
+            ? {
+                elementAttr: {
+                  class: [
+                    item.bgColor ? 'lc-btn-has-bg' : '',
+                    item.textColor ? 'lc-btn-has-text' : '',
+                    item.hoverColor ? 'lc-btn-has-hover' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' '),
+                  style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
+                },
+              }
+            : {}),
         },
       }
     })
 })
+
+/** 处理导出子按钮动作 */
+function handleExportAction(actionName: string, grid: any): void {
+  switch (actionName) {
+    case 'export_selected': {
+      const sel = typeof grid.getSelectedRowsData === 'function' ? grid.getSelectedRowsData() : []
+      if (!sel || !sel.length) {
+        ElMessage.warning(t('请先选择要导出的行'))
+        return
+      }
+      try {
+        const oldExport = grid.option('export')
+        grid.option('export', { ...(oldExport || {}), selectedRows: true, enabled: true })
+        grid.exportToExcel()
+        grid.option('export', oldExport)
+      } catch {
+        if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      }
+      break
+    }
+    case 'export_query':
+      if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      break
+    case 'export_template_selected': {
+      const sel = typeof grid.getSelectedRowsData === 'function' ? grid.getSelectedRowsData() : []
+      if (!sel || !sel.length) {
+        ElMessage.warning(t('请先选择要导出的行'))
+        return
+      }
+      try {
+        const oldExport = grid.option('export')
+        grid.option('export', { ...(oldExport || {}), selectedRows: true, enabled: true })
+        grid.exportToExcel()
+        grid.option('export', oldExport)
+      } catch {
+        if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      }
+      break
+    }
+    case 'export_template_query':
+      if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      break
+    default:
+      break
+  }
+}
 
 /** 创建运行时 API 对象，供事件和工具栏按钮使用 */
 function createRuntimeApi() {
@@ -780,6 +1219,9 @@ function createRuntimeApi() {
         title?: string
         width?: number | string
         height?: number | string
+        bizMode?: 'form' | 'table' | 'mobile'
+        maximizable?: boolean
+        draggable?: boolean
       }
     ) => {
       return pageModal.openPage(pageId, params || {}, options || {})
@@ -840,6 +1282,10 @@ const boundProps = computed<Record<string, unknown>>(() => {
     ...resolveNodeProps(props.node.type, props.node.props, props.node),
     ...overlayProps.value,
   }
+  // G3 权限驱动：字段只读时设 disabled（permissions 未加载时 nodeFieldReadonly=false，不影响现有）
+  if (nodeFieldReadonly.value) {
+    base.disabled = true
+  }
   // 剥离自定义 label 属性，避免传给 DevExtreme 控件触发其自带 label
   if (FORM_CONTROL_TYPES.has(props.node.type)) {
     // 有 label 时控件占满 form-field-control 宽度，用自然高度，避免 node.width/height 覆盖
@@ -873,8 +1319,9 @@ const boundProps = computed<Record<string, unknown>>(() => {
   // 可验证控件：值变化时同步回 node.props.value，确保 validate API 读取到最新值
   if (VALIDATABLE_TYPES.has(props.node.type)) {
     const userHandler = base.onValueChanged
-    base.onValueChanged = (e: { value?: unknown }) => {
-      props.node.props.value = e.value
+    base.onValueChanged = (e: unknown) => {
+      const val = (e != null && typeof e === 'object' && 'value' in (e as object)) ? (e as any).value : e
+      props.node.props.value = val
       store.schemaRevision += 1
       if (typeof userHandler === 'function') userHandler(e)
     }
@@ -916,10 +1363,34 @@ const boundProps = computed<Record<string, unknown>>(() => {
           params?: Record<string, unknown>
           mode?: string
           title?: string
+          bizMode?: 'form' | 'table' | 'mobile'
         }
       | undefined
     // 清理自定义属性，不传给 DevExtreme 组件
     delete base.openPage
+    // showIcon 控制
+    const showIcon = base.showIcon
+    delete base.showIcon
+    if (showIcon === false) delete base.icon
+    // 按钮配色
+    const bgColor = base.bgColor as string | undefined
+    const textColor = base.textColor as string | undefined
+    const hoverColor = base.hoverColor as string | undefined
+    delete base.bgColor
+    delete base.textColor
+    delete base.hoverColor
+    if (bgColor || textColor || hoverColor) {
+      base.elementAttr = {
+        ...(base.elementAttr || {}),
+        class: [
+          (base.elementAttr as any)?.class || '',
+          bgColor ? 'lc-btn-has-bg' : '',
+          textColor ? 'lc-btn-has-text' : '',
+          hoverColor ? 'lc-btn-has-hover' : '',
+        ].filter(Boolean).join(' '),
+        style: `--lc-btn-bg:${bgColor || ''};--lc-btn-text:${textColor || ''};--lc-btn-hover:${hoverColor || ''};`,
+      }
+    }
     if (openPageCfg?.pageId) {
       const userClick = base.onClick
       base.onClick = async (e: unknown) => {
@@ -927,9 +1398,12 @@ const boundProps = computed<Record<string, unknown>>(() => {
         if (typeof userClick === 'function') userClick(e)
         try {
           const api = createRuntimeApi()
-          await api.openPage(openPageCfg.pageId!, openPageCfg.params || {}, {
+          const targetPageId = openPageCfg.pageId === '__current__' ? designerStore.pageId : openPageCfg.pageId
+          if (!targetPageId) return
+          await api.openPage(targetPageId, openPageCfg.params || {}, {
             mode: (openPageCfg.mode as 'popup' | 'drawer') || 'popup',
             title: openPageCfg.title,
+            bizMode: openPageCfg.bizMode,
           })
         } catch (err) {
           console.error(`[打开页面失败] ${openPageCfg.pageId}`, err)
@@ -943,6 +1417,8 @@ const boundProps = computed<Record<string, unknown>>(() => {
   }
   // dx-data-grid：根据数据源类型决定使用静态数据还是远程加载
   if (props.node.type === 'dx-data-grid') {
+    // 主键字段始终跟随页面 primaryKeyField 配置
+    base.keyExpr = store.primaryKeyField || 'id'
     const dataSourceType = (base.dataSourceType as string) || 'static'
 
     // 清理自定义配置属性，不传给 DevExtreme 组件
@@ -960,6 +1436,11 @@ const boundProps = computed<Record<string, unknown>>(() => {
         resolved?.method || (props.node.props.remoteMethod as string) || 'GET'
       const remoteBody = props.node.props.remoteBody as string | undefined
       const firstLoad = props.node.props.firstLoad === true
+
+      // url 为空时走网关
+      const gwTableName = store.tableName || designerStore.tableName
+      const useGateway = !url && !!gwTableName
+      const gatewayBizCode = gwTableName
 
       // 首次加载标记：firstLoad=true 时第一次 load 返回空数据
       let _firstLoadDone = false
@@ -1241,7 +1722,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
       }
 
       base.dataSource = new CustomStore({
-        key: (props.node.props.keyExpr as string) || 'id',
+        key: store.primaryKeyField || (props.node.props.keyExpr as string) || 'id',
         load: async (loadOptions: {
           skip?: number
           take?: number
@@ -1263,7 +1744,22 @@ const boundProps = computed<Record<string, unknown>>(() => {
             const dxParams = buildLoadParams(loadOptions)
             let result
 
-            if (method === 'POST') {
+            if (useGateway) {
+              const gwPayload: Record<string, unknown> = {}
+              if (loadOptions.skip != null && loadOptions.take != null) {
+                gwPayload.page = Math.floor(loadOptions.skip / loadOptions.take) + 1
+                gwPayload.pageSize = loadOptions.take
+              }
+              // 复用 buildLoadParams：行筛选 + 高级查询条件统一转成后端 filterData 格式
+              if (dxParams.filterData) {
+                gwPayload.filterData = dxParams.filterData
+              }
+
+              result = await httpRequest('/api/lowcode/gateway', {
+                method: 'POST',
+                body: JSON.stringify({ bizCode: gatewayBizCode, action: 'query', payload: gwPayload }),
+              })
+            } else if (method === 'POST') {
               // 使用 multipart/form-data：通过 FormData 发送，浏览器自动设置 Content-Type 含 boundary
               const formData = new FormData()
               // 合并用户自定义 body 参数
@@ -1310,6 +1806,29 @@ const boundProps = computed<Record<string, unknown>>(() => {
 
             if (!result.ok) throw new Error(`HTTP ${result.status}`)
             const payload = extractPayload(result.data)
+            // 主键字段大小写兼容：后端 mapColumnNames 返回的列名格式可能与 keyExpr 不一致
+            const _keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+            const _rows = (payload.data || []) as Record<string, unknown>[]
+            if (
+              _keyExpr !== 'id' &&
+              _rows.length > 0 &&
+              !(_keyExpr in _rows[0])
+            ) {
+              const variants = [
+                _keyExpr.toLowerCase(),
+                _keyExpr.toUpperCase(),
+                _keyExpr.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase()),
+                _keyExpr.replace(/_([a-z])/g, (_, c) => c.toUpperCase()),
+              ]
+              const actualKey = variants.find(
+                (v) => v !== _keyExpr && v in _rows[0]
+              )
+              if (actualKey) {
+                for (const row of _rows) {
+                  row[_keyExpr] = row[actualKey]
+                }
+              }
+            }
             return { data: payload.data, totalCount: payload.totalCount }
           } catch (err) {
             console.error(`[远程数据源加载失败] ${url}`, err)
@@ -1356,6 +1875,30 @@ const boundProps = computed<Record<string, unknown>>(() => {
   }
   // dx-data-grid 列处理：为 selectBox 列添加 lookup，为 dropDownGrid 列添加 editCellTemplate
   if (props.node.type === 'dx-data-grid' && Array.isArray(base.columns)) {
+    // 预处理：表单中下拉框字段自动注入 selectBox + lookup，使行筛选/高级查询为下拉框
+    const selectBoxMap = formSelectBoxMap.value
+    if (selectBoxMap.size) {
+      base.columns = (base.columns as Record<string, unknown>[]).map((col) => {
+        const et = col.editorType as string
+        const df = col.dataField as string
+        if (et !== 'selectBox' && typeof df === 'string' && !df.includes('.') && !col.lookup) {
+          const formItems = selectBoxMap.get(df.toUpperCase())
+          if (formItems) {
+            return {
+              ...col,
+              editorType: 'selectBox',
+              lookup: {
+                dataSource: JSON.parse(JSON.stringify(formItems)),
+                valueExpr: 'value',
+                displayExpr: 'text',
+                dataSourceType: 'static',
+              },
+            }
+          }
+        }
+        return col
+      })
+    }
     base.columns = (base.columns as Record<string, unknown>[]).map((col) => {
       const editorType = col.editorType as string
       // 清理自定义属性，不传给 DevExtreme
@@ -1365,12 +1908,14 @@ const boundProps = computed<Record<string, unknown>>(() => {
         visible: _vis,
         writeBack: _wb,
         allowEditing: _ae,
+        baseDataRef: _bdr,
         ...cleanCol
       } = col
       void _et
       void _ddg
       void _vis
       void _wb
+      void _bdr
       // allowEditing: 只传 false（禁用编辑），true/undefined 不传（继承 editing.allowUpdating）
       if (_ae === false) {
         cleanCol.allowEditing = false
@@ -1391,6 +1936,20 @@ const boundProps = computed<Record<string, unknown>>(() => {
       }
       // 确保列允许筛选（行筛选需要）
       if (cleanCol.allowFiltering === undefined) cleanCol.allowFiltering = true
+
+      // 带点号的 dataField（如 ORG_KEY.ORG_NAME）：后端用扁平 key 回填，
+      // DevExtreme 会把含点号的 dataField 当嵌套路径解析导致取不到值。
+      // 方案：将 dataField 点号替换为 __ 避免嵌套解析，用 calculateDisplayValue 从扁平 key 取值
+      if (typeof cleanCol.dataField === 'string' && cleanCol.dataField.includes('.')) {
+        const _flatKey = cleanCol.dataField
+        cleanCol.dataField = cleanCol.dataField.replace(/\./g, '__')
+        cleanCol.calculateDisplayValue = (rowData: any) => rowData?.[_flatKey]
+        // 关联显示列后端无此字段，禁用筛选/排序/编辑避免发送无效参数
+        cleanCol.allowFiltering = false
+        cleanCol.allowSorting = false
+        cleanCol.allowEditing = false
+      }
+
 
       if (editorType === 'selectBox' && col.lookup) {
         const lookup = col.lookup as {
@@ -1446,8 +2005,10 @@ const boundProps = computed<Record<string, unknown>>(() => {
             displayExpr: lookup.displayExpr,
             dataSource: plainDataSource,
           }
-          // filterRow 从 lookup 自动继承 dataSource/valueExpr/displayExpr
           cleanCol.filterRowEditorOptions = {
+            dataSource: plainDataSource,
+            valueExpr: lookup.valueExpr,
+            displayExpr: lookup.displayExpr,
             showClearButton: true,
           }
         }
@@ -1508,6 +2069,10 @@ const boundProps = computed<Record<string, unknown>>(() => {
             const params: Record<string, unknown> = {}
             if (loadOptions.skip !== undefined) params.skip = loadOptions.skip
             if (loadOptions.take !== undefined) params.take = loadOptions.take
+            if (loadOptions.skip != null && loadOptions.take != null) {
+              params.page = Math.floor(loadOptions.skip / loadOptions.take) + 1
+              params.pageSize = loadOptions.take
+            }
             let result
             if (finalMethod === 'POST') {
               const formData = new FormData()
@@ -1696,6 +2261,15 @@ const boundProps = computed<Record<string, unknown>>(() => {
                       selection: { mode: 'single', showCheckBoxesMode: 'none' },
                       hoverStateEnabled: true,
                       height: 250,
+                      remoteOperations: true,
+                      paging: { enabled: true, pageSize: 15 },
+                      pager: {
+                        visible: true,
+                        showPageSizeSelector: true,
+                        allowedPageSizes: [15, 30, 50, 100],
+                        showInfo: true,
+                        showNavigationButtons: true,
+                      },
                       filterRow:
                         ddg.filterRow === true ? { visible: true } : undefined,
                       selectedRowKeys:
@@ -1810,6 +2384,147 @@ watch([showGridToolbar, showAdvancedSearch], () => {
     nextTick(() => updateGridHeightOffset())
   }
 })
+
+// ================ FE-S10: 页面级计算规则 watch ================
+// 当 store.computeRules 中有规则的目标字段包含当前节点 fieldName 时，
+// watch 该规则的触发字段，变化时自动计算并回填当前字段值
+if (props.node.fieldName && store.computeRules) {
+  for (const rule of store.computeRules) {
+    if (rule.enabled === false) continue
+    const target = rule.targets.find((t) => t.fieldName === props.node.fieldName)
+    if (!target) continue
+    const ruleTriggerFields = rule.triggerFields
+    const targetExpr = target.expr
+    watch(
+      () => {
+        const root = store.schema
+        const ctx: Record<string, unknown> = {}
+        for (const fn of ruleTriggerFields) {
+          const depNode = findNodeByFieldNameIn(root, fn)
+          ctx[fn] = depNode?.props.value ?? null
+        }
+        return ctx
+      },
+      (ctx) => {
+        if (computeRuleDepth >= COMPUTE_RULE_MAX_DEPTH) {
+          console.warn(`[计算规则] 超过最大深度 ${COMPUTE_RULE_MAX_DEPTH}，可能存在循环依赖，中断执行`)
+          return
+        }
+        computeRuleDepth++
+        try {
+          const result = evaluateExpr(targetExpr, ctx)
+          if (result !== null && result !== undefined && result !== props.node.props.value) {
+            props.node.props.value = result
+          }
+        } finally {
+          computeRuleDepth--
+        }
+      },
+      { deep: true },
+    )
+  }
+}
+
+// ================ FE-S10 P1: 批量操作 ================
+const batchSelectedRows = ref<Record<string, unknown>[]>([])
+const showBatchDialog = ref(false)
+const batchActionType = ref<string>('')
+
+const batchActions = [
+  { name: 'submit', caption: t('批量下达') },
+  { name: 'approve', caption: t('批量审批') },
+  { name: 'freeze', caption: t('批量冻结') },
+  { name: 'delete', caption: t('批量删除') },
+]
+
+function onGridSelectionChanged(e: { selectedRowsData: Record<string, unknown>[] }) {
+  batchSelectedRows.value = e.selectedRowsData ?? []
+  if (store.selectMode) {
+    store.selectedRowData = (e.selectedRowsData && e.selectedRowsData.length > 0) ? e.selectedRowsData[0] : null
+  }
+}
+
+function onGridRowDblClick(e: { data: Record<string, unknown> }) {
+  if (store.selectMode) {
+    pageModal.closePage(e.data)
+  }
+}
+
+
+function startBatchAction(action: string) {
+  if (!batchSelectedRows.value.length) return
+  batchActionType.value = action
+  showBatchDialog.value = true
+}
+
+async function onConfirmBatchAction(action: string) {
+  try {
+    const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+    const ids = batchSelectedRows.value.map((r) => r[keyExpr] ?? r[keyExpr.toLowerCase()] ?? r[keyExpr.toUpperCase()])
+    await gatewayCall(designerStore.pageName, `batch${action}`, { ids })
+    store.schemaRevision += 1
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : String(err))
+  }
+}
+
+// ================ G2: 主从表渲染 ================
+/** 当前表格是否配置了主从表 */
+const hasMasterDetail = computed(() => {
+  const md = designerStore.masterDetail
+  if (!md) return false
+  const table = (props.node.props.tableName as string) || designerStore.pageName
+  return md.masterTable === table
+})
+
+/** 主从表配置 */
+const masterDetailConfig = computed(() => {
+  if (!hasMasterDetail.value) return null
+  return designerStore.masterDetail || null
+})
+
+/**
+ * 从表数据源：根据主表行数据 + 从表配置加载从表数据。
+ * 后端未就绪时返回空数组。
+ */
+async function loadDetailData(
+  masterRow: Record<string, unknown>,
+  detailTableName: string,
+  foreignKey: string,
+): Promise<Record<string, unknown>[]> {
+  try {
+    const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+    const masterId = masterRow[keyExpr]
+    const res = await gatewayCall(detailTableName, 'query', {
+      filter: JSON.stringify([{ field: foreignKey, operator: '=', value: masterId }]),
+    })
+    if (res && typeof res === 'object' && 'data' in res) {
+      return (res as { data: Record<string, unknown>[] }).data || []
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
+/** 构建从表 CustomStore（供模板中 DxDataGrid :data-source 使用） */
+function getDetailCustomStore(
+  masterRow: Record<string, unknown>,
+  detail: DetailTableConfig,
+) {
+  return new CustomStore({
+    key: 'id',
+    load: async () => {
+      const data = await loadDetailData(
+        masterRow,
+        detail.tableName,
+        detail.foreignKey,
+      )
+      return { data, totalCount: data.length }
+    },
+  })
+}
+
 onBeforeUnmount(() => {
   if (props.node.fieldName) {
     unregisterValidator(props.node.fieldName)
@@ -2009,10 +2724,20 @@ const wrapperStyle = computed(() => {
   const sizeUnit = (props.node.props.sizeUnit as string) ?? 'px'
   const min = props.node.props.min
   const max = props.node.props.max
+  // 判断父 el-splitter 布局方向：垂直时 flex-basis 控制高度，宽度应撑满容器
+  const splitterParent = props.parentId ? findNode(store.schema, props.parentId) : null
+  const isVerticalSplitter =
+    splitterParent?.node.type === 'el-splitter' &&
+    splitterParent.node.props.layout === 'vertical'
   if (typeof size === 'number' && size > 0) {
     if (sizeUnit === '%') {
       style.flex = `0 0 ${size}%`
-      style.maxWidth = `${size}%`
+      if (isVerticalSplitter) {
+        style.maxHeight = `${size}%`
+        style.width = '100%'
+      } else {
+        style.maxWidth = `${size}%`
+      }
     } else {
       style.flexBasis = `${size}px`
       style.flexGrow = '0'
@@ -2022,12 +2747,18 @@ const wrapperStyle = computed(() => {
     style.flex = '1'
   }
   if (typeof min === 'number' && min > 0) {
-    style.minWidth = `${min}px`
-    style.minHeight = `${min}px`
+    if (isVerticalSplitter) {
+      style.minHeight = `${min}px`
+    } else {
+      style.minWidth = `${min}px`
+    }
   }
   if (typeof max === 'number' && max > 0) {
-    style.maxWidth = `${max}px`
-    style.maxHeight = `${max}px`
+    if (isVerticalSplitter) {
+      style.maxHeight = `${max}px`
+    } else {
+      style.maxWidth = `${max}px`
+    }
   }
 
   if (showLabel.value && labelConfig.value.labelPosition === 'top') {
@@ -2040,6 +2771,7 @@ const wrapperStyle = computed(() => {
 
 <template>
   <div
+    v-if="!nodeFieldHidden"
     :id="`renderer-node-${node.id}`"
     class="renderer-node"
     :style="wrapperStyle"
@@ -2053,6 +2785,7 @@ const wrapperStyle = computed(() => {
             v-if="showAdvancedSearch"
             :columns="gridColumns"
             :grid-id="node.id"
+            :query-config="designerStore.queryConfig"
             @search="onAdvSearch"
             @reset="onAdvSearchReset"
             @height-change="updateGridHeightOffset"
@@ -2062,6 +2795,16 @@ const wrapperStyle = computed(() => {
             class="grid-toolbar"
             :items="gridToolbarItems"
           />
+          <!-- FE-S10: 批量操作按钮（表格页选中行后显示） -->
+          <div v-if="showGridToolbar && batchSelectedRows.length > 1" class="batch-action-bar">
+            <span class="batch-count">{{ t('已选') }} {{ batchSelectedRows.length }} {{ t('条') }}</span>
+            <button
+              v-for="ba in batchActions"
+              :key="ba.name"
+              class="batch-btn"
+              @click="startBatchAction(ba.name)"
+            >{{ ba.caption }}</button>
+          </div>
           <component
             :is="materialComponents[node.type]"
             v-bind="gridBoundProps"
@@ -2071,6 +2814,36 @@ const wrapperStyle = computed(() => {
               ref="validatorRef"
               :validation-rules="(dxValidationRules as any)"
             />
+            <!-- G2: 主从表渲染 -->
+            <DxMasterDetail
+              v-if="hasMasterDetail && masterDetailConfig"
+              :enabled="true"
+            >
+              <template #default="{ data }">
+                <div class="master-detail-container">
+                  <div
+                    v-for="detail in masterDetailConfig!.details"
+                    :key="detail.tableName"
+                    class="detail-table-section"
+                  >
+                    <div class="detail-table-label">{{ detail.label }}</div>
+                    <DxDataGrid
+                      :data-source="getDetailCustomStore(data.data, detail)"
+                      :show-borders="true"
+                      :show-row-lines="true"
+                      :paging="{ enabled: false }"
+                      :column-auto-width="true"
+                      :editing="{
+                        allowUpdating: detail.editable,
+                        allowAdding: detail.allowAdd || false,
+                        allowDeleting: detail.allowDelete || false,
+                        mode: 'row',
+                      }"
+                    />
+                  </div>
+                </div>
+              </template>
+            </DxMasterDetail>
           </component>
         </div>
       </template>
@@ -2142,6 +2915,13 @@ const wrapperStyle = computed(() => {
         </div>
       </component>
     </template>
+    <!-- FE-S10: 批量操作确认弹窗 -->
+    <BatchActionDialog
+      v-model:visible="showBatchDialog"
+      :action="batchActionType"
+      :selected-count="batchSelectedRows.length"
+      @confirm="onConfirmBatchAction"
+    />
   </div>
 </template>
 
@@ -2281,5 +3061,43 @@ const wrapperStyle = computed(() => {
 }
 .form-field-control > :deep(.dx-widget) {
   width: 100%;
+}
+.batch-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #d6e8ff;
+}
+.batch-count {
+  font-size: 13px;
+  color: #409eff;
+  font-weight: 600;
+}
+.batch-btn {
+  padding: 4px 12px;
+  background: #409eff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.batch-btn:hover {
+  background: #66b1ff;
+}
+/* G2: 主从表渲染 */
+.master-detail-container {
+  padding: 8px 12px;
+}
+.detail-table-section {
+  margin-bottom: 12px;
+}
+.detail-table-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 6px;
 }
 </style>

@@ -156,6 +156,7 @@ public class SqlEngineFacade {
         String sqlTemplate = req.getString("sqlTemplate");
         String baseSql;
         String defaultAlias = req.getString("defaultAlias");
+        com.server.sqlengine.dialect.SqlDialect dialect = compiler.getDialect(dbName);
 
         if (sqlTemplate != null && !sqlTemplate.isEmpty()) {
             baseSql = sqlTemplate;
@@ -188,6 +189,9 @@ public class SqlEngineFacade {
                 defaultAlias = alias;
             }
 
+            // 引用表名（PG 大写表名需双引号包裹）
+            String quotedTable = dialect.quoteIdentifier(tableName);
+
             // 自动生成 baseSql
             StringBuilder sb = new StringBuilder("SELECT ");
             if (req.getBooleanValue("distinct")) {
@@ -198,12 +202,12 @@ public class SqlEngineFacade {
                     if (i > 0) {
                         sb.append(", ");
                     }
-                    sb.append(columns.getString(i));
+                    sb.append(quoteColumnIfSimple(columns.getString(i), dialect));
                 }
             } else {
                 sb.append("*");
             }
-            sb.append(" FROM ").append(tableName);
+            sb.append(" FROM ").append(quotedTable);
             if (alias != null && !alias.isEmpty()) {
                 sb.append(" ").append(alias);
             }
@@ -229,7 +233,7 @@ public class SqlEngineFacade {
         CompiledSql compiled = new CompiledSql(result.sql(), result.params());
 
         // 4. 追加 groupBy / orderBy / page
-        compiled = applyQueryOptions(compiled, req);
+        compiled = applyQueryOptions(compiled, req, dialect);
 
         return compiled;
     }
@@ -242,7 +246,8 @@ public class SqlEngineFacade {
      * 分页用 LIMIT/OFFSET 语法（PostgreSQL/MySQL/DM；Oracle/SQLServer 方言由 executor 层适配）。
      * </p>
      */
-    private CompiledSql applyQueryOptions(CompiledSql compiled, JSONObject req) {
+    private CompiledSql applyQueryOptions(CompiledSql compiled, JSONObject req,
+            com.server.sqlengine.dialect.SqlDialect dialect) {
         String sql = compiled.sql();
         List<SqlParam> params = new ArrayList<SqlParam>(compiled.params());
 
@@ -254,7 +259,7 @@ public class SqlEngineFacade {
                 if (i > 0) {
                     gb.append(", ");
                 }
-                gb.append(groupByArr.getString(i));
+                gb.append(quoteColumnIfSimple(groupByArr.getString(i), dialect));
             }
             sql = sql + gb.toString();
         }
@@ -268,7 +273,7 @@ public class SqlEngineFacade {
                     ob.append(", ");
                 }
                 JSONObject o = orderByArr.getJSONObject(i);
-                ob.append(o.getString("column"));
+                ob.append(quoteColumnIfSimple(o.getString("column"), dialect));
                 String dir = o.getString("direction");
                 if (dir != null && dir.equalsIgnoreCase("desc")) {
                     ob.append(" DESC");
@@ -778,5 +783,30 @@ public class SqlEngineFacade {
             r.setMsg(e.getMessage());
             return r;
         }
+    }
+
+    // ==================== 辅助方法 ====================
+
+    /**
+     * 引用列名（如果是简单标识符或 alias.column 格式）。
+     * 表达式（含括号、空格、星号）不引用，原样返回。
+     */
+    private String quoteColumnIfSimple(String column, com.server.sqlengine.dialect.SqlDialect dialect) {
+        if (column == null || column.isEmpty() || column.equals("*")) {
+            return column;
+        }
+        if (column.contains("(") || column.contains(" ") || column.contains(",")) {
+            return column;
+        }
+        int dot = column.indexOf('.');
+        if (dot >= 0) {
+            String alias = column.substring(0, dot);
+            String col = column.substring(dot + 1);
+            if (col.equals("*")) {
+                return column;
+            }
+            return alias + "." + dialect.formatColumnRef(col);
+        }
+        return dialect.formatColumnRef(column);
     }
 }

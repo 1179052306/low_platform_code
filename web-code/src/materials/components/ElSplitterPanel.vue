@@ -8,9 +8,9 @@
  * - 键盘方向键可精确调整（10px/步，Shift+方向键 20px/步）
  * - 通过 stopPropagation 防止外层 CanvasNode 的拖拽/选中逻辑干扰
  */
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, inject, onBeforeUnmount } from 'vue'
 import type { ComponentSchema } from '@/types/schema'
-import { designerStore, findNode } from '@/store/designer'
+import { designerStore, findNode, DESIGNER_STORE_KEY } from '@/store/designer'
 
 const props = defineProps<{
   size?: number
@@ -27,6 +27,8 @@ const props = defineProps<{
 }>()
 
 const isVertical = computed(() => props.layout === 'vertical')
+
+const store = inject(DESIGNER_STORE_KEY, designerStore)
 const isDragging = ref(false)
 const isFocused = ref(false)
 
@@ -42,8 +44,7 @@ interface DragState {
   startPos: number
   leftSize: number
   rightSize: number
-  leftEl: HTMLElement
-  rightEl: HTMLElement
+
   minSize: number
   direction: 'horizontal' | 'vertical'
 }
@@ -58,7 +59,7 @@ function getMinSize(panel: ComponentSchema | undefined): number {
 /** 从 schema 获取相邻两个 panel 的最小尺寸约束 */
 function getMinConstraint(): number {
   if (!props.parentNodeId || props.panelIndex === undefined) return 40
-  const parent = findNode(designerStore.schema, props.parentNodeId)
+  const parent = findNode(store.schema, props.parentNodeId)
   if (!parent) return 40
   const leftPanel = parent.node.children[props.panelIndex]
   const rightPanel = parent.node.children[props.panelIndex + 1]
@@ -101,8 +102,7 @@ function onHandleMouseDown(e: MouseEvent): void {
     startPos: direction === 'vertical' ? e.clientY : e.clientX,
     leftSize,
     rightSize,
-    leftEl: nodes.left,
-    rightEl: nodes.right,
+
     minSize: getMinConstraint(),
     direction,
   }
@@ -118,7 +118,7 @@ function onHandleMouseDown(e: MouseEvent): void {
 function onMouseMove(e: MouseEvent): void {
   if (!dragState) return
 
-  const { startPos, leftSize, rightSize, leftEl, rightEl, minSize, direction } = dragState
+  const { startPos, leftSize, rightSize, minSize, direction } = dragState
   const delta = (direction === 'vertical' ? e.clientY : e.clientX) - startPos
 
   let newLeft = leftSize + delta
@@ -134,23 +134,13 @@ function onMouseMove(e: MouseEvent): void {
     newLeft = leftSize + rightSize - minSize
   }
 
-  leftEl.style.flex = `0 0 ${newLeft}px`
-  rightEl.style.flex = `0 0 ${newRight}px`
+  // 实时同步到 schema，由 Vue :style 绑定驱动面板尺寸实时变化
+  syncToSchema(newLeft, newRight)
 }
 
 function onMouseUp(): void {
   if (!dragState) return
 
-  const { leftEl, rightEl, direction } = dragState
-  const leftSize = direction === 'vertical' ? leftEl.offsetHeight : leftEl.offsetWidth
-  const rightSize = direction === 'vertical' ? rightEl.offsetHeight : rightEl.offsetWidth
-
-  // 同步尺寸到 schema
-  syncToSchema(leftSize, rightSize)
-
-  // 清除拖拽时直接设置在 DOM 上的 inline flex 样式，让 Vue :style 绑定接管
-  leftEl.style.flex = ''
-  rightEl.style.flex = ''
 
   isDragging.value = false
   dragState = null
@@ -219,7 +209,7 @@ function onHandleKeyDown(e: KeyboardEvent): void {
 
 function syncToSchema(leftSize: number, rightSize: number): void {
   if (!props.parentNodeId || props.panelIndex === undefined) return
-  const parent = findNode(designerStore.schema, props.parentNodeId)
+  const parent = findNode(store.schema, props.parentNodeId)
   if (!parent) return
 
   const leftPanel = parent.node.children[props.panelIndex]
@@ -239,7 +229,7 @@ function syncToSchema(leftSize: number, rightSize: number): void {
   }
 
   // 触发响应式更新
-  designerStore.schemaRevision++
+  store.schemaRevision++
 }
 
 onBeforeUnmount(() => {

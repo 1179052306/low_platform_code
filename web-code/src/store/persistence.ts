@@ -168,13 +168,35 @@ export async function deleteModule(id: string): Promise<void> {
 // ================ 页面管理 ================
 
 /** 保存页面元数据 */
+/** 保存冲突错误（HTTP 409，其他人已修改同一页面） */
+export class SaveConflictError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SaveConflictError'
+  }
+}
+
 export async function savePage(schema: PageSchema): Promise<SavedPageMeta> {
   const cleanedSchema: PageSchema = {
     ...schema,
     root: cleanNodeForSave(schema.root),
   }
-  const data = await apiCall('/api/lowcode/page', { body: JSON.stringify(cleanedSchema) }) as
-    { pageId?: string; savedAt?: string; tableSyncMsg?: string } | undefined
+  const res = await httpRequest('/api/lowcode/page', {
+    method: 'POST',
+    body: JSON.stringify(cleanedSchema),
+  })
+  // FE-S8: 保存冲突处理（409 表示其他人已修改同一页面）
+  if (res.status === 409) {
+    throw new SaveConflictError(t('页面已被其他人修改，请刷新后重试'))
+  }
+  if (!res.ok) {
+    throw new Error(t('后端连接异常'))
+  }
+  const body = res.data as { res?: boolean; msg?: string; data?: { pageId?: string; savedAt?: string; tableSyncMsg?: string } }
+  if (body && body.res === false) {
+    throw new Error(t(body.msg || '操作失败'))
+  }
+  const data = body?.data
   return {
     pageId: data?.pageId || schema.pageId,
     pageName: schema.pageName,

@@ -44,3 +44,35 @@ body,
 .dx-overlay-wrapper {
   z-index: 100000 !important;
 }
+/* 工具栏按钮自定义颜色：通过 CSS 变量注入，按需覆盖背景/字体/悬停色 */
+.lc-btn-has-bg {
+  background-color: var(--lc-btn-bg) !important;
+  border-color: var(--lc-btn-bg) !important;
+}
+.lc-btn-has-text .dx-button-content,
+.lc-btn-has-text .dx-icon {
+  color: var(--lc-btn-text) !important;
+}
+.lc-btn-has-hover:hover {
+  background-color: var(--lc-btn-hover) !important;
+  border-color: var(--lc-btn-hover) !important;
+}
+/* 工具栏图标选择下拉浮层：z-index 高于弹窗 overlay(9999) 避免被遮挡 */
+.lc-icon-select-popper {
+  z-index: 100000 !important;
+}
+/* 弹窗内关闭确认框：z-index 高于 page-modal-overlay(10000+) 避免被遮挡 */
+.el-overlay:has(.lc-modal-confirm) {
+  z-index: 100000 !important;
+}
+/* ElMessage / ElMessageBox 提示层级高于弹窗遮罩层(10000+) */
+.el-message {
+  z-index: 100000 !important;
+}
+.el-overlay:has(.el-message-box) {
+  z-index: 100000 !important;
+}
+/* 设计器页面：ElMessage 下移至 header(48px) 下方，避免遮挡顶部模式切换按钮 */
+body.designer-page .el-message {
+  margin-top: 34px;
+}

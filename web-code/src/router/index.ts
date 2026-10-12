@@ -57,6 +57,48 @@ const router = createRouter({
           name: 'theme-manage',
           component: () => import('@/views/ThemeManageView.vue'),
         },
+        {
+          // 元数据管理（方向二：统一元数据驱动）
+          path: '/meta-manage',
+          name: 'meta-manage',
+          component: () => import('@/views/MetaManageView.vue'),
+        },
+        {
+          // 业务元数据配置（业务对象/字段/动作/状态机）
+          path: '/biz-meta',
+          name: 'biz-meta',
+          component: () => import('@/views/BizMetaView.vue'),
+        },
+        {
+          // 数据字典管理（FE-S10 P2）
+          path: '/data-dict',
+          name: 'data-dict',
+          component: () => import('@/views/DataDictView.vue'),
+        },
+        {
+          // 应用包管理（FE-S5）
+          path: '/package-manage',
+          name: 'package-manage',
+          component: () => import('@/views/PackageManagerView.vue'),
+        },
+        {
+          // 流程设计器（FE-S6）
+          path: '/workflow-designer',
+          name: 'workflow-designer',
+          component: () => import('@/views/WorkflowDesignerView.vue'),
+        },
+        {
+          // 业务流设计器
+          path: '/biz-flow-designer',
+          name: 'biz-flow-designer',
+          component: () => import('@/views/WorkflowDesignerView.vue'),
+        },
+        {
+          // 待办列表（FE-S6）
+          path: '/todo',
+          name: 'todo',
+          component: () => import('@/views/TodoView.vue'),
+        },
       ],
     },
     {
@@ -77,6 +119,7 @@ const router = createRouter({
       component: () => import('@/views/PageManageView.vue'),
     },
     {
+
       // 可视化设计器为全屏独立页（在新标签页打开），不进框架壳
       path: '/designer',
       name: 'designer',

@@ -44,7 +44,12 @@ public class OracleDialect implements SqlDialect {
 
     @Override
     public String quoteIdentifier(String identifier) {
-        return "\"" + identifier + "\"";
+        return identifier.toUpperCase(Locale.ROOT);
+    }
+
+    @Override
+    public String formatColumnRef(String column) {
+        return column.toUpperCase(Locale.ROOT);
     }
 
     @Override
@@ -179,20 +184,14 @@ public class OracleDialect implements SqlDialect {
     @Override
     public String queryTableColumnsSql() {
         return "SELECT column_name FROM all_tab_columns "
-                + "WHERE table_name = ? "
+                + "WHERE UPPER(table_name) = UPPER(?) "
                 + "AND owner = (SELECT user FROM dual) "
                 + "ORDER BY column_id";
     }
 
     @Override
     public String checkTableExistsSql() {
-        return "SELECT 1 FROM user_tables WHERE table_name = ?";
-    }
-
-    @Override
-    public String normalizeSchemaIdentifier(String identifier) {
-        // Oracle 标识符默认折叠为大写，user_tables/all_tab_columns 存大写
-        return identifier.toUpperCase(Locale.ROOT);
+        return "SELECT 1 FROM user_tables WHERE UPPER(table_name) = UPPER(?)";
     }
 
     @Override
@@ -201,7 +200,7 @@ public class OracleDialect implements SqlDialect {
                 + "data_length AS DATA_LENGTH, data_precision AS DATA_PRECISION, "
                 + "data_scale AS DATA_SCALE, nullable AS IS_NULLABLE "
                 + "FROM all_tab_columns "
-                + "WHERE table_name = ? "
+                + "WHERE UPPER(table_name) = UPPER(?) "
                 + "AND owner = (SELECT user FROM dual) "
                 + "ORDER BY column_id";
     }

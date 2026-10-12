@@ -36,6 +36,7 @@ export const VALIDATABLE_TYPES = new Set([
   'dx-date-box', 'dx-color-box',
   'dx-radio-group', 'dx-check-box-group',
   'dx-file-uploader', 'dx-html-editor',
+  'dx-base-data',
 ])
 
 export const VALIDATION_RULES: ValidationRuleMeta[] = [

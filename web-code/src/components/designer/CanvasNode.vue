@@ -222,6 +222,12 @@ const gridToolbarItems = computed(() => {
         icon: string
         visible: boolean
         location?: string
+        type?: 'default' | 'normal' | 'success' | 'danger' | 'warning'
+        stylingMode?: 'contained' | 'outlined' | 'text'
+        showIcon?: boolean
+        bgColor?: string
+        textColor?: string
+        hoverColor?: string
       }[]
     | undefined
   if (!Array.isArray(items)) return []
@@ -231,9 +237,24 @@ const gridToolbarItems = computed(() => {
       widget: 'dxButton',
       location: item.location || 'before',
       options: {
-        icon: item.icon || item.name,
+        icon: item.showIcon === false ? undefined : (item.icon || item.name),
         text: item.caption || item.name,
-        stylingMode: 'text',
+        type: item.type || 'normal',
+        stylingMode: item.stylingMode || (item.type && item.type !== 'normal' ? 'contained' : 'text'),
+        ...((item.bgColor || item.textColor || item.hoverColor)
+          ? {
+              elementAttr: {
+                class: [
+                  item.bgColor ? 'lc-btn-has-bg' : '',
+                  item.textColor ? 'lc-btn-has-text' : '',
+                  item.hoverColor ? 'lc-btn-has-hover' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
+                style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
+              },
+            }
+          : {}),
       },
     }))
 })
@@ -371,9 +392,20 @@ const wrapperStyle = computed(() => {
   const sizeUnit = (props.node.props.sizeUnit as string) ?? 'px'
   const min = props.node.props.min
   const max = props.node.props.max
+  // 判断父 el-splitter 布局方向：垂直时 flex-basis 控制高度，宽度应撑满容器
+  const splitterParent = props.parentId ? findNode(designerStore.schema, props.parentId) : null
+  const isVerticalSplitter =
+    splitterParent?.node.type === 'el-splitter' &&
+    splitterParent.node.props.layout === 'vertical'
   if (typeof size === 'number' && size > 0) {
     if (sizeUnit === '%') {
       flexItem.flex = `0 0 ${size}%`
+      if (isVerticalSplitter) {
+        flexItem.maxHeight = `${size}%`
+        flexItem.width = '100%'
+      } else {
+        flexItem.maxWidth = `${size}%`
+      }
     } else {
       flexItem.flexBasis = `${size}px`
       flexItem.flexGrow = '0'
@@ -383,12 +415,18 @@ const wrapperStyle = computed(() => {
     flexItem.flex = '1'
   }
   if (typeof min === 'number' && min > 0) {
-    flexItem.minWidth = `${min}px`
-    flexItem.minHeight = `${min}px`
+    if (isVerticalSplitter) {
+      flexItem.minHeight = `${min}px`
+    } else {
+      flexItem.minWidth = `${min}px`
+    }
   }
   if (typeof max === 'number' && max > 0) {
-    flexItem.maxWidth = `${max}px`
-    flexItem.maxHeight = `${max}px`
+    if (isVerticalSplitter) {
+      flexItem.maxHeight = `${max}px`
+    } else {
+      flexItem.maxWidth = `${max}px`
+    }
   }
   // 栅格 section 类型（宽高由 flex/span/sectionKey 控制，不应用 CSS width/height）
   const nodeType = props.node.type
@@ -456,11 +494,27 @@ const wrapperStyle = computed(() => {
           props.node.type === 'el-splitter' &&
           props.node.props.layout === 'vertical'
         ) {
-          style.height = `${props.node.height ?? 200}px`
+          // 容器高度至少要能容纳所有子面板的最小高度之和，否则子面板溢出、选中框无法覆盖全部面板
+          const children = props.node.children ?? []
+          const minSum = children.reduce((sum, child) => {
+            const min = (child as any).props?.min
+            return sum + (typeof min === 'number' && min > 0 ? min : 40)
+          }, 0)
+          style.height = `${Math.max(props.node.height ?? 200, minSum)}px`
         } else if (props.node.type === 'el-tabs') {
           style.height = `${props.node.height ?? 200}px`
         } else {
           style.height = 'auto'
+          // 横向分割面板：容器宽度至少要能容纳所有子面板 min-width 之和，否则子面板溢出、选中框只覆盖部分面板
+          if (props.node.type === 'el-splitter') {
+            const children = props.node.children ?? []
+            const minSum = children.reduce((sum, child) => {
+              const min = (child as any).props?.min
+              return sum + (typeof min === 'number' && min > 0 ? min : 40)
+            }, 0)
+            const currentWidth = parseInt(style.width) || 300
+            style.width = `${Math.max(currentWidth, minSum)}px`
+          }
         }
       } else {
         style.height = `${props.node.height ?? 120}px`

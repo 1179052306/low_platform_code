@@ -5,6 +5,8 @@ import com.alibaba.fastjson2.JSONObject;
 import com.api.lowcode.common.BusinessTableSyncService;
 import com.common.returns.ResMsg;
 import com.server.sqlengine.SqlEngineFacade;
+import com.server.sqlengine.dialect.SqlDialect;
+import com.server.sqlengine.dialect.SqlDialectRegistry;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -23,6 +25,23 @@ public class PageController {
 
   @Resource
   private SqlEngineFacade sqlEngineFacade;
+
+  @Resource
+  private SqlDialectRegistry dialectRegistry;
+
+  @PostMapping("/db-type")
+  public ResMsg dbType() {
+    ResMsg r = new ResMsg();
+    try {
+      SqlDialect dialect = dialectRegistry.dialect("lowcode");
+      r.setData(dialect.dbType());
+    } catch (Exception e) {
+      r.setRes(false);
+      r.setCode("500");
+      r.setMsg(e.getMessage());
+    }
+    return r;
+  }
 
   @PostMapping("/all")
   public ResMsg all() {
@@ -185,13 +204,12 @@ public class PageController {
       queryReq.put("alias", "T");
       Integer skip = req.getInteger("skip");
       Integer take = req.getInteger("take");
-      if (skip != null && take != null) {
-        int page = (skip / take) + 1;
-        queryReq.put("page", page);
-        queryReq.put("pageSize", take);
-      } else if (take != null) {
-        queryReq.put("pageSize", take);
-      }
+      // 兜底分页：未传分页参数时默认首页 15 条，防止全量查询拖垮服务
+      if (skip == null) skip = Integer.valueOf(0);
+      if (take == null) take = Integer.valueOf(15);
+      int page = (skip / take) + 1;
+      queryReq.put("page", page);
+      queryReq.put("pageSize", take);
       String filterData = req.getString("filterData");
       if (filterData != null && !filterData.isEmpty()) {
         JSONArray conditions = JSONArray.parseArray(filterData);
@@ -204,9 +222,17 @@ public class PageController {
         return r;
       }
       JSONArray data = (JSONArray) queryResult.getData();
+      // 总是查 count 以支持分页 UI（总页数）
+      JSONObject countReq = new JSONObject();
+      countReq.put("tableName", tableName);
+      if (filterData != null && !filterData.isEmpty()) {
+        countReq.put("conditions", JSONArray.parseArray(filterData));
+      }
+      ResMsg cr = sqlEngineFacade.count(countReq, null);
+      int totalCount = cr.getRes() ? ((Number) cr.getData()).intValue() : (data != null ? data.size() : 0);
       JSONObject result = new JSONObject();
       result.put("data", data);
-      result.put("totalCount", data != null ? data.size() : 0);
+      result.put("totalCount", totalCount);
       r.setData(result);
     } catch (Exception e) {
       r.setRes(false);

@@ -4,7 +4,7 @@
  * 每个弹窗拥有独立的渲染 store，互不干扰。
  */
 import { ref } from 'vue'
-import type { ComponentSchema } from '@/types/schema'
+import type { ComponentSchema, ComputeRule } from '@/types/schema'
 import { loadPage } from '@/store/persistence'
 
 export interface PageModalOptions {
@@ -18,6 +18,12 @@ export interface PageModalOptions {
   height?: number | string
   /** 业务模式：table=用表格页面 schema，form=用表单页面 schema（默认） */
   bizMode?: 'form' | 'table' | 'mobile'
+  /** 是否允许最大化（默认 true） */
+  maximizable?: boolean
+  /** 是否允许拖动（默认 true） */
+  draggable?: boolean
+  /** 选择模式：单选行回填，不显示保存/批量操作按钮 */
+  selectMode?: boolean
 }
 
 export interface PageModalInstance {
@@ -25,6 +31,9 @@ export interface PageModalInstance {
   pageId: string
   pageName: string
   schema: ComponentSchema[]
+  computeRules?: ComputeRule[]
+  primaryKeyField?: string
+  tableName?: string
   params: Record<string, unknown>
   options: Required<PageModalOptions>
   visible: boolean
@@ -64,17 +73,22 @@ export const pageModal = {
       width: options.width ?? (options.mode === 'drawer' ? 600 : 800),
       height: options.height ?? (options.mode === 'drawer' ? '100%' : 600),
       bizMode: options.bizMode ?? 'form',
+      maximizable: options.maximizable ?? true,
+      draggable: options.draggable ?? true,
+      selectMode: options.selectMode ?? false,
     }
     const bizMode = options.bizMode ?? 'form'
-    const schema = (bizMode !== 'form' && page.bizSchemas)
-      ? (page.bizSchemas[bizMode] as ComponentSchema[]) ?? page.root
-      : page.root
+    const schema = JSON.parse(JSON.stringify(page.bizSchemas?.[bizMode] ?? page.root))
+    const computeRules = page.computeRules
     return new Promise<unknown>((resolve, reject) => {
       modalStack.value.push({
         id: genModalId(),
         pageId,
         pageName: page.pageName ?? pageId,
         schema,
+        computeRules,
+        primaryKeyField: page.primaryKeyField || 'id',
+        tableName: page.tableName || '',
         params,
         options: mergedOptions,
         visible: true,

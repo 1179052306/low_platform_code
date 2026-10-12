@@ -46,9 +46,37 @@ public interface SqlDialect {
 
     /**
      * 引用标识符（表名/列名），处理各库的引号规则。
-     * PostgreSQL: "column" ; SQL Server: [column] ; Oracle/DM: 原样
+     * <p>
+     * 统一策略：全小写标识符不引用（各库默认折叠规则都能匹配）；
+     * 含大写标识符用引号引用（保留原始大小写）。
+     * </p>
      */
     String quoteIdentifier(String identifier);
+
+    /**
+     * 判断标识符是否需要引用（含大写字母则需要）。
+     */
+    default boolean needsQuoting(String identifier) {
+        return identifier != null && !identifier.isEmpty()
+                && !identifier.equals(identifier.toLowerCase(java.util.Locale.ROOT));
+    }
+
+    /**
+     * 格式化列引用用于 SQL 文本（处理大小写敏感性）。
+     * <p>
+     * 统一策略：全小写列名不引用（各库默认折叠规则都能匹配）；
+     * 含大写列名用 {@link #quoteIdentifier} 引用（保留原始大小写）。
+     * </p>
+     *
+     * @param column 列名（不含别名前缀）
+     * @return 格式化后的列引用
+     */
+    default String formatColumnRef(String column) {
+        if (!needsQuoting(column)) {
+            return column;
+        }
+        return quoteIdentifier(column);
+    }
 
     /**
      * 布尔值字面量表示。
@@ -429,7 +457,9 @@ public interface SqlDialect {
      * @param identifier 原始标识符（表名/列名）
      * @return 系统表查询时使用的格式
      */
-    String normalizeSchemaIdentifier(String identifier);
+    default String normalizeSchemaIdentifier(String identifier) {
+        return identifier;
+    }
 
     /**
      * 查询表结构信息（列名、数据类型、长度、精度、是否可空）的参数化 SQL。
