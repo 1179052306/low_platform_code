@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import DxColorBox from 'devextreme-vue/color-box'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxNumberBox from 'devextreme-vue/number-box'
+import { ElColorPicker, ElInput, ElInputNumber } from 'element-plus'
 import { t } from '@/store/lang'
 import type { Theme, ThemeColors } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 import {
   loadThemes,
   saveTheme,
@@ -91,6 +91,9 @@ function onSelectTheme(th: Theme) {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 
 function startNewTheme() {
   editingTheme.value = null
@@ -219,8 +222,8 @@ const colorFields: { key: keyof ThemeColors; label: string }[] = [
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onClose">
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{
           viewMode === 'edit'
             ? t('主题编辑')
@@ -228,7 +231,10 @@ const colorFields: { key: keyof ThemeColors; label: string }[] = [
             ? t('主题管理')
             : t('选择主题')
         }}</span>
-        <button class="dialog-close" @click="onClose">✕</button>
+        <div class="dialog-header-actions">
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+          <button class="dialog-close" @click="onClose">✕</button>
+        </div>
       </div>
 
       <div v-if="errorMsg" class="dialog-error">{{ errorMsg }}</div>
@@ -357,19 +363,19 @@ const colorFields: { key: keyof ThemeColors; label: string }[] = [
           <div class="edit-form">
             <div class="form-item">
               <label class="form-label">{{ t('主题名称') }}</label>
-              <DxTextBox
+              <ElInput
                 v-model="editName"
                 :placeholder="t('请输入主题名称')"
               />
             </div>
             <div class="form-item">
               <label class="form-label">{{ t('圆角(px)') }}</label>
-              <DxNumberBox v-model="editRadius" :min="0" :max="20" :step="1" />
+              <ElInputNumber v-model="editRadius" :min="0" :max="20" :step="1" />
             </div>
             <div class="color-grid">
               <div v-for="f in colorFields" :key="f.key" class="color-item">
                 <label class="form-label">{{ t(f.label) }}</label>
-                <DxColorBox v-model="editColors[f.key]" />
+                <ElColorPicker v-model="editColors[f.key]" />
               </div>
             </div>
             <div

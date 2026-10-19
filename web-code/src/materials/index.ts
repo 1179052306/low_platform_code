@@ -6,6 +6,7 @@ import { dxComponents, dxMaterialConfigs } from './dx-materials'
 import { dxPropMeta, type DxPropMeta } from './dx-prop-meta'
 import { translatePropName } from './prop-labels'
 import { VALIDATABLE_TYPES } from './dx-validation'
+import { setGetConfigFn } from '@/store/designer-shared'
 import ElRow from './components/ElRow.vue'
 import ElCol from './components/ElCol.vue'
 import ElSplitter from './components/ElSplitter.vue'
@@ -86,6 +87,19 @@ const COMPLEX_PROPS = new Set([
   'animation', 'annotations', 'adaptiveLayout',
   'render', 'template', 'dropDown', 'popup',
   'position', 'toolbar', 'contextMenu',
+  // DevExtreme 遗留属性（vxe-table 不支持，从属性面板移除）
+  'accessKey', 'activeStateEnabled', 'autoNavigateToFocusedRow',
+  'cellHintEnabled', 'columnChooser', 'columnHidingEnabled',
+  'filterBuilder', 'filterBuilderPopup', 'filterSyncEnabled', 'filterValue',
+  'focusedRowEnabled', 'focusedColumnIndex', 'focusedRowIndex', 'focusedRowKey',
+  'groupPanel', 'highlightChanges',
+  'hint', 'hoverStateEnabled', 'renderAsync', 'repaintChangesOnly',
+  'rowAlternationEnabled', 'rowTemplate', 'rtlEnabled',
+  'selectionFilter', 'syncLookupFilterValues', 'tabIndex',
+  'twoWayBindingEnabled', 'modalConfig',
+  'cacheEnabled', 'columnMinWidth', 'columnResizingMode', 'columnWidth',
+  'dataRowTemplate', 'dateSerializationFormat', 'disabled', 'errorRowEnabled',
+  'selectedRowKeys', 'sortByGroupSummaryInfo',
   // Chat 组件
   'alerts', 'typingUsers', 'messages', 'participants',
   // TextBox/NumberBox 掩码配置（复杂结构）
@@ -237,17 +251,6 @@ const dxConfigsWithAllProps: MaterialConfig[] = dxMaterialConfigs.map((config) =
   }
 })
 
-// 为所有表单控件添加默认必填验证规则
-for (const config of dxConfigsWithAllProps) {
-  if (config.category === '表单' && VALIDATABLE_TYPES.has(config.type)) {
-    if (!config.defaultProps.validationRules) {
-      config.defaultProps = {
-        ...config.defaultProps,
-        validationRules: [{ type: 'required', message: '此字段为必填项' }]
-      }
-    }
-  }
-}
 
 /** 获取某类型的所有 propSetters（含基础标签页用的 + 全部属性标签页用的） */
 export function getDxAllPropSetters(type: string): PropSetterConfig[] {
@@ -272,7 +275,7 @@ export const materialComponents: Record<string, Component> = {
   image: ImageView,
   link: LinkView,
   iframe: IframeView,
-  'dx-base-data': DxBaseData,
+  'base-data': DxBaseData,
   // 布局类控件
   'el-row': ElRow,
   'el-col': ElCol,
@@ -365,7 +368,7 @@ export const materialConfigs: MaterialConfig[] = [
     ],
   },
   {
-    type: 'dx-base-data',
+    type: 'base-data',
     title: '基础资料',
     enName: 'BaseData',
     category: '表单',
@@ -386,6 +389,7 @@ export const materialConfigs: MaterialConfig[] = [
       readOnly: false,
       tooltipEnabled: false,
       tooltipText: '',
+      dropdownWidthOffset: 0,
     },
     propSetters: [
       { prop: 'refPageId', label: '关联页面', type: 'input' },
@@ -399,6 +403,7 @@ export const materialConfigs: MaterialConfig[] = [
       { prop: 'required', label: '必填', type: 'switch' },
       { ...{ prop: 'requiredPosition', label: '星号位置', type: 'select', options: [{ label: '标签后', value: 'after' }, { label: '标签前', value: 'before' }] }, visibleIf: { prop: 'required', equals: true } },
       { prop: 'readOnly', label: '只读', type: 'switch' },
+      { prop: 'dropdownWidthOffset', label: '下拉加宽(px)', type: 'number' },
       { prop: 'tooltipEnabled', label: '启用介绍', type: 'switch' },
       { ...{ prop: 'tooltipText', label: '介绍内容', type: 'input' }, visibleIf: { prop: 'tooltipEnabled', equals: true } },
     ],
@@ -573,7 +578,7 @@ export function resolveNodeProps(
 ): Record<string, unknown> {
   const base: Record<string, unknown> = { ...props }
   const metaProps = dxPropMeta[type] ?? []
-  const isDx = type.startsWith('dx-')
+  const isDx = !!dxComponents[type]
   const hasWidth = metaProps.some((p) => p.name === 'width') || ['image', 'iframe'].includes(type) || isDx
   const hasHeight = metaProps.some((p) => p.name === 'height') || ['image', 'iframe'].includes(type) || isDx
 
@@ -657,3 +662,5 @@ export function resolveNodeProps(
   if (Object.keys(size).length) result.size = size
   return result
 }
+// 注册 getConfig 到 designer-shared，打破 designer.ts ↔ materials/index.ts 循环依赖
+setGetConfigFn(getConfig)

@@ -213,14 +213,15 @@ const pageStyle = computed(() => ({
 <style scoped>
 .preview {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   box-sizing: border-box;
   position: relative;
+  overflow: hidden;
 }
 .preview-canvas {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
 }
 .preview-empty {
   color: #c0c4cc;

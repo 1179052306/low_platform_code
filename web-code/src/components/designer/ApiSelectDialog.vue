@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import DxDataGrid from 'devextreme-vue/data-grid'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxSelectBox from 'devextreme-vue/select-box'
+import LcTable from '@/materials/components/LcTable.vue'
+import { ElInput, ElSelect, ElOption, ElButton } from 'element-plus'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
-import DxButton from 'devextreme-vue/button'
 import AdvancedSearchPanel from '../renderer/AdvancedSearchPanel.vue'
 import type {
   GridColumn,
@@ -202,6 +202,9 @@ function closeDialog() {
   emit('update:visible', false)
 }
 
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+
 function confirmSelect() {
   const service = apiList.value.find((s) => s.id === selectedServiceId.value)
   if (service) {
@@ -218,6 +221,8 @@ function clearSelection() {
 
 /** 查看详情弹窗 */
 const detailVisible = ref(false)
+const { isMaximized: detailMax, isDragging: detailDragging, dragStyle: detailDragStyle, onHeaderMouseDown: onDetailHeaderDown, toggleMaximize: toggleDetailMax, resetDialog: resetDetailDrag } = useDialogDragAndMax()
+watch(() => detailVisible.value, (v) => { if (!v) resetDetailDrag() })
 const detailService = computed(() =>
   apiList.value.find((s) => s.id === selectedServiceId.value)
 )
@@ -241,10 +246,13 @@ watch(
 <template>
   <Teleport to="body" v-if="visible">
     <div class="asd-overlay">
-      <div class="asd-dialog">
-        <div class="asd-header">
+      <div class="asd-dialog" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+        <div class="asd-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
           <span>{{ t('选择 API 服务') }}</span>
-          <button class="asd-close" @click="closeDialog">×</button>
+          <div class="dialog-header-actions">
+            <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+            <button class="asd-close" @click="closeDialog">×</button>
+          </div>
         </div>
         <div class="asd-body">
           <!-- 左侧：API 列表 -->
@@ -277,7 +285,7 @@ watch(
               @search="onAdvSearch"
               @reset="onAdvSearchReset"
             />
-            <DxDataGrid
+            <LcTable
               class="asd-grid"
               :data-source="filteredList"
               :selected-row-keys="selectedServiceId ? [selectedServiceId] : []"
@@ -289,22 +297,15 @@ watch(
                 { dataField: 'permCode', caption: t('权限码'), width: 100 },
               ]"
               :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-              :hover-state-enabled="true"
               :show-borders="true"
               :show-column-lines="false"
               :show-row-lines="true"
               :paging="{ enabled: false }"
-              :focused-row-enabled="true"
-              :focused-row-key="selectedServiceId || null"
               height="100%"
               key-expr="id"
               @selection-changed="onSelectionChanged"
               @row-dbl-click="(e: any) => onRowDblClick(e)"
-            >
-              <template #cellTemplate="{ data }">
-                <span>{{ data.value }}</span>
-              </template>
-            </DxDataGrid>
+            />
           </div>
           <!-- 右侧：新增/编辑表单 -->
           <div class="asd-form-panel" v-if="editing">
@@ -314,60 +315,64 @@ watch(
             <div class="asd-form-body">
               <div class="asd-form-row">
                 <label class="asd-required">{{ t('服务 ID') }}</label>
-                <DxTextBox
-                  :value="form.id"
-                  :read-only="!isAdding"
+                <ElInput
+                  :model-value="form.id"
+                  :disabled="!isAdding"
                   :placeholder="t('如 order.list')"
-                  @value-changed="(e: any) => (form.id = e.value)"
+                  @update:model-value="(v) => (form.id = v)"
                 />
               </div>
               <div class="asd-form-row">
                 <label class="asd-required">URL</label>
-                <DxTextBox
-                  :value="form.url"
+                <ElInput
+                  :model-value="form.url"
                   placeholder="/api/order/list"
-                  @value-changed="(e: any) => (form.url = e.value)"
+                  @update:model-value="(v) => (form.url = v)"
                 />
               </div>
               <div class="asd-form-row">
                 <label>{{ t('请求方法') }}</label>
-                <DxSelectBox
-                  :items="methodOptions"
-                  display-expr="label"
-                  value-expr="value"
-                  :value="form.method"
-                  @value-changed="(e: any) => (form.method = e.value)"
-                />
+                <ElSelect
+                  :model-value="form.method"
+                  @update:model-value="(v) => (form.method = v)"
+                >
+                  <ElOption
+                    v-for="m in methodOptions"
+                    :key="m.value"
+                    :label="m.label"
+                    :value="m.value"
+                  />
+                </ElSelect>
               </div>
               <div class="asd-form-row">
                 <label>{{ t('权限码') }}</label>
-                <DxTextBox
-                  :value="form.permCode"
+                <ElInput
+                  :model-value="form.permCode"
                   :placeholder="t('如 order:view')"
-                  @value-changed="(e: any) => (form.permCode = e.value)"
+                  @update:model-value="(v) => (form.permCode = v)"
                 />
               </div>
               <div class="asd-form-row">
                 <label>{{ t('描述') }}</label>
-                <DxTextBox
-                  :value="form.description"
+                <ElInput
+                  :model-value="form.description"
                   :placeholder="t('如 订单列表')"
-                  @value-changed="(e: any) => (form.description = e.value)"
+                  @update:model-value="(v) => (form.description = v)"
                 />
               </div>
               <div class="asd-form-row">
                 <label>{{ t('分组') }}</label>
-                <DxTextBox
-                  :value="form.group"
+                <ElInput
+                  :model-value="form.group"
                   :placeholder="t('如 订单')"
-                  @value-changed="(e: any) => (form.group = e.value)"
+                  @update:model-value="(v) => (form.group = v)"
                 />
               </div>
               <div class="asd-form-error" v-if="formError">{{ formError }}</div>
             </div>
             <div class="asd-form-actions">
-              <DxButton :text="t('取消')" @click="cancelEdit" />
-              <DxButton :text="t('保存')" type="default" @click="saveForm" />
+              <ElButton @click="cancelEdit">{{ t('取消') }}</ElButton>
+              <ElButton type="primary" @click="saveForm">{{ t('保存') }}</ElButton>
             </div>
           </div>
           <!-- 右侧占位（未编辑时） -->
@@ -421,12 +426,15 @@ watch(
           v-if="detailVisible && detailService"
           @click="detailVisible = false"
         >
-          <div class="asd-detail-dialog" @click.stop>
-            <div class="asd-detail-header">
+          <div class="asd-detail-dialog" :class="{ 'is-maximized': detailMax, 'is-dragging': detailDragging }" :style="detailDragStyle" @click.stop>
+            <div class="asd-detail-header" :class="{ 'is-draggable': !detailMax }" @mousedown="onDetailHeaderDown">
               <span>{{ t('API 服务详情') }}</span>
-              <button class="asd-close" @click="detailVisible = false">
-                ×
-              </button>
+              <div class="dialog-header-actions">
+                <DialogMaxButton :maximized="detailMax" @toggle="toggleDetailMax" />
+                <button class="asd-close" @click="detailVisible = false">
+                  ×
+                </button>
+              </div>
             </div>
             <div class="asd-detail-body">
               <div class="asd-detail-row">

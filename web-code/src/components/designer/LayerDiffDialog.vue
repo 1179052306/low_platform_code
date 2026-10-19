@@ -4,6 +4,8 @@ import { ElDialog, ElButton, ElTable, ElTableColumn, ElMessage } from 'element-p
 import { t } from '@/store/lang'
 import { designerStore } from '@/store/designer'
 import { useMerge, type LayerDiffItem } from '@/composables/useMerge'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -38,6 +40,9 @@ function onClose() {
   emit('update:visible', false)
 }
 
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+
 function statusText(status: LayerDiffItem['status']): string {
   switch (status) {
     case 'added':
@@ -54,10 +59,14 @@ function statusText(status: LayerDiffItem['status']): string {
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('层间差异对比')"
     width="640px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('层间差异对比')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div v-if="loading" class="diff-loading">{{ t('加载中...') }}</div>
     <div v-else-if="!diffList.length" class="diff-empty">{{ t('无差异') }}</div>
     <ElTable v-else :data="diffList" border size="small" style="width: 100%">

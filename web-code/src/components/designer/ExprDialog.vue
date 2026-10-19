@@ -2,6 +2,8 @@
 import { ref, watch, computed, nextTick } from 'vue'
 import { ElDialog, ElButton, ElInput, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -139,17 +141,24 @@ function onConfirm(): void {
 function onCancel(): void {
   emit('update:modelValue', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.modelValue, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="modelValue"
     @update:model-value="emit('update:modelValue', $event)"
-    :title="t('公式设置')"
     width="780px"
     append-to-body
     :close-on-click-modal="false"
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('公式设置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div class="expr-dialog-body">
       <div class="expr-left">
         <ElTabs v-model="activeTab" class="expr-tabs">

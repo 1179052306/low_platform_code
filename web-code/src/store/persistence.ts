@@ -372,3 +372,47 @@ export async function listBaseDataPages(): Promise<SavedPageMeta[]> {
   const all = await listSavedPages()
   return all.filter((p) => p.pageType === 'basedata')
 }
+// ================ 表格列配置持久化 ================
+
+/** 列配置数据结构：列顺序、列可见性、列宽 */
+export interface ColumnConfigData {
+  /** 列字段顺序（dataField 数组） */
+  columnOrder?: string[]
+  /** 列可见性映射 { field: boolean } */
+  columnVisibleState?: Record<string, boolean>
+  /** 列宽映射 { field: widthPx } */
+  columnWidths?: Record<string, number>
+  /** 最后更新时间（ISO 字符串） */
+  updatedAt?: string
+}
+
+/** 加载某用户在某页面的列配置 */
+export async function loadColumnConfig(
+  userId: string,
+  pageId: string,
+): Promise<ColumnConfigData | null> {
+  try {
+    const data = await apiCall(
+      `/api/lowcode/column-config?userId=${encodeURIComponent(userId)}&pageId=${encodeURIComponent(pageId)}`,
+      { method: 'GET' },
+    )
+    return (data as ColumnConfigData) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** 保存某用户在某页面的列配置 */
+export async function saveColumnConfig(
+  userId: string,
+  pageId: string,
+  config: ColumnConfigData,
+): Promise<void> {
+  try {
+    await apiCall('/api/lowcode/column-config', {
+      body: JSON.stringify({ userId, pageId, config }),
+    })
+  } catch {
+    // 保存失败静默处理，不影响用户操作
+  }
+}

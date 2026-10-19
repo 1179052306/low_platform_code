@@ -9,7 +9,8 @@ import {
   watch,
 } from 'vue'
 import type { ComponentSchema } from '@/types/schema'
-import DxButton from 'devextreme-vue/button'
+import { ElButton } from 'element-plus'
+import { MATERIAL_TYPES } from '@/materials/dx-materials'
 
 import MaterialPanel from '@/components/designer/MaterialPanel.vue'
 import CanvasPanel from '@/components/designer/CanvasPanel.vue'
@@ -84,7 +85,7 @@ watch(
       newMode === 'table' &&
       designerStore.schema.length === 0
     ) {
-      addNode('dx-data-grid', null, 0, true, {
+      addNode('data-grid', null, 0, true, {
         dataSourceType: 'remote',
         advancedSearch: true,
         toolbar: {
@@ -496,10 +497,11 @@ const CUSTOM_COMPONENT_MAP: Record<string, string> = {
 function nameToType(name: string): string | null {
   // el-* 保持原名
   if (name.startsWith('el-')) return name
-  // dx-* 保持原名
-  if (name.startsWith('dx-')) return name
   // 自定义组件：ImageView → image, LinkView → link, IframeView → iframe
   if (CUSTOM_COMPONENT_MAP[name]) return CUSTOM_COMPONENT_MAP[name]
+  // PascalCase → kebab-case: TextBox → text-box, DataGrid → data-grid
+  const kebab = name.charAt(0).toLowerCase() + name.slice(1).replace(/([A-Z])/g, '-$1').toLowerCase()
+  if (MATERIAL_TYPES.has(kebab)) return kebab
   return null
 }
 
@@ -690,9 +692,13 @@ const vueCode = computed(() => {
   const INDENT = '  '
 
   function componentName(type: string): string {
-    // el-* / dx-* 保持原名
-    if (type.startsWith('el-') || type.startsWith('dx-')) return type
-    // 自定义控件转 PascalCase: image → ImageView, link → LinkView, iframe → IframeView
+    // el-* 保持原名
+    if (type.startsWith('el-')) return type
+    // 物料控件转 PascalCase: text-box → TextBox, data-grid → DataGrid
+    if (MATERIAL_TYPES.has(type)) {
+      return type.replace(/(?:^|-)(.)/g, (_, c: string) => c.toUpperCase())
+    }
+    // 自定义控件转 PascalCase + View: image → ImageView
     return (
       type.replace(/(?:^|-)(.)/g, (_, c: string) => c.toUpperCase()) + 'View'
     )
@@ -729,7 +735,7 @@ const vueCode = computed(() => {
 
     // dx-data-grid 远程数据源：dataSourceType === 'remote' 时生成 CustomStore
     const hasRemote =
-      node.type === 'dx-data-grid' && node.props.dataSourceType === 'remote'
+      node.type === 'data-grid' && node.props.dataSourceType === 'remote'
 
     for (const [key, value] of Object.entries(node.props)) {
       // CSS 已设置 width/height 时，跳过 props 中的 width/height（统一由尺寸 section 控制）
@@ -749,7 +755,7 @@ const vueCode = computed(() => {
       // dx-data-grid 列配置：清理自定义属性（editorType, dropDownGrid），保留 lookup
       if (
         key === 'columns' &&
-        node.type === 'dx-data-grid' &&
+        node.type === 'data-grid' &&
         Array.isArray(value)
       ) {
         const cleanedCols = (value as Record<string, unknown>[]).map((col) => {
@@ -816,22 +822,19 @@ const vueCode = computed(() => {
   const imports: string[] = []
   for (const type of usedTypes) {
     const name = componentName(type)
-    if (name.startsWith('dx-')) {
-      const dxPkg = type.replace(/^dx-/, 'devextreme-vue/')
-      imports.push(`import ${name} from '${dxPkg}'`)
-    } else if (name.startsWith('el-')) {
-      // el-* 组件对应我们自己的布局组件，从 materials/components 导入
+    if (type.startsWith('el-')) {
+      // el-* 布局组件
       imports.push(`import ${name} from '@/materials/components/${name}.vue'`)
+    } else if (MATERIAL_TYPES.has(type)) {
+      // Element Plus 封装控件: text-box → ElTextBox
+      imports.push(`import ${name} from '@/materials/components/El${name}.vue'`)
     } else {
       // 自定义组件从 materials/components 导入
       imports.push(`import ${name} from '@/materials/components/${name}.vue'`)
     }
   }
 
-  // 远程数据源：生成 CustomStore 导入和变量
-  if (remoteStores.length) {
-    imports.push(`import CustomStore from 'devextreme/data/custom_store'`)
-  }
+  // 远程数据源：生成普通 store 对象（不再依赖 devextreme）
   const storeDefs = remoteStores
     .map((s) => {
       return `function mapOperator(op) {
@@ -902,7 +905,7 @@ ${
     ? `let _firstLoadDone_${s.varName} = false
 `
     : ''
-}const ${s.varName} = new CustomStore({
+}const ${s.varName} = {
   key: '${s.key}',
   load: async (loadOptions) => {
     ${
@@ -959,7 +962,7 @@ ${
     const p = extract(data)
     return { data: p.data, totalCount: p.totalCount }
   },
-})`
+}`
     })
     .join('\n')
 
@@ -1103,13 +1106,11 @@ watch(
       </div>
       <div v-else class="header-biz-mode-placeholder"></div>
       <div class="header-tools">
-        <DxButton :text="t('保存')" icon="save" type="normal" @click="onSave" />
-        <DxButton
-          :text="t('导入')"
-          icon="upload"
-          styling-mode="outlined"
+        <ElButton @click="onSave">{{ t('保存') }}</ElButton>
+        <ElButton
+          plain
           @click="importInput?.click()"
-        />
+        >{{ t('导入') }}</ElButton>
         <input
           ref="importInput"
           type="file"
@@ -1117,18 +1118,14 @@ watch(
           style="display: none"
           @change="onImport"
         />
-        <DxButton
-          :text="t('导出')"
-          icon="download"
-          styling-mode="outlined"
+        <ElButton
+          plain
           @click="onExport"
-        />
-        <DxButton
-          :text="t('预览')"
-          icon="export"
-          type="default"
+        >{{ t('导出') }}</ElButton>
+        <ElButton
+          type="primary"
           @click="onPreview"
-        />
+        >{{ t('预览') }}</ElButton>
       </div>
       <!-- FE-S3：分层继承层选择器 + 合并预览切换 + 层 diff -->
       <div class="header-layer-tools">
@@ -1185,52 +1182,39 @@ watch(
             </button>
           </div>
           <div class="canvas-toolbar-center">
-            <DxButton
-              :text="t('撤销')"
-              icon="undo"
+            <ElButton
               :disabled="!canUndo"
               @click="undo()"
-            />
-            <DxButton
-              :text="t('重做')"
-              icon="redo"
+            >{{ t('撤销') }}</ElButton>
+            <ElButton
               :disabled="!canRedo"
               @click="redo()"
-            />
-            <DxButton
+            >{{ t('重做') }}</ElButton>
+            <ElButton
               v-if="!isTableMode"
-              :text="t('清空')"
-              icon="trash"
-              styling-mode="outlined"
+              plain
               @click="onClear"
-            />
+            >{{ t('清空') }}</ElButton>
           </div>
           <div class="canvas-toolbar-right">
-            <DxButton
-              :text="t('源码')"
-              icon="doc"
-              styling-mode="outlined"
+            <ElButton
+              plain
               @click="openVueCodeDialog()"
-            />
-            <DxButton
-              text="Schema"
-              styling-mode="outlined"
+            >{{ t('源码') }}</ElButton>
+            <ElButton
+              plain
               @click="openSchemaDialog"
-            />
-            <DxButton
+            >Schema</ElButton>
+            <ElButton
               v-if="!isTableMode"
-              :text="t('字段事件')"
-              icon="event"
-              styling-mode="outlined"
+              plain
               @click="showFieldEventRuleDialog = true"
-            />
-            <DxButton
+            >{{ t('字段事件') }}</ElButton>
+            <ElButton
               v-if="!isTableMode"
-              :text="t('计算规则')"
-              icon="math"
-              styling-mode="outlined"
+              plain
               @click="showComputeRuleDialog = true"
-            />
+            >{{ t('计算规则') }}</ElButton>
           </div>
         </div>
         <CanvasPanel />
@@ -1264,8 +1248,8 @@ watch(
             <span v-if="schemaError" class="schema-error">{{
               schemaError
             }}</span>
-            <DxButton :text="t('复制内容')" icon="copy" styling-mode="outlined" @click="copySchema" />
-            <DxButton :text="t('应用')" type="default" @click="applySchema" />
+            <ElButton plain @click="copySchema">{{ t('复制内容') }}</ElButton>
+            <ElButton type="primary" @click="applySchema">{{ t('应用') }}</ElButton>
           </div>
         </div>
       </div>
@@ -1295,7 +1279,7 @@ watch(
               style="flex: 0 0 auto; color: #909399; margin-right: auto"
               >{{ t('保存后可通过撤销回滚') }}</span
             >
-            <DxButton :text="t('保存')" type="default" @click="applyVueCode" />
+            <ElButton type="primary" @click="applyVueCode">{{ t('保存') }}</ElButton>
           </div>
         </div>
       </div>

@@ -44,23 +44,20 @@ public class BusinessTableSyncService {
   private static final java.util.Map<String, String> TYPE_MAP = new java.util.HashMap<>();
 
   static {
-    TYPE_MAP.put("dx-text-box", "VARCHAR(255)");
-    TYPE_MAP.put("dx-text-area", "TEXT");
-    TYPE_MAP.put("dx-number-box", "NUMERIC(18,6)");
-    TYPE_MAP.put("dx-date-box", "TIMESTAMP");
-    TYPE_MAP.put("dx-date-time-box", "TIMESTAMP");
-    TYPE_MAP.put("dx-check-box", "BOOLEAN");
-    TYPE_MAP.put("dx-switch", "BOOLEAN");
-    TYPE_MAP.put("dx-select-box", "VARCHAR(255)");
-    TYPE_MAP.put("dx-color-box", "VARCHAR(32)");
-    TYPE_MAP.put("dx-tag-box", "VARCHAR(255)");
-    TYPE_MAP.put("dx-lookup", "VARCHAR(255)");
-    TYPE_MAP.put("dx-auto-complete", "VARCHAR(255)");
-    TYPE_MAP.put("dx-radio-group", "VARCHAR(255)");
-    TYPE_MAP.put("dx-slider", "NUMERIC(18,6)");
-    TYPE_MAP.put("dx-range-slider", "VARCHAR(255)");
-    TYPE_MAP.put("dx-progress-bar", "NUMERIC(5,2)");
-    TYPE_MAP.put("dx-recurrence-editor", "VARCHAR(255)");
+    TYPE_MAP.put("text-box", "VARCHAR(255)");
+    TYPE_MAP.put("text-area", "TEXT");
+    TYPE_MAP.put("number-box", "NUMERIC(18,6)");
+    TYPE_MAP.put("date-box", "TIMESTAMP");
+    TYPE_MAP.put("check-box", "BOOLEAN");
+    TYPE_MAP.put("switch", "BOOLEAN");
+    TYPE_MAP.put("select-box", "VARCHAR(255)");
+    TYPE_MAP.put("color-box", "VARCHAR(32)");
+    TYPE_MAP.put("tag-box", "VARCHAR(255)");
+    TYPE_MAP.put("lookup", "VARCHAR(255)");
+    TYPE_MAP.put("radio-group", "VARCHAR(255)");
+    TYPE_MAP.put("slider", "NUMERIC(18,6)");
+    TYPE_MAP.put("range-slider", "VARCHAR(255)");
+    TYPE_MAP.put("progress-bar", "NUMERIC(5,2)");
   }
 
   private static final String DEFAULT_COLUMN_TYPE = "VARCHAR(255)";
@@ -160,7 +157,7 @@ public class BusinessTableSyncService {
   }
 
   /**
-   * 遍历表单节点树，找到基础资料控件（dx-base-data），
+    * 遍历表单节点树，找到基础资料控件（base-data），
    * 查询被关联页面的主键类型，构建 dbField → 列类型 映射。
    * Snowflake → BIGINT，其余 → VARCHAR(64)。
    */
@@ -179,14 +176,14 @@ public class BusinessTableSyncService {
   private void scanBaseDataNodes(JSONObject node, java.util.Map<String, String> map, JdbcTemplate jdbc) {
     if (node == null) return;
     String type = node.getString("type");
-    if ("dx-base-data".equals(type)) {
+    if ("base-data".equals(type)) {
       String dbField = node.getString("dbField");
       String refPageId = node.getString("refPageId");
       if (refPageId == null || refPageId.isEmpty()) {
         JSONObject props = node.getJSONObject("props");
         refPageId = props != null ? props.getString("refPageId") : null;
       }
-      log.info("[TableSync] 扫描 dx-base-data: dbField={}, refPageId={}", dbField, refPageId);
+      log.info("[TableSync] 扫描 base-data: dbField={}, refPageId={}", dbField, refPageId);
       if (dbField != null && !dbField.trim().isEmpty() && refPageId != null && !refPageId.isEmpty()) {
         String colType = lookupRefPageKeyType(refPageId, jdbc);
         if (colType != null) {

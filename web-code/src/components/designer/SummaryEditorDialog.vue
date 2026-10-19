@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 /**
  * 汇总（summary）高级配置编辑器。
@@ -161,6 +163,9 @@ function onCancel(): void {
   emit('update:visible', false)
 }
 
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+
 /** 勾选状态汇总 */
 const enabledCount = computed(
   () => summaryItems.value.filter((it) => it.enabled).length
@@ -175,10 +180,13 @@ function toggleAll(checked: boolean): void {
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onCancel">
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ title || t('汇总高级配置') }}</span>
-        <button class="dialog-close" @click="onCancel">x</button>
+        <div class="dialog-header-actions">
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+          <button class="dialog-close" @click="onCancel">x</button>
+        </div>
       </div>
       <div class="dialog-body">
         <div class="summary-tip">

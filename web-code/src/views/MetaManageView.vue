@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElSwitch, ElButton, ElMessage, ElMessageBox } from 'element-plus'
-import DxDataGrid, { DxColumn } from 'devextreme-vue/data-grid'
+import LcTable from '@/materials/components/LcTable.vue'
 import { t } from '@/store/lang'
 import { loadMetaList, saveMetaItem, deleteMetaItem } from '@/store/meta'
 import { META_DOMAINS, type MetaItem, type MetaDomain } from '@/types/meta'
@@ -21,6 +21,16 @@ const filteredList = computed(() =>
     return true
   }),
 )
+
+const metaColumns = computed(() => [
+  { dataField: 'domain', caption: t('域'), width: 100 },
+  { dataField: 'metaType', caption: t('类型'), width: 120 },
+  { dataField: 'metaKey', caption: t('键'), width: 180 },
+  { dataField: 'metaName', caption: t('名称'), width: 180 },
+  { dataField: 'enabled', caption: t('启用'), width: 80 },
+  { dataField: 'updatedAt', caption: t('更新时间'), width: 160 },
+  { dataField: '_op', caption: t('操作'), width: 140, cellTemplate: 'actionTpl' },
+])
 
 async function refresh() {
   list.value = await loadMetaList()
@@ -134,24 +144,18 @@ async function removeMeta(item: MetaItem) {
           <ElButton type="primary" @click="addMeta">+ {{ t('新增元数据') }}</ElButton>
           <ElButton @click="refresh">{{ t('刷新') }}</ElButton>
         </div>
-        <DxDataGrid
+        <LcTable
           :data-source="filteredList"
           :show-borders="true"
           :column-auto-width="true"
           height="calc(100vh - 120px)"
+          :columns="metaColumns"
         >
-          <DxColumn :caption="t('域')" data-field="domain" width="100" />
-          <DxColumn :caption="t('类型')" data-field="metaType" width="120" />
-          <DxColumn :caption="t('键')" data-field="metaKey" width="180" />
-          <DxColumn :caption="t('名称')" data-field="metaName" width="180" />
-          <DxColumn :caption="t('启用')" data-field="enabled" width="80" />
-          <DxColumn :caption="t('更新时间')" data-field="updatedAt" width="160" />
-          <DxColumn :caption="t('操作')" width="140" cell-template="actionTpl" />
           <template #actionTpl="{ data }">
-            <ElButton type="primary" link @click="editMeta(data)">{{ t('编辑') }}</ElButton>
-            <ElButton type="danger" link @click="removeMeta(data)">{{ t('删除') }}</ElButton>
+            <ElButton type="primary" link @click="editMeta(data as any)">{{ t('编辑') }}</ElButton>
+            <ElButton type="danger" link @click="removeMeta(data as any)">{{ t('删除') }}</ElButton>
           </template>
-        </DxDataGrid>
+        </LcTable>
       </main>
     </div>
 

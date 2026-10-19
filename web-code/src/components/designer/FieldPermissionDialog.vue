@@ -13,6 +13,8 @@ import {
 } from 'element-plus'
 import { t } from '@/store/lang'
 import type { FieldPermissionRule, FieldPermType } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -91,16 +93,23 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="isEdit ? t('编辑字段权限规则') : t('新增字段权限规则')"
     width="520px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="isEdit ? t('编辑字段权限规则') : t('新增字段权限规则')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElForm label-width="100px">
       <ElFormItem :label="t('业务编码')">
         <ElInput

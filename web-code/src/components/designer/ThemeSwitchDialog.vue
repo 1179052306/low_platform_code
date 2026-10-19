@@ -7,6 +7,8 @@ import {
   getDefaultThemeId,
   setDefaultThemeId,
 } from '@/composables/useTheme'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{
@@ -61,14 +63,20 @@ async function onSelectTheme(th: Theme) {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onClose">
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ t('切换主题') }}</span>
-        <button class="dialog-close" @click="onClose">✕</button>
+        <div class="dialog-header-actions">
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+          <button class="dialog-close" @click="onClose">✕</button>
+        </div>
       </div>
       <div v-if="errorMsg" class="dialog-error">{{ errorMsg }}</div>
       <div class="dialog-body">

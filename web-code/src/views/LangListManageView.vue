@@ -1,18 +1,31 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import DxDataGrid, { DxColumn } from 'devextreme-vue/data-grid'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxButton from 'devextreme-vue/button'
-import DxCheckBox from 'devextreme-vue/check-box'
-import DxNumberBox from 'devextreme-vue/number-box'
+import { ref, computed, onMounted } from 'vue'
+import LcTable from '@/materials/components/LcTable.vue'
+import type { LcColumn } from '@/materials/components/LcTable.vue'
 import { httpRequest } from '@/utils/request'
 import { t, loadModule, type LangInfo } from '@/store/lang'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  ElMessage,
+  ElMessageBox,
+  ElButton,
+  ElInput,
+  ElCheckbox,
+  ElInputNumber,
+} from 'element-plus'
 
 defineOptions({ name: 'LangListManageView' })
 
 const langs = ref<LangInfo[]>([])
 const loading = ref(false)
+
+const langColumns = computed<LcColumn[]>(() => [
+  { dataField: 'locale', caption: t('语言代码'), width: 160 },
+  { dataField: 'name', caption: t('语言名称'), width: 200 },
+  { dataField: 'sortOrder', caption: t('排序'), width: 100, alignment: 'center' },
+  { dataField: 'enabled', caption: t('启用'), width: 100, alignment: 'center', cellTemplate: 'enabledCell' },
+  { dataField: 'isRtl', caption: t('RTL'), width: 100, alignment: 'center', cellTemplate: 'rtlCell' },
+  { dataField: '__action', caption: t('操作'), width: 120, alignment: 'center', cellTemplate: 'actionCell' },
+])
 
 async function loadLangs() {
   loading.value = true
@@ -142,62 +155,29 @@ onMounted(() => {
   <div class="lang-list-manage">
     <div class="llm-body">
       <div class="llm-toolbar">
-        <DxButton
-          :text="t('新增语言')"
-          type="default"
-          icon="add"
-          @click="openAdd"
-        />
+        <ElButton type="default" @click="openAdd">{{ t('新增语言') }}</ElButton>
       </div>
 
-      <DxDataGrid
+      <LcTable
         class="llm-grid"
         :data-source="langs"
-        :hover-state-enabled="true"
+        :columns="langColumns"
         :show-borders="true"
         :show-column-lines="false"
         :show-row-lines="true"
         :paging="{ enabled: false }"
         height="100%"
         key-expr="locale"
-        :load-panel="{ enabled: loading }"
+        :load-panel-enabled="loading"
       >
-        <DxColumn data-field="locale" :caption="t('语言代码')" width="160" />
-        <DxColumn data-field="name" :caption="t('语言名称')" width="200" />
-        <DxColumn
-          data-field="sortOrder"
-          :caption="t('排序')"
-          width="100"
-          alignment="center"
-        />
-        <DxColumn
-          data-field="enabled"
-          :caption="t('启用')"
-          width="100"
-          alignment="center"
-          cell-template="enabledCell"
-        />
-        <DxColumn
-          data-field="isRtl"
-          :caption="t('RTL')"
-          width="100"
-          alignment="center"
-          cell-template="rtlCell"
-        />
-        <DxColumn
-          :caption="t('操作')"
-          width="120"
-          alignment="center"
-          cell-template="actionCell"
-        />
         <template #enabledCell="{ data }">
-          <span :class="data.data.enabled ? 'llm-yes' : 'llm-no'">
-            {{ data.data.enabled ? t('是') : t('否') }}
+          <span :class="data.enabled ? 'llm-yes' : 'llm-no'">
+            {{ data.enabled ? t('是') : t('否') }}
           </span>
         </template>
         <template #rtlCell="{ data }">
-          <span :class="data.data.isRtl ? 'llm-yes' : 'llm-no'">
-            {{ data.data.isRtl ? t('是') : t('否') }}
+          <span :class="data.isRtl ? 'llm-yes' : 'llm-no'">
+            {{ data.isRtl ? t('是') : t('否') }}
           </span>
         </template>
         <template #actionCell="{ data }">
@@ -205,21 +185,21 @@ onMounted(() => {
             <button
               class="llm-action-btn"
               :title="t('编辑')"
-              @click="openEdit(data.data)"
+              @click="openEdit(data as any)"
             >
               ✎
             </button>
             <button
-              v-if="data.data.locale !== 'zh-CN'"
+              v-if="data.locale !== 'zh-CN'"
               class="llm-action-btn llm-action-del"
               :title="t('删除')"
-              @click="deleteLang(data.data)"
+              @click="deleteLang(data as any)"
             >
               🗑
             </button>
           </div>
         </template>
-      </DxDataGrid>
+      </LcTable>
     </div>
 
     <!-- 新增/编辑语言弹窗 -->
@@ -235,35 +215,35 @@ onMounted(() => {
         <div class="llm-dialog-body">
           <div class="llm-form-row">
             <label class="llm-form-label">{{ t('语言代码') }}</label>
-            <DxTextBox
+            <ElInput
               v-model="form.locale"
               :placeholder="t('如 en-US、ja-JP、fr-FR')"
-              :read-only="editing"
+              :readonly="editing"
             />
           </div>
           <div class="llm-form-row">
             <label class="llm-form-label">{{ t('语言名称') }}</label>
-            <DxTextBox
+            <ElInput
               v-model="form.name"
               :placeholder="t('如 English、日本語、Français')"
             />
           </div>
           <div class="llm-form-row">
             <label class="llm-form-label">{{ t('排序') }}</label>
-            <DxNumberBox v-model="form.sortOrder" :show-spin-buttons="true" />
+            <ElInputNumber v-model="form.sortOrder" />
           </div>
           <div class="llm-form-row llm-form-row-inline">
             <label class="llm-form-label">{{ t('启用') }}</label>
-            <DxCheckBox v-model="form.enabled" />
+            <ElCheckbox v-model="form.enabled" />
           </div>
           <div class="llm-form-row llm-form-row-inline">
             <label class="llm-form-label">{{ t('RTL（从右到左）') }}</label>
-            <DxCheckBox v-model="form.isRtl" />
+            <ElCheckbox v-model="form.isRtl" />
           </div>
         </div>
         <div class="llm-dialog-actions">
-          <DxButton :text="t('取消')" @click="dialogVisible = false" />
-          <DxButton :text="t('保存')" type="default" @click="save" />
+          <ElButton @click="dialogVisible = false">{{ t('取消') }}</ElButton>
+          <ElButton type="default" @click="save">{{ t('保存') }}</ElButton>
         </div>
       </div>
     </div>

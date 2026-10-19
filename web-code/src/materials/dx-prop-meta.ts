@@ -11,7 +11,7 @@ export interface DxPropMeta {
 }
 
 export const dxPropMeta: Record<string, DxPropMeta[]> = {
-  "dx-chart": [
+  "chart": [
     {
       name: "adaptiveLayout",
       kind: "json"
@@ -307,7 +307,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-pie-chart": [
+  "pie-chart": [
     {
       name: "adaptiveLayout",
       kind: "json"
@@ -557,7 +557,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       ]
     }
   ],
-  "dx-polar-chart": [
+  "polar-chart": [
     {
       name: "adaptiveLayout",
       kind: "json"
@@ -797,7 +797,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-bar-gauge": [
+  "bar-gauge": [
     {
       name: "animation",
       kind: "json"
@@ -989,7 +989,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-bullet": [
+  "bullet": [
     {
       name: "color",
       kind: "string"
@@ -1113,7 +1113,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "number"
     }
   ],
-  "dx-circular-gauge": [
+  "circular-gauge": [
     {
       name: "animation",
       kind: "json"
@@ -1257,7 +1257,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-linear-gauge": [
+  "linear-gauge": [
     {
       name: "animation",
       kind: "json"
@@ -1397,7 +1397,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-funnel": [
+  "funnel": [
     {
       name: "adaptiveLayout",
       kind: "json"
@@ -1625,7 +1625,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-sankey": [
+  "sankey": [
     {
       name: "adaptiveLayout",
       kind: "json"
@@ -1795,7 +1795,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-sparkline": [
+  "sparkline": [
     {
       name: "argumentField",
       kind: "string"
@@ -2035,7 +2035,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "number"
     }
   ],
-  "dx-tree-map": [
+  "tree-map": [
     {
       name: "childrenField",
       kind: "string"
@@ -2231,7 +2231,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-range-selector": [
+  "range-selector": [
     {
       name: "background",
       kind: "json"
@@ -2405,7 +2405,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-data-grid": [
+  "data-grid": [
     {
       name: "accessKey",
       kind: "string"
@@ -2713,7 +2713,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-tree-list": [
+  "tree-list": [
     {
       name: "accessKey",
       kind: "string"
@@ -3045,7 +3045,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-list": [
+  "list": [
     {
       name: "accessKey",
       kind: "string"
@@ -3373,7 +3373,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-tree-view": [
+  "tree-view": [
     {
       name: "accessKey",
       kind: "string"
@@ -3635,7 +3635,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-pivot-grid": [
+  "pivot-grid": [
     {
       name: "allowExpandAll",
       kind: "boolean"
@@ -3803,7 +3803,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-pivot-field-chooser": [
+  "pivot-field-chooser": [
     {
       name: "accessKey",
       kind: "string"
@@ -3899,7 +3899,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-filter-builder": [
+  "filter-builder": [
     {
       name: "accessKey",
       kind: "string"
@@ -3981,7 +3981,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-scheduler": [
+  "scheduler": [
     {
       name: "accessKey",
       kind: "string"
@@ -4247,7 +4247,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-gantt": [
+  "gantt": [
     {
       name: "accessKey",
       kind: "string"
@@ -4465,7 +4465,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-file-manager": [
+  "file-manager": [
     {
       name: "accessKey",
       kind: "string"
@@ -4581,7 +4581,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-text-box": [
+  "text-box": [
     {
       name: "accessKey",
       kind: "string"
@@ -4831,7 +4831,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-text-area": [
+  "text-area": [
     {
       name: "accessKey",
       kind: "string"
@@ -5021,7 +5021,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-number-box": [
+  "number-box": [
     {
       name: "accessKey",
       kind: "string"
@@ -5245,7 +5245,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-check-box": [
+  "check-box": [
     {
       name: "accessKey",
       kind: "string"
@@ -5389,7 +5389,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-switch": [
+  "switch": [
     {
       name: "accessKey",
       kind: "string"
@@ -5529,7 +5529,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-slider": [
+  "slider": [
     {
       name: "accessKey",
       kind: "string"
@@ -5703,7 +5703,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-range-slider": [
+  "range-slider": [
     {
       name: "accessKey",
       kind: "string"
@@ -5889,7 +5889,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-calendar": [
+  "calendar": [
     {
       name: "accessKey",
       kind: "string"
@@ -6163,7 +6163,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       ]
     }
   ],
-  "dx-date-box": [
+  "date-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -6473,7 +6473,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-date-range-box": [
+  "date-range-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -6767,7 +6767,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-color-box": [
+  "color-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -6985,7 +6985,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-select-box": [
+  "select-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -7275,7 +7275,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-lookup": [
+  "lookup": [
     {
       name: "accessKey",
       kind: "string"
@@ -7621,7 +7621,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-tag-box": [
+  "tag-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -7959,7 +7959,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-autocomplete": [
+  "autocomplete": [
     {
       name: "accessKey",
       kind: "string"
@@ -8221,7 +8221,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-radio-group": [
+  "radio-group": [
     {
       name: "accessKey",
       kind: "string"
@@ -8387,7 +8387,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-drop-down-button": [
+  "drop-down-button": [
     {
       name: "accessKey",
       kind: "string"
@@ -8535,7 +8535,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "boolean"
     }
   ],
-  "dx-drop-down-box": [
+  "drop-down-box": [
     {
       name: "acceptCustomValue",
       kind: "boolean"
@@ -8751,7 +8751,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-file-uploader": [
+  "file-uploader": [
     {
       name: "accept",
       kind: "string"
@@ -8979,7 +8979,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-html-editor": [
+  "html-editor": [
     {
       name: "accessKey",
       kind: "string"
@@ -9905,7 +9905,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-toolbar": [
+  "toolbar": [
     {
       name: "dataSource",
       kind: "json"
@@ -10239,7 +10239,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-gallery": [
+  "gallery": [
     {
       name: "accessKey",
       kind: "string"
@@ -10461,7 +10461,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-speed-dial-action": [
+  "speed-dial-action": [
     {
       name: "accessKey",
       kind: "string"
@@ -10717,7 +10717,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-button-group": [
+  "button-group": [
     {
       name: "accessKey",
       kind: "string"
@@ -10823,7 +10823,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-button": [
+  "button": [
     {
       name: "accessKey",
       kind: "string"
@@ -10911,7 +10911,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-progress-bar": [
+  "progress-bar": [
     {
       name: "disabled",
       kind: "boolean"
@@ -11039,7 +11039,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-load-indicator": [
+  "load-indicator": [
     {
       name: "elementAttr",
       kind: "json"
@@ -11069,7 +11069,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "string"
     }
   ],
-  "dx-popup": [
+  "popup": [
     {
       name: "accessKey",
       kind: "string"
@@ -11219,7 +11219,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-toast": [
+  "toast": [
     {
       name: "accessKey",
       kind: "string"
@@ -11355,7 +11355,7 @@ export const dxPropMeta: Record<string, DxPropMeta[]> = {
       kind: "json"
     }
   ],
-  "dx-load-panel": [
+  "load-panel": [
     {
       name: "animation",
       kind: "json"

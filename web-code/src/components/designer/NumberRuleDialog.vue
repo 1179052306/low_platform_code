@@ -18,6 +18,8 @@ import type {
   NumberRuleUsageMode,
   NumberRuleSeqScope,
 } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -293,17 +295,26 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+const { isMaximized: fieldPickerMax, toggleMaximize: toggleFieldPickerMax, resetDialog: resetFieldPickerDrag } = useDialogDragAndMax()
+watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('编码设置')"
     width="960px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
     class="number-rule-dialog"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('编码设置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div class="nr-body">
       <!-- 编码示例 -->
       <div class="nr-preview-section">
@@ -549,10 +560,14 @@ function onClose() {
     <!-- 字段选择弹窗 -->
     <ElDialog
       v-model="showFieldPicker"
-      :title="t('选择字段')"
       width="520px"
       append-to-body
+      draggable
+      :fullscreen="fieldPickerMax"
     >
+      <template #header>
+        <DialogMaxHeader :title="t('选择字段')" :is-maximized="fieldPickerMax" @toggle="toggleFieldPickerMax" />
+      </template>
       <div class="nr-field-picker">
         <div class="nr-field-picker-search">
           <input

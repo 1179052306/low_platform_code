@@ -1,137 +1,145 @@
 /**
- * DevExtreme 物料注册：将 DX 组件直接作为低代码物料接入。
+ * 物料注册：Element Plus / ECharts / 第三方控件替换 DevExtreme 控件。
+ * 保留 data-grid / tree-list 仍用 DevExtreme 实现。
  * 复杂配置（columns / series / items / dataSource 等）通过 json 设置器编辑。
  */
 import type { Component } from 'vue'
 import type { MaterialConfig, PropSetterConfig } from '@/types/schema'
 
-// ---- 图表 ----
-import DxChart from 'devextreme-vue/chart'
-import DxPieChart from 'devextreme-vue/pie-chart'
-import DxPolarChart from 'devextreme-vue/polar-chart'
-import DxBarGauge from 'devextreme-vue/bar-gauge'
-import DxBullet from 'devextreme-vue/bullet'
-import DxCircularGauge from 'devextreme-vue/circular-gauge'
-import DxLinearGauge from 'devextreme-vue/linear-gauge'
-import DxFunnel from 'devextreme-vue/funnel'
-import DxSankey from 'devextreme-vue/sankey'
-import DxSparkline from 'devextreme-vue/sparkline'
-import DxTreeMap from 'devextreme-vue/tree-map'
-import DxRangeSelector from 'devextreme-vue/range-selector'
+// ---- 表格类（Element Plus 封装：LcTable / LcTreeTable 替换 DevExtreme DataGrid/TreeList） ----
+import LcTable from './components/LcTable.vue'
+import LcTreeTable from './components/LcTreeTable.vue'
 
-// ---- 数据 ----
-import DxDataGrid from 'devextreme-vue/data-grid'
-import DxTreeList from 'devextreme-vue/tree-list'
-import DxList from 'devextreme-vue/list'
-import DxTreeView from 'devextreme-vue/tree-view'
-import DxPivotGrid from 'devextreme-vue/pivot-grid'
-import DxPivotGridFieldChooser from 'devextreme-vue/pivot-grid-field-chooser'
-import DxFilterBuilder from 'devextreme-vue/filter-builder'
-import DxScheduler from 'devextreme-vue/scheduler'
-import DxGantt from 'devextreme-vue/gantt'
-import DxFileManager from 'devextreme-vue/file-manager'
+// ---- 表单编辑类（Element Plus 封装） ----
+import ElTextBox from './components/ElTextBox.vue'
+import ElTextArea from './components/ElTextArea.vue'
+import ElNumberBox from './components/ElNumberBox.vue'
+import ElCheckBox from './components/ElCheckBox.vue'
+import ElSwitchBox from './components/ElSwitchBox.vue'
+import ElSliderBox from './components/ElSliderBox.vue'
+import ElRangeSlider from './components/ElRangeSlider.vue'
+import ElCalendarBox from './components/ElCalendarBox.vue'
+import ElDateBox from './components/ElDateBox.vue'
+import ElDateRangeBox from './components/ElDateRangeBox.vue'
+import ElColorBox from './components/ElColorBox.vue'
+import ElSelectBox from './components/ElSelectBox.vue'
+import ElLookup from './components/ElLookup.vue'
+import ElTagBox from './components/ElTagBox.vue'
+import ElAutocompleteBox from './components/ElAutocompleteBox.vue'
+import ElRadioGroupBox from './components/ElRadioGroupBox.vue'
+import ElDropDownBox from './components/ElDropDownBox.vue'
+import ElFileUploader from './components/ElFileUploader.vue'
+import ElHtmlEditor from './components/ElHtmlEditor.vue'
 
-// ---- 表单编辑 ----
-import DxTextBox from 'devextreme-vue/text-box'
-import DxTextArea from 'devextreme-vue/text-area'
-import DxNumberBox from 'devextreme-vue/number-box'
-import DxCheckBox from 'devextreme-vue/check-box'
-import DxSwitch from 'devextreme-vue/switch'
-import DxSlider from 'devextreme-vue/slider'
-import DxRangeSlider from 'devextreme-vue/range-slider'
-import DxCalendar from 'devextreme-vue/calendar'
-import DxDateBox from 'devextreme-vue/date-box'
-import DxDateRangeBox from 'devextreme-vue/date-range-box'
-import DxColorBox from 'devextreme-vue/color-box'
-import DxSelectBox from 'devextreme-vue/select-box'
-import DxLookup from 'devextreme-vue/lookup'
-import DxTagBox from 'devextreme-vue/tag-box'
-import DxAutocomplete from 'devextreme-vue/autocomplete'
-import DxRadioGroup from 'devextreme-vue/radio-group'
-import DxDropDownButton from 'devextreme-vue/drop-down-button'
-import DxDropDownBox from 'devextreme-vue/drop-down-box'
-import DxFileUploader from 'devextreme-vue/file-uploader'
-import DxHtmlEditor from 'devextreme-vue/html-editor'
+// ---- 操作类（Element Plus 封装） ----
+import ElButtonBox from './components/ElButtonBox.vue'
+import ElButtonGroupBox from './components/ElButtonGroupBox.vue'
+import ElDropDownButton from './components/ElDropDownButton.vue'
+import ElSpeedDialAction from './components/ElSpeedDialAction.vue'
+import ElProgressBarBox from './components/ElProgressBarBox.vue'
+import ElLoadIndicator from './components/ElLoadIndicator.vue'
 
-// ---- 导航 ----
-import DxToolbar from 'devextreme-vue/toolbar'
-import DxGallery from 'devextreme-vue/gallery'
-import DxSpeedDialAction from 'devextreme-vue/speed-dial-action'
+// ---- 导航类（Element Plus 封装） ----
+import ElToolbarBox from './components/ElToolbarBox.vue'
+import ElGalleryBox from './components/ElGalleryBox.vue'
 
+// ---- 弹层类（Element Plus 封装） ----
+import ElPopupBox from './components/ElPopupBox.vue'
+import ElToastBox from './components/ElToastBox.vue'
+import ElLoadPanelBox from './components/ElLoadPanelBox.vue'
 
-// ---- 布局 / 基础 ----
-import DxButtonGroup from 'devextreme-vue/button-group'
-import DxButton from 'devextreme-vue/button'
-import DxProgressBar from 'devextreme-vue/progress-bar'
-import DxLoadIndicator from 'devextreme-vue/load-indicator'
+// ---- 图表类（ECharts 封装） ----
+import ElChart from './components/ElChart.vue'
+import ElPieChart from './components/ElPieChart.vue'
+import ElPolarChart from './components/ElPolarChart.vue'
+import ElBarGauge from './components/ElBarGauge.vue'
+import ElBullet from './components/ElBullet.vue'
+import ElCircularGauge from './components/ElCircularGauge.vue'
+import ElLinearGauge from './components/ElLinearGauge.vue'
+import ElFunnel from './components/ElFunnel.vue'
+import ElSankey from './components/ElSankey.vue'
+import ElSparkline from './components/ElSparkline.vue'
+import ElTreeMap from './components/ElTreeMap.vue'
+import ElRangeSelector from './components/ElRangeSelector.vue'
 
-// ---- 弹层 ----
-import DxPopup from 'devextreme-vue/popup'
-import DxToast from 'devextreme-vue/toast'
-import DxLoadPanel from 'devextreme-vue/load-panel'
+// ---- 复杂数据类（第三方/自封装） ----
+import ElListBox from './components/ElListBox.vue'
+import ElTreeViewBox from './components/ElTreeViewBox.vue'
+import ElPivotGridBox from './components/ElPivotGridBox.vue'
+import ElPivotFieldChooser from './components/ElPivotFieldChooser.vue'
+import ElFilterBuilder from './components/ElFilterBuilder.vue'
+import ElSchedulerBox from './components/ElSchedulerBox.vue'
+import ElGanttBox from './components/ElGanttBox.vue'
+import ElFileManagerBox from './components/ElFileManagerBox.vue'
 
 /** 组件实现注册表 */
 export const dxComponents: Record<string, Component> = {
-  // 图表
-  'dx-chart': DxChart as Component,
-  'dx-pie-chart': DxPieChart as Component,
-  'dx-polar-chart': DxPolarChart as Component,
-  'dx-bar-gauge': DxBarGauge as Component,
-  'dx-bullet': DxBullet as Component,
-  'dx-circular-gauge': DxCircularGauge as Component,
-  'dx-linear-gauge': DxLinearGauge as Component,
-  'dx-funnel': DxFunnel as Component,
-  'dx-sankey': DxSankey as Component,
-  'dx-sparkline': DxSparkline as Component,
-  'dx-tree-map': DxTreeMap as Component,
-  'dx-range-selector': DxRangeSelector as Component,
-  // 数据
-  'dx-data-grid': DxDataGrid as Component,
-  'dx-tree-list': DxTreeList as Component,
-  'dx-list': DxList as Component,
-  'dx-tree-view': DxTreeView as Component,
-  'dx-pivot-grid': DxPivotGrid as Component,
-  'dx-pivot-field-chooser': DxPivotGridFieldChooser as Component,
-  'dx-filter-builder': DxFilterBuilder as Component,
-  'dx-scheduler': DxScheduler as Component,
-  'dx-gantt': DxGantt as Component,
-  'dx-file-manager': DxFileManager as Component,
-  // 表单
-  'dx-text-box': DxTextBox as Component,
-  'dx-text-area': DxTextArea as Component,
-  'dx-number-box': DxNumberBox as Component,
-  'dx-check-box': DxCheckBox as Component,
-  'dx-switch': DxSwitch as Component,
-  'dx-slider': DxSlider as Component,
-  'dx-range-slider': DxRangeSlider as Component,
-  'dx-calendar': DxCalendar as Component,
-  'dx-date-box': DxDateBox as Component,
-  'dx-date-range-box': DxDateRangeBox as Component,
-  'dx-color-box': DxColorBox as Component,
-  'dx-select-box': DxSelectBox as Component,
-  'dx-lookup': DxLookup as Component,
-  'dx-tag-box': DxTagBox as Component,
-  'dx-autocomplete': DxAutocomplete as Component,
-  'dx-radio-group': DxRadioGroup as Component,
-  'dx-drop-down-button': DxDropDownButton as Component,
-  'dx-drop-down-box': DxDropDownBox as Component,
-  'dx-file-uploader': DxFileUploader as Component,
-  'dx-html-editor': DxHtmlEditor as Component,
-  // 导航
-  'dx-toolbar': DxToolbar as Component,
-  'dx-gallery': DxGallery as Component,
-  'dx-speed-dial-action': DxSpeedDialAction as Component,
-
-  // 布局 / 基础
-  'dx-button-group': DxButtonGroup as Component,
-  'dx-button': DxButton as Component,
-  'dx-progress-bar': DxProgressBar as Component,
-  'dx-load-indicator': DxLoadIndicator as Component,
-  // 弹层
-  'dx-popup': DxPopup as Component,
-  'dx-toast': DxToast as Component,
-  'dx-load-panel': DxLoadPanel as Component,
+  // 图表（ECharts 封装）
+  'chart': ElChart as Component,
+  'pie-chart': ElPieChart as Component,
+  'polar-chart': ElPolarChart as Component,
+  'bar-gauge': ElBarGauge as Component,
+  'bullet': ElBullet as Component,
+  'circular-gauge': ElCircularGauge as Component,
+  'linear-gauge': ElLinearGauge as Component,
+  'funnel': ElFunnel as Component,
+  'sankey': ElSankey as Component,
+  'sparkline': ElSparkline as Component,
+  'tree-map': ElTreeMap as Component,
+  'range-selector': ElRangeSelector as Component,
+  // 数据（Element Plus 封装：LcTable / LcTreeTable）
+  'data-grid': LcTable as Component,
+  'tree-list': LcTreeTable as Component,
+  // 复杂数据（第三方/自封装）
+  'list': ElListBox as Component,
+  'tree-view': ElTreeViewBox as Component,
+  'pivot-grid': ElPivotGridBox as Component,
+  'pivot-field-chooser': ElPivotFieldChooser as Component,
+  'filter-builder': ElFilterBuilder as Component,
+  'scheduler': ElSchedulerBox as Component,
+  'gantt': ElGanttBox as Component,
+  'file-manager': ElFileManagerBox as Component,
+  // 表单（Element Plus 封装）
+  'text-box': ElTextBox as Component,
+  'text-area': ElTextArea as Component,
+  'number-box': ElNumberBox as Component,
+  'check-box': ElCheckBox as Component,
+  'switch': ElSwitchBox as Component,
+  'slider': ElSliderBox as Component,
+  'range-slider': ElRangeSlider as Component,
+  'calendar': ElCalendarBox as Component,
+  'date-box': ElDateBox as Component,
+  'date-range-box': ElDateRangeBox as Component,
+  'color-box': ElColorBox as Component,
+  'select-box': ElSelectBox as Component,
+  'lookup': ElLookup as Component,
+  'tag-box': ElTagBox as Component,
+  'autocomplete': ElAutocompleteBox as Component,
+  'radio-group': ElRadioGroupBox as Component,
+  'drop-down-box': ElDropDownBox as Component,
+  'file-uploader': ElFileUploader as Component,
+  'html-editor': ElHtmlEditor as Component,
+  // 导航（Element Plus 封装）
+  'toolbar': ElToolbarBox as Component,
+  'gallery': ElGalleryBox as Component,
+  // 操作（Element Plus 封装）
+  'button-group': ElButtonGroupBox as Component,
+  'button': ElButtonBox as Component,
+  'progress-bar': ElProgressBarBox as Component,
+  'load-indicator': ElLoadIndicator as Component,
+  'drop-down-button': ElDropDownButton as Component,
+  'speed-dial-action': ElSpeedDialAction as Component,
+  // 弹层（Element Plus 封装）
+  'popup': ElPopupBox as Component,
+  'toast': ElToastBox as Component,
+  'load-panel': ElLoadPanelBox as Component,
 }
+
+/** 保留 DevExtreme 实现的物料 type（表格已全部迁移到 Element Plus 封装，无保留项） */
+export const DEVEXTREME_TYPES = new Set<string>([])
+
+/** 所有物料 type 集合 */
+export const MATERIAL_TYPES = new Set(Object.keys(dxComponents))
 
 // ---------- 通用设置器 ----------
 
@@ -203,7 +211,7 @@ const pivotDataSource = {
 export const dxMaterialConfigs: MaterialConfig[] = [
   // ==================== 图表 ====================
   {
-    type: 'dx-chart',
+    type: 'chart',
     title: '图表',
     enName: 'Chart',
     category: '图表',
@@ -233,7 +241,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     ],
   },
   {
-    type: 'dx-pie-chart',
+    type: 'pie-chart',
     title: '饼图',
     enName: 'PieChart',
     category: '图表',
@@ -247,7 +255,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), jsonSetter('series', '系列配置'), heightSetter, jsonSetter('legend', '图例'), s('title', '标题', 'input')],
   },
   {
-    type: 'dx-polar-chart',
+    type: 'polar-chart',
     title: '极坐标图',
     enName: 'PolarChart',
     category: '图表',
@@ -261,7 +269,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), jsonSetter('series', '系列配置'), heightSetter],
   },
   {
-    type: 'dx-bar-gauge',
+    type: 'bar-gauge',
     title: '条形仪表盘',
     enName: 'BarGauge',
     category: '图表',
@@ -276,7 +284,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('values', '数值组'), s('startValue', '起始值', 'number'), s('endValue', '结束值', 'number'), heightSetter, widthSetter],
   },
   {
-    type: 'dx-bullet',
+    type: 'bullet',
     title: '子弹图',
     enName: 'Bullet',
     category: '图表',
@@ -285,7 +293,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '数值', 'number'), s('startScaleValue', '起始值', 'number'), s('endScaleValue', '结束值', 'number'), s('color', '颜色', 'color'), widthSetter, heightSetter],
   },
   {
-    type: 'dx-circular-gauge',
+    type: 'circular-gauge',
     title: '圆形仪表',
     enName: 'CircularGauge',
     category: '图表',
@@ -299,7 +307,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '数值', 'number'), jsonSetter('scale', '刻度'), heightSetter, widthSetter],
   },
   {
-    type: 'dx-linear-gauge',
+    type: 'linear-gauge',
     title: '线性仪表',
     enName: 'LinearGauge',
     category: '图表',
@@ -313,7 +321,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '数值', 'number'), jsonSetter('scale', '刻度'), heightSetter, widthSetter],
   },
   {
-    type: 'dx-funnel',
+    type: 'funnel',
     title: '漏斗图',
     enName: 'Funnel',
     category: '图表',
@@ -332,7 +340,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), s('argumentField', '分类字段', 'input'), s('valueField', '数值字段', 'input'), heightSetter],
   },
   {
-    type: 'dx-sankey',
+    type: 'sankey',
     title: '桑基图',
     enName: 'Sankey',
     category: '图表',
@@ -351,7 +359,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), s('sourceField', '来源字段', 'input'), s('targetField', '目标字段', 'input'), s('weightField', '权重字段', 'input'), heightSetter],
   },
   {
-    type: 'dx-sparkline',
+    type: 'sparkline',
     title: '迷你图',
     enName: 'Sparkline',
     category: '图表',
@@ -377,7 +385,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     ],
   },
   {
-    type: 'dx-tree-map',
+    type: 'tree-map',
     title: '矩形树图',
     enName: 'TreeMap',
     category: '图表',
@@ -394,7 +402,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), s('valueField', '数值字段', 'input'), s('labelField', '标签字段', 'input'), heightSetter],
   },
   {
-    type: 'dx-range-selector',
+    type: 'range-selector',
     title: '范围选择器',
     enName: 'RangeSelector',
     category: '图表',
@@ -410,7 +418,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
 
   // ==================== 数据 ====================
   {
-    type: 'dx-data-grid',
+    type: 'data-grid',
     title: '数据表格',
     enName: 'DataGrid',
     category: '数据',
@@ -431,6 +439,21 @@ export const dxMaterialConfigs: MaterialConfig[] = [
       showBorders: true,
       columnAutoWidth: true,
       wordWrapEnabled: true,
+      showOverflow: true,
+      showHeaderOverflow: true,
+      showSeq: true,
+      seqWidth: 60,
+      autoResize: true,
+      size: 'mini',
+      stripe: true,
+      round: false,
+      showFooter: false,
+      showFooterOverflow: true,
+      keepSource: false,
+      virtualScroll: false,
+      virtualScrollThreshold: 60,
+      columnPersistence: false,
+      editShowStatus: true,
       paging: { pageSize: 15, enabled: true },
       pager: {
         showPageSizeSelector: true,
@@ -439,12 +462,10 @@ export const dxMaterialConfigs: MaterialConfig[] = [
         showNavigationButtons: true,
       },
       filterRow: { visible: true },
-      syncLookupFilterValues: false,
       headerFilter: { visible: false },
-      searchPanel: { visible: false },
       sorting: { mode: 'single' },
       selection: { mode: 'multiple', showCheckBoxesMode: 'onClick' },
-      editing: { mode: 'row', allowAdding: false, allowUpdating: false, allowDeleting: false },
+      editing: { mode: 'cell', allowAdding: false, allowUpdating: false, allowDeleting: false },
       toolbar: {
         visible: false,
         items: [
@@ -452,12 +473,12 @@ export const dxMaterialConfigs: MaterialConfig[] = [
           { name: 'delete', caption: '删除', icon: 'trash', location: 'before', visible: false, isCustom: false },
           { name: 'edit', caption: '编辑', icon: 'edit', location: 'before', visible: false, isCustom: false, openPage: { pageId: '__current__', bizMode: 'form', passSelectedRow: true } },
           { name: 'export', caption: '导出', icon: 'export', location: 'after', visible: false, isCustom: false, itemType: 'dropdown', children: [
+            { name: 'export_page', caption: '页面数据导出', icon: 'export', location: 'after', visible: true, isCustom: false },
             { name: 'export_selected', caption: '选中导出', icon: 'export', location: 'after', visible: true, isCustom: false },
             { name: 'export_query', caption: '查询导出', icon: 'export', location: 'after', visible: true, isCustom: false },
-            { name: 'export_template_selected', caption: '模板选中导出', icon: 'download', location: 'after', visible: true, isCustom: false },
-            { name: 'export_template_query', caption: '模板查询导出', icon: 'download', location: 'after', visible: true, isCustom: false },
           ] },
           { name: 'refresh', caption: '刷新', icon: 'refresh', location: 'after', visible: false, isCustom: false },
+          { name: 'columnConfig', caption: '列配置', icon: 'settings', location: 'after', visible: false, isCustom: false },
           { name: 'save', caption: '保存', icon: 'save', location: 'after', visible: false, isCustom: false },
           { name: 'cancel', caption: '取消', icon: 'revert', location: 'after', visible: false, isCustom: false },
         ],
@@ -491,36 +512,21 @@ export const dxMaterialConfigs: MaterialConfig[] = [
       s('pager.showNavigationButtons', '显示导航按钮', 'switch'),
       // ---- 编辑 ----
       s('editing.mode', '编辑模式', 'select', [
-        { label: '行', value: 'row' },
-        { label: '批量', value: 'batch' },
         { label: '单元格', value: 'cell' },
-        { label: '表单', value: 'form' },
-        { label: '弹窗', value: 'popup' },
+        { label: '行', value: 'row' },
       ]),
-      s('editing.allowAdding', '允许新增', 'switch'),
-      s('editing.allowUpdating', '允许修改', 'switch'),
-      s('editing.allowDeleting', '允许删除', 'switch'),
       // ---- 选择 ----
       s('selection.mode', '选择模式', 'select', [
         { label: '无', value: 'none' },
         { label: '单选', value: 'single' },
         { label: '多选', value: 'multiple' },
       ]),
-      s('selection.showCheckBoxesMode', '选择列显示', 'select', [
-        { label: '点击显示', value: 'onClick' },
-        { label: '长按显示', value: 'onLongTap' },
-        { label: '始终显示', value: 'always' },
-        { label: '隐藏', value: 'none' },
-      ]),
-      // ---- 排序 & 搜索 & 筛选 ----
+      // ---- 排序 & 筛选 ----
       s('sorting.mode', '排序模式', 'select', [
         { label: '单列', value: 'single' },
         { label: '多列', value: 'multiple' },
         { label: '禁用', value: 'none' },
       ]),
-      s('searchPanel.visible', '搜索面板', 'switch'),
-      s('searchPanel.highlightSearchText', '高亮搜索文本', 'switch'),
-      s('searchPanel.searchVisibleColumnsOnly', '仅搜索可见列', 'switch'),
       s('filterRow.visible', '行筛选', 'switch'),
       s('filterRow.operation', '行筛选默认操作', 'select', [
         { label: '等于', value: '=' },
@@ -535,14 +541,17 @@ export const dxMaterialConfigs: MaterialConfig[] = [
         { label: '以...开头', value: 'startswith' },
         { label: '以...结尾', value: 'endswith' },
       ]),
-      s('filterRow.applyFilter', '行筛选应用时机', 'select', [
-        { label: '自动', value: 'auto' },
-        { label: '点击应用', value: 'onClick' },
-      ]),
       s('headerFilter.visible', '表头筛选', 'switch'),
-      s('headerFilter.allowSearch', '表头筛选搜索', 'switch'),
       // ---- 外观样式 ----
       heightSetter,
+      s('size', '尺寸模式', 'select', [
+        { label: '超紧凑', value: 'mini' },
+        { label: '紧凑', value: 'small' },
+        { label: '中等(默认)', value: 'medium' },
+        { label: '宽松', value: 'large' },
+        { label: '超宽松', value: 'xlarge' },
+      ]),
+      s('stripe', '斑马纹', 'switch'),
       s('showBorders', '边框', 'switch'),
       s('showRowLines', '行线', 'switch'),
       s('showColumnLines', '列线', 'switch'),
@@ -550,18 +559,77 @@ export const dxMaterialConfigs: MaterialConfig[] = [
       s('allowColumnReordering', '列可拖拽排序', 'switch'),
       s('allowColumnResizing', '列可调整宽度', 'switch'),
       s('wordWrapEnabled', '单词换行', 'switch'),
+      s('showOverflow', '内容超出提示', 'switch'),
+      s('showHeaderOverflow', '表头超出提示', 'switch'),
+      s('showSeq', '显示行号', 'switch'),
+      s('seqWidth', '行号列宽', 'number'),
+      s('autoResize', '自动响应式', 'switch'),
       // ---- 弹窗配置 ----
-      s('modalConfig.width', '弹窗宽度', 'number'),
-      s('modalConfig.height', '弹窗高度', 'number'),
-      s('modalConfig.maximizable', '允许最大化', 'switch'),
       s('modalConfig.draggable', '允许拖动', 'switch'),
       // ---- 高级配置 ----
       jsonSetter('grouping', '分组高级配置'),
       s('summary', '汇总高级配置', 'summary'),
+      s('minHeight', '最小高度', 'input'),
+      s('maxHeight', '最大高度', 'input'),
+      s('round', '圆角边框', 'switch'),
+      s('align', '全局对齐', 'select', [
+        { label: '左对齐', value: 'left' },
+        { label: '居中', value: 'center' },
+        { label: '右对齐', value: 'right' },
+      ]),
+      s('headerAlign', '表头对齐', 'select', [
+        { label: '左对齐', value: 'left' },
+        { label: '居中', value: 'center' },
+        { label: '右对齐', value: 'right' },
+      ]),
+      s('footerAlign', '表尾对齐', 'select', [
+        { label: '左对齐', value: 'left' },
+        { label: '居中', value: 'center' },
+        { label: '右对齐', value: 'right' },
+      ]),
+      s('showFooter', '显示表尾', 'switch'),
+      s('showFooterOverflow', '表尾超出提示', 'switch'),
+      jsonSetter('footerMethod', '表尾方法'),
+      jsonSetter('footerData', '表尾数据'),
+      s('editTrigger', '编辑触发方式', 'select', [
+        { label: '双击', value: 'dblclick' },
+        { label: '单击', value: 'click' },
+      ]),
+      s('editShowStatus', '显示编辑状态', 'switch'),
+      s('editAutoClear', '编辑结束自动清空', 'switch'),
+      s('keepSource', '保留原始值', 'switch'),
+      jsonSetter('editRules', '编辑校验规则'),
+      jsonSetter('treeConfig', '树形配置'),
+      jsonSetter('expandConfig', '展开行配置'),
+      jsonSetter('rowDragConfig', '行拖拽排序配置'),
+      s('virtualScroll', '纵向虚拟滚动', 'switch'),
+      s('virtualScrollThreshold', '虚拟滚动阈值', 'number'),
+      s('columnPersistence', '列配置持久化', 'switch'),
+      jsonSetter('virtualXConfig', '横向虚拟滚动配置'),
+      jsonSetter('customConfig', '个性化配置(高级)'),
+      jsonSetter('scrollbarConfig', '滚动条配置'),
+      jsonSetter('tooltipConfig', '单元格提示配置'),
+      jsonSetter('headerTooltipConfig', '表头提示配置'),
+      jsonSetter('radioConfig', '单选框配置'),
+      jsonSetter('menuConfig', '右键菜单配置'),
+      jsonSetter('keyboardConfig', '键盘导航配置'),
+      jsonSetter('clipConfig', '复制粘贴配置'),
+      jsonSetter('fnrConfig', '查找替换配置'),
+      jsonSetter('zoomConfig', '缩放配置'),
+      jsonSetter('seqConfig', '序号列配置'),
+      jsonSetter('spanMethod', '合并单元格方法'),
+      jsonSetter('mergeCells', '合并单元格配置'),
+      jsonSetter('mergeHeaderCells', '合并表头配置'),
+      jsonSetter('aggregateConfig', '数据聚合配置'),
+      jsonSetter('emptyRender', '空内容渲染'),
+      jsonSetter('importConfig', '导入配置'),
+      jsonSetter('printConfig', '打印配置'),
+      jsonSetter('nativeExportConfig', '原生导出配置'),
+      jsonSetter('undoRedoHistoryConfig', '撤销恢复配置'),
     ],
   },
   {
-    type: 'dx-tree-list',
+    type: 'tree-list',
     title: '树形表格',
     enName: 'TreeList',
     category: '数据',
@@ -586,7 +654,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), jsonSetter('columns', '列配置'), heightSetter, s('showBorders', '边框', 'switch')],
   },
   {
-    type: 'dx-list',
+    type: 'list',
     title: '列表',
     enName: 'List',
     category: '数据',
@@ -600,7 +668,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '列表项'), heightSetter, widthSetter, s('searchEnabled', '搜索', 'switch'), s('selectionMode', '选择模式', 'select', [{ label: '无', value: 'none' }, { label: '单选', value: 'single' }, { label: '多选', value: 'multiple' }])],
   },
   {
-    type: 'dx-tree-view',
+    type: 'tree-view',
     title: '树形控件',
     enName: 'TreeView',
     category: '数据',
@@ -627,7 +695,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     ],
   },
   {
-    type: 'dx-pivot-grid',
+    type: 'pivot-grid',
     title: '数据透视表',
     enName: 'PivotGrid',
     category: '数据',
@@ -636,7 +704,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), heightSetter, s('showBorders', '边框', 'switch')],
   },
   {
-    type: 'dx-pivot-field-chooser',
+    type: 'pivot-field-chooser',
     title: '透视字段选择器',
     enName: 'PivotGridFieldChooser',
     category: '数据',
@@ -645,7 +713,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '数据源'), heightSetter],
   },
   {
-    type: 'dx-filter-builder',
+    type: 'filter-builder',
     title: '筛选构造器',
     enName: 'FilterBuilder',
     category: '数据',
@@ -661,7 +729,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('fields', '字段定义'), jsonSetter('value', '筛选值'), heightSetter],
   },
   {
-    type: 'dx-scheduler',
+    type: 'scheduler',
     title: '日程表',
     enName: 'Scheduler',
     category: '数据',
@@ -676,7 +744,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('dataSource', '日程数据'), s('currentDate', '当前日期', 'input'), s('currentView', '视图', 'select', [{ label: '日', value: 'day' }, { label: '周', value: 'week' }, { label: '月', value: 'month' }]), heightSetter],
   },
   {
-    type: 'dx-gantt',
+    type: 'gantt',
     title: '甘特图',
     enName: 'Gantt',
     category: '数据',
@@ -689,7 +757,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('tasks', '任务数据'), heightSetter],
   },
   {
-    type: 'dx-file-manager',
+    type: 'file-manager',
     title: '文件管理器',
     enName: 'FileManager',
     category: '数据',
@@ -699,7 +767,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
   },
   // ==================== 表单编辑 ====================
   {
-    type: 'dx-text-box',
+    type: 'text-box',
     title: '单行输入',
     enName: 'TextBox',
     category: '表单',
@@ -708,7 +776,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认值', 'input'), s('placeholder', '占位文字', 'input'), s('mode', '输入类型', 'select', [{ label: '文本', value: 'text' }, { label: '邮箱', value: 'email' }, { label: '密码', value: 'password' }, { label: '电话', value: 'tel' }]), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-text-area',
+    type: 'text-area',
     title: '多行输入',
     enName: 'TextArea',
     category: '表单',
@@ -717,16 +785,16 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认值', 'textarea'), s('placeholder', '占位文字', 'input'), widthSetter, heightSetter, disabledSetter],
   },
   {
-    type: 'dx-number-box',
+    type: 'number-box',
     title: '数字输入',
     enName: 'NumberBox',
     category: '表单',
     icon: '#',
-    defaultProps: { value: 0, showSpinButtons: true, width: 180 },
-    propSetters: [s('value', '默认值', 'number'), s('min', '最小值', 'number'), s('max', '最大值', 'number'), s('step', '步长', 'number'), s('showSpinButtons', '步进按钮', 'switch'), widthSetter, disabledSetter],
+    defaultProps: { showSpinButtons: true, controlsPosition: 'right', prefix: '', suffix: '', width: 180 },
+    propSetters: [s('value', '默认值', 'number'), s('min', '最小值', 'number'), s('max', '最大值', 'number'), s('step', '步长', 'number'), s('showSpinButtons', '步进按钮', 'switch'), s('controlsPosition', '按钮位置', 'select', [{ label: '默认', value: '' }, { label: '右侧', value: 'right' }]), s('prefix', '前缀', 'input'), s('suffix', '后缀', 'input'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-check-box',
+    type: 'check-box',
     title: '复选框',
     enName: 'CheckBox',
     category: '表单',
@@ -735,7 +803,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('text', '文字', 'input'), s('value', '选中', 'switch'), disabledSetter],
   },
   {
-    type: 'dx-switch',
+    type: 'switch',
     title: '开关',
     enName: 'Switch',
     category: '表单',
@@ -744,7 +812,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '开启', 'switch'), disabledSetter],
   },
   {
-    type: 'dx-slider',
+    type: 'slider',
     title: '滑块',
     enName: 'Slider',
     category: '表单',
@@ -753,7 +821,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认值', 'number'), s('min', '最小值', 'number'), s('max', '最大值', 'number'), s('step', '步长', 'number'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-range-slider',
+    type: 'range-slider',
     title: '范围滑块',
     enName: 'RangeSlider',
     category: '表单',
@@ -762,7 +830,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('value', '范围值'), s('min', '最小值', 'number'), s('max', '最大值', 'number'), widthSetter],
   },
   {
-    type: 'dx-calendar',
+    type: 'calendar',
     title: '日历',
     enName: 'Calendar',
     category: '表单',
@@ -771,7 +839,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '选中日期', 'input'), s('zoomLevel', '视图层级', 'select', [{ label: '月', value: 'month' }, { label: '年', value: 'year' }, { label: '十年', value: 'decade' }, { label: '世纪', value: 'century' }]), widthSetter],
   },
   {
-    type: 'dx-date-box',
+    type: 'date-box',
     title: '日期选择',
     enName: 'DateBox',
     category: '表单',
@@ -780,7 +848,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认值', 'input'), s('type', '类型', 'select', [{ label: '日期', value: 'date' }, { label: '时间', value: 'time' }, { label: '日期时间', value: 'datetime' }]), s('placeholder', '占位文字', 'input'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-date-range-box',
+    type: 'date-range-box',
     title: '日期范围',
     enName: 'DateRangeBox',
     category: '表单',
@@ -789,7 +857,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('value', '范围值'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-color-box',
+    type: 'color-box',
     title: '颜色选择',
     enName: 'ColorBox',
     category: '表单',
@@ -798,7 +866,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认颜色', 'color'), s('editAlphaChannel', '透明度', 'switch'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-select-box',
+    type: 'select-box',
     title: '下拉选择',
     enName: 'SelectBox',
     category: '表单',
@@ -807,7 +875,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '默认值', 'itemsSelect'), s('items', '选项', 'optionsEditor'), s('placeholder', '占位文字', 'input'), s('searchEnabled', '可搜索', 'switch'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-lookup',
+    type: 'lookup',
     title: '查找选择',
     enName: 'Lookup',
     category: '表单',
@@ -816,7 +884,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '选项'), s('placeholder', '占位文字', 'input'), s('searchEnabled', '可搜索', 'switch'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-tag-box',
+    type: 'tag-box',
     title: '标签选择',
     enName: 'TagBox',
     category: '表单',
@@ -825,7 +893,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '选项'), jsonSetter('value', '选中值'), s('placeholder', '占位文字', 'input'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-autocomplete',
+    type: 'autocomplete',
     title: '自动补全',
     enName: 'Autocomplete',
     category: '表单',
@@ -834,7 +902,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '候选项'), s('placeholder', '占位文字', 'input'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-radio-group',
+    type: 'radio-group',
     title: '单选组',
     enName: 'RadioGroup',
     category: '表单',
@@ -843,7 +911,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '选项'), s('value', '默认值', 'input'), s('layout', '排列方式', 'select', [{ label: '水平', value: 'horizontal' }, { label: '垂直', value: 'vertical' }]), widthSetter, heightSetter, disabledSetter],
   },
   {
-    type: 'dx-drop-down-button',
+    type: 'drop-down-button',
     title: '下拉按钮',
     enName: 'DropDownButton',
     category: '操作',
@@ -852,7 +920,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('text', '按钮文字', 'input'), jsonSetter('items', '选项'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-drop-down-box',
+    type: 'drop-down-box',
     title: '下拉容器',
     enName: 'DropDownBox',
     category: '表单',
@@ -861,7 +929,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('placeholder', '占位文字', 'input'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-file-uploader',
+    type: 'file-uploader',
     title: '文件上传',
     enName: 'FileUploader',
     category: '表单',
@@ -870,7 +938,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('labelText', '提示文字', 'input'), s('selectButtonText', '按钮文字', 'input'), s('multiple', '多文件', 'switch'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-html-editor',
+    type: 'html-editor',
     title: '富文本编辑器',
     enName: 'HtmlEditor',
     category: '表单',
@@ -881,7 +949,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
 
   // ==================== 导航 ====================
   {
-    type: 'dx-toolbar',
+    type: 'toolbar',
     title: '工具栏',
     enName: 'Toolbar',
     category: '导航',
@@ -893,7 +961,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '工具栏项'), widthSetter],
   },
   {
-    type: 'dx-gallery',
+    type: 'gallery',
     title: '画廊',
     enName: 'Gallery',
     category: '导航',
@@ -902,7 +970,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '画廊项'), widthSetter, heightSetter, s('showNavButtons', '导航按钮', 'switch'), s('loop', '循环', 'switch')],
   },
   {
-    type: 'dx-speed-dial-action',
+    type: 'speed-dial-action',
     title: '悬浮操作按钮',
     enName: 'SpeedDialAction',
     category: '操作',
@@ -914,7 +982,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
 
   // ==================== 布局 ====================
   {
-    type: 'dx-button-group',
+    type: 'button-group',
     title: '按钮组',
     enName: 'ButtonGroup',
     category: '操作',
@@ -923,7 +991,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [jsonSetter('items', '按钮项'), s('selectionMode', '选择模式', 'select', [{ label: '单选', value: 'single' }, { label: '多选', value: 'multiple' }, { label: '无', value: 'none' }]), disabledSetter],
   },
   {
-    type: 'dx-button',
+    type: 'button',
     title: '按钮',
     enName: 'Button',
     category: '操作',
@@ -945,7 +1013,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     ],
   },
   {
-    type: 'dx-progress-bar',
+    type: 'progress-bar',
     title: '进度条',
     enName: 'ProgressBar',
     category: '操作',
@@ -954,7 +1022,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('value', '进度', 'number'), s('min', '最小值', 'number'), s('max', '最大值', 'number'), s('showStatus', '显示百分比', 'switch'), widthSetter, disabledSetter],
   },
   {
-    type: 'dx-load-indicator',
+    type: 'load-indicator',
     title: '加载指示器',
     enName: 'LoadIndicator',
     category: '操作',
@@ -965,7 +1033,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
 
   // ==================== 弹层 ====================
   {
-    type: 'dx-popup',
+    type: 'popup',
     title: '弹出框',
     enName: 'Popup',
     category: '弹层',
@@ -974,7 +1042,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('visible', '显示', 'switch'), s('title', '标题', 'input'), widthSetter, heightSetter, s('showTitle', '显示标题', 'switch'), s('hideOnOutsideClick', '点击外部关闭', 'switch')],
   },
   {
-    type: 'dx-toast',
+    type: 'toast',
     title: '轻提示',
     enName: 'Toast',
     category: '弹层',
@@ -983,7 +1051,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
     propSetters: [s('visible', '显示', 'switch'), s('message', '消息', 'input'), s('type', '类型', 'select', [{ label: '信息', value: 'info' }, { label: '成功', value: 'success' }, { label: '警告', value: 'warning' }, { label: '错误', value: 'error' }])],
   },
   {
-    type: 'dx-load-panel',
+    type: 'load-panel',
     title: '加载遮罩',
     enName: 'LoadPanel',
     category: '弹层',
@@ -1017,11 +1085,11 @@ const labelPropSetters: PropSetterConfig[] = [
 ]
 
 const FORM_CONTROL_TYPES = new Set([
-  'dx-text-box', 'dx-text-area', 'dx-number-box', 'dx-check-box', 'dx-switch',
-  'dx-slider', 'dx-range-slider', 'dx-calendar', 'dx-date-box', 'dx-date-range-box',
-  'dx-color-box', 'dx-select-box', 'dx-lookup', 'dx-tag-box', 'dx-autocomplete',
-  'dx-radio-group', 'dx-drop-down-button', 'dx-drop-down-box',
-  'dx-file-uploader', 'dx-html-editor',
+  'text-box', 'text-area', 'number-box', 'check-box', 'switch',
+  'slider', 'range-slider', 'calendar', 'date-box', 'date-range-box',
+  'color-box', 'select-box', 'lookup', 'tag-box', 'autocomplete',
+  'radio-group', 'drop-down-button', 'drop-down-box',
+  'file-uploader', 'html-editor',
 ])
 
 for (const mat of dxMaterialConfigs) {
@@ -1029,7 +1097,7 @@ for (const mat of dxMaterialConfigs) {
     mat.defaultProps = { ...labelDefaultProps, label: mat.title, ...mat.defaultProps }
     mat.propSetters = [...mat.propSetters, ...labelPropSetters]
   }
-  if (mat.type.startsWith('dx-') && mat.defaultProps.visible === undefined) {
+  if (MATERIAL_TYPES.has(mat.type) && mat.defaultProps.visible === undefined) {
     mat.defaultProps.visible = true
   }
 }

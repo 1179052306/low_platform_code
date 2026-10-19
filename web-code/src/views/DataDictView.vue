@@ -11,8 +11,9 @@ import {
   ElMessage,
   ElMessageBox,
 } from 'element-plus'
-import DxDataGrid, { DxColumn, DxToolbar, DxItem } from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
+import LcTable from '@/materials/components/LcTable.vue'
+import type { LcColumn } from '@/materials/components/LcTable.vue'
+
 import { t } from '@/store/lang'
 import type { DataDict, DataDictItem } from '@/types/dict'
 import {
@@ -32,6 +33,19 @@ const showDictDialog = ref(false)
 const editingDict = ref<DataDict | null>(null)
 const showItemDialog = ref(false)
 const editingItem = ref<DataDictItem | null>(null)
+
+const dictColumns = computed<LcColumn[]>(() => [
+  { dataField: 'code', caption: t('编码'), width: 140 },
+  { dataField: 'name', caption: t('名称') },
+  { dataField: 'enabled', caption: t('启用'), width: 60, dataType: 'boolean' },
+])
+
+const dictItemColumns = computed<LcColumn[]>(() => [
+  { dataField: 'value', caption: t('值'), width: 120 },
+  { dataField: 'label', caption: t('标签') },
+  { dataField: 'sortNo', caption: t('排序'), width: 70 },
+  { dataField: 'enabled', caption: t('启用'), width: 60, dataType: 'boolean' },
+])
 
 async function refreshDicts() {
   try {
@@ -164,11 +178,22 @@ async function onDeleteItem(item: DataDictItem) {
       <!-- 左侧：字典列表 -->
       <div class="dict-list-panel">
         <div class="dict-panel-title">{{ t('数据字典') }}</div>
-        <DxDataGrid
+        <div class="dict-toolbar">
+          <ElButton type="default" @click="addDict">{{ t('新增字典') }}</ElButton>
+          <ElButton
+            :disabled="!selectedDict"
+            @click="() => { if (selectedDict) editDict(selectedDict) }"
+          >{{ t('编辑') }}</ElButton>
+          <ElButton
+            :disabled="!selectedDict"
+            @click="() => { if (selectedDict) onDeleteDict(selectedDict) }"
+          >{{ t('删除') }}</ElButton>
+        </div>
+        <LcTable
           class="dict-grid"
           :data-source="dictList"
+          :columns="dictColumns"
           :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-          :hover-state-enabled="true"
           :show-borders="true"
           :show-column-lines="false"
           :show-row-lines="true"
@@ -176,36 +201,7 @@ async function onDeleteItem(item: DataDictItem) {
           height="100%"
           key-expr="code"
           @selection-changed="onDictSelectionChanged"
-        >
-          <DxColumn data-field="code" :caption="t('编码')" :width="140" />
-          <DxColumn data-field="name" :caption="t('名称')" />
-          <DxColumn data-field="enabled" :caption="t('启用')" :width="60" data-type="boolean" />
-          <DxToolbar>
-            <DxItem location="after">
-              <template #default>
-                <DxButton :text="t('新增字典')" type="default" @click="addDict" />
-              </template>
-            </DxItem>
-            <DxItem location="after">
-              <template #default>
-                <DxButton
-                  :text="t('编辑')"
-                  :disabled="!selectedDict"
-                  @click="() => { if (selectedDict) editDict(selectedDict) }"
-                />
-              </template>
-            </DxItem>
-            <DxItem location="after">
-              <template #default>
-                <DxButton
-                  :text="t('删除')"
-                  :disabled="!selectedDict"
-                  @click="() => { if (selectedDict) onDeleteDict(selectedDict) }"
-                />
-              </template>
-            </DxItem>
-          </DxToolbar>
-        </DxDataGrid>
+        />
       </div>
       <!-- 右侧：字典项列表 -->
       <div class="dict-items-panel">
@@ -213,46 +209,27 @@ async function onDeleteItem(item: DataDictItem) {
           {{ t('字典项') }}
           <span v-if="selectedDict" class="dict-current">— {{ selectedDict.name }}</span>
         </div>
-        <DxDataGrid
+        <div class="dict-toolbar">
+          <ElButton type="default" @click="addItem">{{ t('新增项') }}</ElButton>
+          <ElButton
+            @click="() => { if (dictItems[0]) editItem(dictItems[0]) }"
+          >{{ t('编辑') }}</ElButton>
+          <ElButton
+            @click="() => { if (dictItems[0]) onDeleteItem(dictItems[0]) }"
+          >{{ t('删除') }}</ElButton>
+        </div>
+        <LcTable
           v-if="selectedDict"
           class="dict-grid"
           :data-source="dictItems"
-          :hover-state-enabled="true"
+          :columns="dictItemColumns"
           :show-borders="true"
           :show-column-lines="false"
           :show-row-lines="true"
           :paging="{ enabled: false }"
           height="100%"
           key-expr="id"
-        >
-          <DxColumn data-field="value" :caption="t('值')" :width="120" />
-          <DxColumn data-field="label" :caption="t('标签')" />
-          <DxColumn data-field="sortNo" :caption="t('排序')" :width="70" />
-          <DxColumn data-field="enabled" :caption="t('启用')" :width="60" data-type="boolean" />
-          <DxToolbar>
-            <DxItem location="after">
-              <template #default>
-                <DxButton :text="t('新增项')" type="default" @click="addItem" />
-              </template>
-            </DxItem>
-            <DxItem location="after">
-              <template #default>
-                <DxButton
-                  :text="t('编辑')"
-                  @click="() => { if (dictItems[0]) editItem(dictItems[0]) }"
-                />
-              </template>
-            </DxItem>
-            <DxItem location="after">
-              <template #default>
-                <DxButton
-                  :text="t('删除')"
-                  @click="() => { if (dictItems[0]) onDeleteItem(dictItems[0]) }"
-                />
-              </template>
-            </DxItem>
-          </DxToolbar>
-        </DxDataGrid>
+        />
         <div v-else class="dict-items-empty">
           {{ t('请选择左侧字典') }}
         </div>
@@ -350,6 +327,12 @@ async function onDeleteItem(item: DataDictItem) {
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 600;
+  border-bottom: 1px solid #f0f0f0;
+}
+.dict-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
 }
 .dict-current {

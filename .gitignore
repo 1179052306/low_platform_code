@@ -33,3 +33,12 @@ Thumbs.db
 # 环境变量
 .env
 .env.local
+# 临时调试文件
+final2.txt
+final_renderer.txt
+fixed_renderer.txt
+orig_section.txt
+orig_toolbar.txt
+original_gridToolbar.txt
+check_span.py
+nul

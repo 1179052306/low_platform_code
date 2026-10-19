@@ -78,7 +78,9 @@ export const pageModal = {
       selectMode: options.selectMode ?? false,
     }
     const bizMode = options.bizMode ?? 'form'
-    const schema = JSON.parse(JSON.stringify(page.bizSchemas?.[bizMode] ?? page.root))
+    const formSchema = page.bizSchemas?.[bizMode]
+
+    const schema = JSON.parse(JSON.stringify(formSchema && formSchema.length ? formSchema : page.root))
     const computeRules = page.computeRules
     return new Promise<unknown>((resolve, reject) => {
       modalStack.value.push({

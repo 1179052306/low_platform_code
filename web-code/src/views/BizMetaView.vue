@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElSwitch,
   ElButton, ElMessage, ElMessageBox, ElTabs, ElTabPane, ElEmpty,
 } from 'element-plus'
-import DxDataGrid, { DxColumn } from 'devextreme-vue/data-grid'
+import LcTable from '@/materials/components/LcTable.vue'
 import { t } from '@/store/lang'
 import {
   listBizMeta, saveBizMeta, deleteBizMeta,
@@ -40,6 +40,42 @@ async function refreshBiz() {
   bizList.value = await listBizMeta()
 }
 onMounted(() => { refreshBiz() })
+
+const bizColumns = computed(() => [
+  { dataField: 'bizCode', caption: t('业务编码'), width: 140 },
+  { dataField: 'bizName', caption: t('业务名称'), width: 120 },
+  { dataField: 'mainTable', caption: t('主表'), width: 120 },
+  { dataField: '_op', caption: t('操作'), width: 120, cellTemplate: 'bizActionTpl' },
+])
+const fieldColumns = computed(() => [
+  { dataField: 'fieldName', caption: t('字段名'), width: 140 },
+  { dataField: 'columnType', caption: t('列类型'), width: 120 },
+  { dataField: 'dataType', caption: t('数据类型'), width: 100 },
+  { dataField: 'isRequired', caption: t('必填'), width: 60 },
+  { dataField: 'isUnique', caption: t('唯一'), width: 60 },
+  { dataField: 'defaultValueExpr', caption: t('默认值表达式'), width: 160 },
+  { dataField: 'validationExpr', caption: t('校验表达式'), width: 160 },
+  { dataField: 'sortNo', caption: t('排序'), width: 60 },
+  { dataField: '_op', caption: t('操作'), width: 120, cellTemplate: 'fieldActionTpl' },
+])
+const actionColumns = computed(() => [
+  { dataField: 'action', caption: t('动作'), width: 100 },
+  { dataField: 'strategyType', caption: t('策略类型'), width: 100 },
+  { dataField: 'statusTransition', caption: t('状态迁移'), width: 160 },
+  { dataField: 'preHookPlugins', caption: t('前置钩子'), width: 160 },
+  { dataField: 'postHookPlugins', caption: t('后置钩子'), width: 160 },
+  { dataField: 'enabled', caption: t('启用'), width: 60 },
+  { dataField: '_op', caption: t('操作'), width: 120, cellTemplate: 'actionActionTpl' },
+])
+const stateColumns = computed(() => [
+  { dataField: 'currentState', caption: t('当前状态'), width: 120 },
+  { dataField: 'nextState', caption: t('下一状态'), width: 120 },
+  { dataField: 'event', caption: t('事件'), width: 100 },
+  { dataField: 'action', caption: t('动作'), width: 100 },
+  { dataField: 'guardExpr', caption: t('守卫表达式'), width: 180 },
+  { dataField: 'enabled', caption: t('启用'), width: 60 },
+  { dataField: '_op', caption: t('操作'), width: 120, cellTemplate: 'stateActionTpl' },
+])
 
 function onBizSelect(e: { selectedRowsData: BizMeta[] }) {
   const row = e.selectedRowsData[0]
@@ -163,23 +199,21 @@ async function removeState(row: StateMachineMeta) {
             <ElButton size="small" @click="refreshBiz">{{ t('刷新') }}</ElButton>
           </div>
         </div>
-        <DxDataGrid
+        <LcTable
           :data-source="bizList"
           :show-borders="true"
           :column-auto-width="true"
+          :selection="{ mode: 'single' }"
           :selected-row-keys="selectedBiz ? [selectedBiz] : []"
           height="calc(100vh - 100px)"
+          :columns="bizColumns"
           @selection-changed="onBizSelect"
         >
-          <DxColumn data-field="bizCode" :caption="t('业务编码')" width="140" />
-          <DxColumn data-field="bizName" :caption="t('业务名称')" width="120" />
-          <DxColumn data-field="mainTable" :caption="t('主表')" width="120" />
-          <DxColumn :caption="t('操作')" width="120" cell-template="bizActionTpl" />
           <template #bizActionTpl="{ data }">
-            <ElButton type="primary" link @click="editBiz(data)">{{ t('编辑') }}</ElButton>
-            <ElButton type="danger" link @click="removeBiz(data)">{{ t('删除') }}</ElButton>
+            <ElButton type="primary" link @click="editBiz(data as any)">{{ t('编辑') }}</ElButton>
+            <ElButton type="danger" link @click="removeBiz(data as any)">{{ t('删除') }}</ElButton>
           </template>
-        </DxDataGrid>
+        </LcTable>
       </aside>
 
       <main class="biz-main">
@@ -192,59 +226,36 @@ async function removeState(row: StateMachineMeta) {
               <div class="tab-toolbar">
                 <ElButton type="primary" size="small" @click="addField">+ {{ t('新增字段') }}</ElButton>
               </div>
-              <DxDataGrid :data-source="fieldList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)">
-                <DxColumn data-field="fieldName" :caption="t('字段名')" width="140" />
-                <DxColumn data-field="columnType" :caption="t('列类型')" width="120" />
-                <DxColumn data-field="dataType" :caption="t('数据类型')" width="100" />
-                <DxColumn data-field="isRequired" :caption="t('必填')" width="60" />
-                <DxColumn data-field="isUnique" :caption="t('唯一')" width="60" />
-                <DxColumn data-field="defaultValueExpr" :caption="t('默认值表达式')" width="160" />
-                <DxColumn data-field="validationExpr" :caption="t('校验表达式')" width="160" />
-                <DxColumn data-field="sortNo" :caption="t('排序')" width="60" />
-                <DxColumn :caption="t('操作')" width="120" cell-template="fieldActionTpl" />
+              <LcTable :data-source="fieldList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)" :columns="fieldColumns">
                 <template #fieldActionTpl="{ data }">
-                  <ElButton type="primary" link @click="editField(data)">{{ t('编辑') }}</ElButton>
-                  <ElButton type="danger" link @click="removeField(data)">{{ t('删除') }}</ElButton>
+                  <ElButton type="primary" link @click="editField(data as any)">{{ t('编辑') }}</ElButton>
+                  <ElButton type="danger" link @click="removeField(data as any)">{{ t('删除') }}</ElButton>
                 </template>
-              </DxDataGrid>
+              </LcTable>
             </ElTabPane>
 
             <ElTabPane :label="t('动作配置')" name="action">
               <div class="tab-toolbar">
                 <ElButton type="primary" size="small" @click="addAction">+ {{ t('新增动作') }}</ElButton>
               </div>
-              <DxDataGrid :data-source="actionList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)">
-                <DxColumn data-field="action" :caption="t('动作')" width="100" />
-                <DxColumn data-field="strategyType" :caption="t('策略类型')" width="100" />
-                <DxColumn data-field="statusTransition" :caption="t('状态迁移')" width="160" />
-                <DxColumn data-field="preHookPlugins" :caption="t('前置钩子')" width="160" />
-                <DxColumn data-field="postHookPlugins" :caption="t('后置钩子')" width="160" />
-                <DxColumn data-field="enabled" :caption="t('启用')" width="60" />
-                <DxColumn :caption="t('操作')" width="120" cell-template="actionActionTpl" />
+              <LcTable :data-source="actionList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)" :columns="actionColumns">
                 <template #actionActionTpl="{ data }">
-                  <ElButton type="primary" link @click="editAction(data)">{{ t('编辑') }}</ElButton>
-                  <ElButton type="danger" link @click="removeAction(data)">{{ t('删除') }}</ElButton>
+                  <ElButton type="primary" link @click="editAction(data as any)">{{ t('编辑') }}</ElButton>
+                  <ElButton type="danger" link @click="removeAction(data as any)">{{ t('删除') }}</ElButton>
                 </template>
-              </DxDataGrid>
+              </LcTable>
             </ElTabPane>
 
             <ElTabPane :label="t('状态机配置')" name="state">
               <div class="tab-toolbar">
                 <ElButton type="primary" size="small" @click="addState">+ {{ t('新增状态迁移') }}</ElButton>
               </div>
-              <DxDataGrid :data-source="stateList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)">
-                <DxColumn data-field="currentState" :caption="t('当前状态')" width="120" />
-                <DxColumn data-field="nextState" :caption="t('下一状态')" width="120" />
-                <DxColumn data-field="event" :caption="t('事件')" width="100" />
-                <DxColumn data-field="action" :caption="t('动作')" width="100" />
-                <DxColumn data-field="guardExpr" :caption="t('守卫表达式')" width="180" />
-                <DxColumn data-field="enabled" :caption="t('启用')" width="60" />
-                <DxColumn :caption="t('操作')" width="120" cell-template="stateActionTpl" />
+              <LcTable :data-source="stateList" :show-borders="true" :column-auto-width="true" height="calc(100vh - 220px)" :columns="stateColumns">
                 <template #stateActionTpl="{ data }">
-                  <ElButton type="primary" link @click="editState(data)">{{ t('编辑') }}</ElButton>
-                  <ElButton type="danger" link @click="removeState(data)">{{ t('删除') }}</ElButton>
+                  <ElButton type="primary" link @click="editState(data as any)">{{ t('编辑') }}</ElButton>
+                  <ElButton type="danger" link @click="removeState(data as any)">{{ t('删除') }}</ElButton>
                 </template>
-              </DxDataGrid>
+              </LcTable>
             </ElTabPane>
           </ElTabs>
         </template>

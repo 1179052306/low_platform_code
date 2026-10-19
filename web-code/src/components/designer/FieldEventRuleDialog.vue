@@ -5,6 +5,8 @@ import { t } from '@/store/lang'
 import { designerStore, setFieldEventRules, collectAllNodes } from '@/store/designer'
 import { getConfig } from '@/materials'
 import type { FieldBChangeEventRule, FieldEventTriggerType, FieldEventFirePhase } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -109,16 +111,23 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('字段变更事件配置')"
     width="820px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('字段变更事件配置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div class="event-rules">
       <ElTable :data="rules" border size="small" style="width: 100%">
         <ElTableColumn :label="t('事件编码')" prop="eventCode" width="140" />

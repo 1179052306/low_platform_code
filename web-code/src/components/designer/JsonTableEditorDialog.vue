@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -244,6 +246,9 @@ function onCancel() {
   emit('update:visible', false)
 }
 
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+
 // 新增默认空数据
 function initEmptyData() {
   const c1 = t('列1')
@@ -274,13 +279,14 @@ watch(mode, () => {
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onCancel">
-    <div class="dialog-container dialog-large">
-      <div class="dialog-header">
+    <div class="dialog-container dialog-large" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ title || t('数据源编辑') }}</span>
         <div class="dialog-header-actions">
           <button class="mode-toggle" @click="switchToJson">
             {{ mode === 'table' ? t('切换到 JSON 模式') : t('切换到表格模式') }}
           </button>
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
           <button class="dialog-close" @click="onCancel">✕</button>
         </div>
       </div>

@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxNumberBox from 'devextreme-vue/number-box'
-import DxSwitch from 'devextreme-vue/switch'
-import DxSelectBox from 'devextreme-vue/select-box'
-import DxColorBox from 'devextreme-vue/color-box'
-import DxButton from 'devextreme-vue/button'
+
 import TextEditorDialog from './TextEditorDialog.vue'
 import EventCodeDialog from './EventCodeDialog.vue'
 import JsonTableEditorDialog from './JsonTableEditorDialog.vue'
@@ -18,12 +13,24 @@ import DependFilterDialog, { type DependFilterCondition } from './DependFilterDi
 import ApiSelectDialog from './ApiSelectDialog.vue'
 import ThemeSelectDialog from './ThemeSelectDialog.vue'
 import FieldEventRuleDialog from './FieldEventRuleDialog.vue'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 
-import { ElMessage, ElSelect, ElOption } from 'element-plus'
+import {
+  ElMessage,
+  ElSelect,
+  ElOption,
+  ElInput,
+  ElInputNumber,
+  ElSwitch,
+  ElColorPicker,
+  ElButton,
+} from 'element-plus'
 import { listWorkflows } from '@/store/workflow'
 
 import { getConfig, getDxAllPropSetters } from '@/materials'
+import { MATERIAL_TYPES } from '@/materials/dx-materials'
 import {
   VALIDATABLE_TYPES,
   VALIDATION_RULES,
@@ -159,7 +166,7 @@ const allFieldNames = computed(() => {
 })
 
 /** 日期/时间控件类型集合 */
-const DATE_CONTROL_TYPES = new Set(['dx-date-box', 'dx-date-range-box', 'dx-calendar'])
+const DATE_CONTROL_TYPES = new Set(['date-box', 'date-range-box', 'calendar'])
 
 /** FE-S10 P2: 表单控件字段列表（仅 category='表单'，供编号规则编码来源选择） */
 const formFieldNames = computed(() => {
@@ -301,7 +308,7 @@ function onSaveNumberRule(expr: string) {
 loadDataDicts()
 
 /** 当前控件是否为 dx-base-data 基础资料控件 */
-const isBaseDataControl = computed(() => selectedNode.value?.type === 'dx-base-data')
+const isBaseDataControl = computed(() => selectedNode.value?.type === 'base-data')
 
 /** 基础资料页面列表（pageType='basedata'） */
 const baseDataPages = ref<SavedPageMeta[]>([])
@@ -624,7 +631,7 @@ const cfg = computed(() =>
 )
 const gridEditingMode = computed(() => {
   const node = selectedNode.value
-  if (!node || node.type !== 'dx-data-grid') return 'none'
+  if (!node || node.type !== 'data-grid') return 'none'
   const editing = node.props?.editing as Record<string, unknown> | undefined
   return String(editing?.mode ?? 'none')
 })
@@ -704,7 +711,7 @@ function openJsonDialog(prop: string, currentValue: unknown) {
   }
   // dx-data-grid 的静态数据源：传入列配置以锁定列
   const node = selectedNode.value
-  if (node && node.type === 'dx-data-grid' && prop === 'dataSource') {
+  if (node && node.type === 'data-grid' && prop === 'dataSource') {
     const cols = node.props.columns as Record<string, unknown>[] | undefined
     jsonDialogColumns.value = Array.isArray(cols)
       ? cols.map((c) => String(c.dataField ?? '')).filter(Boolean)
@@ -770,9 +777,9 @@ const selectItemsOptions = computed(() => {
   if (!Array.isArray(items)) return []
   return items.map((item: any) => {
     if (typeof item === 'object' && item !== null) {
-      return { value: String(item.value ?? ''), text: String(item.text ?? item.value ?? '') }
+      return { value: item.value, text: String(item.text ?? item.value ?? '') }
     }
-    return { value: String(item), text: String(item) }
+    return { value: item, text: String(item) }
   })
 })
 
@@ -881,6 +888,8 @@ function getPageOpenConfig(prop: string): {
   mode: string
   title: string
   bizMode: string
+  width: number | string | undefined
+  height: number | string | undefined
 } {
   const val = getEditable(prop) as Record<string, unknown> | undefined
   return {
@@ -889,8 +898,11 @@ function getPageOpenConfig(prop: string): {
     mode: (val?.mode as string) || 'popup',
     title: (val?.title as string) || '',
     bizMode: (val?.bizMode as string) || 'form',
+    width: typeof val?.width === 'number' || typeof val?.width === 'string' ? val.width as number | string : undefined,
+    height: typeof val?.height === 'number' || typeof val?.height === 'string' ? val.height as number | string : undefined,
   }
 }
+
 
 /** pageOpen setter：设置单个字段 */
 function setPageOpenField(prop: string, field: string, value: unknown): void {
@@ -908,6 +920,37 @@ function setPageOpenField(prop: string, field: string, value: unknown): void {
   if (selectedNode.value) {
     updateProps(selectedNode.value.id, prop, val)
   }
+}
+
+/** 解析尺寸单位（px 或 %） */
+function parseSizeUnit(val: unknown): 'px' | '%' {
+  if (val == null || val === '') return '%'
+  return String(val).endsWith('%') ? '%' : 'px'
+}
+
+/** 解析尺寸数值 */
+function parseSizeValue(val: unknown): number | '' {
+  if (val == null) return ''
+  const s = String(val)
+  const stripped = s.endsWith('%') ? s.slice(0, -1) : (s.endsWith('px') ? s.slice(0, -2) : s)
+  const n = Number(stripped)
+  return Number.isFinite(n) ? n : ''
+}
+
+/** 设置 openPage 宽/高数值（保留当前单位） */
+function setPageOpenSize(prop: string, field: 'width' | 'height', val: string): void {
+  const cur = getPageOpenConfig(prop)[field]
+  const unit = parseSizeUnit(cur)
+  const n = Number(val)
+  setPageOpenField(prop, field, Number.isFinite(n) && n > 0 ? (unit === '%' ? `${n}%` : `${n}px`) : undefined)
+}
+
+/** 设置 openPage 宽/高单位（保留当前数值） */
+function setPageOpenSizeUnit(prop: string, field: 'width' | 'height', unit: 'px' | '%'): void {
+  const cur = getPageOpenConfig(prop)[field]
+  const v = parseSizeValue(cur)
+  if (v === '') return
+  setPageOpenField(prop, field, unit === '%' ? `${v}%` : `${v}px`)
 }
 
 /** 页面选择弹窗状态 */
@@ -951,6 +994,8 @@ function clearApiSelect(prop: string) {
 /** API 服务详情弹窗 */
 const apiDetailVisible = ref(false)
 const apiDetailService = ref<ApiService | null>(null)
+const { isMaximized: apiDetailMax, isDragging: apiDetailDragging, dragStyle: apiDetailDragStyle, onHeaderMouseDown: onApiDetailHeaderDown, toggleMaximize: toggleApiDetailMax, resetDialog: resetApiDetailDrag } = useDialogDragAndMax()
+watch(() => apiDetailVisible.value, (v) => { if (!v) resetApiDetailDrag() })
 
 async function openApiDetail(prop: string) {
   const serviceId = String(getEditable(prop) || '')
@@ -1063,9 +1108,23 @@ function makeHandler(setter: PropSetterConfig) {
   return (e: { value?: unknown }) => {
     setEditable(setter.prop, e.value)
     const node = getSelectedNode()
-    if (node) updateProps(node.id, setter.prop, e.value)
+    if (node) {
+      updateProps(node.id, setter.prop, e.value)
+      if (setter.prop === 'required') {
+        const required = !!e.value
+        const rules = Array.isArray(node.props.validationRules) ? [...(node.props.validationRules as any[])] : []
+        const idx = rules.findIndex((r: any) => r.type === 'required')
+        if (required && idx === -1) {
+          rules.unshift({ type: 'required', message: t('此字段为必填项') })
+        } else if (!required && idx >= 0) {
+          rules.splice(idx, 1)
+        }
+        updateProps(node.id, 'validationRules', rules.length ? rules : undefined)
+      }
+    }
   }
 }
+
 
 /** 将 PropSetterConfig 转换为 FullPropItem */
 function setterToItem(s: PropSetterConfig): FullPropItem {
@@ -1080,8 +1139,8 @@ function metaToItem(p: DxPropMeta): FullPropItem {
 const fullProps = computed<FullPropItem[]>(() => {
   const node = selectedNode.value
   if (!node) return []
-  // 对 DevExtreme 控件，使用完整属性列表
-  if (node.type.startsWith('dx-')) {
+  // 对物料控件，使用完整属性列表
+  if (MATERIAL_TYPES.has(node.type)) {
     const allSetters = getDxAllPropSetters(node.type)
     const seen = new Set<string>()
     return allSetters
@@ -1152,6 +1211,7 @@ interface FormFieldOption {
   children?: { fieldName: string; dbField: string; title: string }[]
   refPageId?: string
   valueField?: string
+  displayField?: string
   controlType?: string
   selectItems?: { value: string; text: string }[]
 }
@@ -1182,7 +1242,7 @@ async function collectBaseDataChildren(
   }
   const formNodes = collectAllNodes(page.bizSchemas?.form || [])
   for (const fn of formNodes) {
-    if (fn.type === 'dx-base-data' && fn.refPageId && fn.fieldName) {
+    if (fn.type === 'base-data' && fn.refPageId && fn.fieldName) {
       const nested = await collectBaseDataChildren(fn.refPageId, visited)
       for (const nc of nested) {
         const prefixed = `${fn.fieldName}.${nc.fieldName}`
@@ -1226,16 +1286,20 @@ watch(
         dbField: n.dbField ?? '',
         title: (n.props.label as string) || cfg?.title || n.type,
       }
-      if (n.type === 'dx-select-box') {
-        item.controlType = 'dx-select-box'
+      if (n.type === 'select-box') {
+        item.controlType = 'select-box'
         const items = n.props.items as { value: string; text: string }[] | undefined
         if (Array.isArray(items)) {
           item.selectItems = items
         }
       }
-      if (n.type === 'dx-base-data' && n.refPageId) {
+      if (n.type === 'date-box' || n.type === 'date-range-box' || n.type === 'number-box' || n.type === 'check-box' || n.type === 'switch') {
+        item.controlType = n.type
+      }
+      if (n.type === 'base-data' && n.refPageId) {
         item.refPageId = n.refPageId
         item.valueField = (n.props.valueField as string) || 'id'
+        item.displayField = (n.props.displayField as string) || ''
         try {
           const children = await collectBaseDataChildren(n.refPageId, new Set())
           if (children.length) item.children = children
@@ -1518,9 +1582,9 @@ const isLayoutContainer = computed(() =>
   selectedNode.value ? LAYOUT_TYPES.has(selectedNode.value.type) : false
 )
 
-/** 是否为 DevExtreme 控件（类型以 dx- 开头） */
+/** 是否为物料控件 */
 const isDxComponent = computed(() =>
-  selectedNode.value ? selectedNode.value.type.startsWith('dx-') : false
+  selectedNode.value ? MATERIAL_TYPES.has(selectedNode.value.type) : false
 )
 
 /** 表格模式下的 dx-data-grid：禁止设置尺寸（宽高固定 100% 撑满画布） */
@@ -1528,7 +1592,7 @@ const isTableGrid = computed(
   () =>
     designerStore.mode === 'biz' &&
     designerStore.bizMode === 'table' &&
-    selectedNode.value?.type === 'dx-data-grid',
+    selectedNode.value?.type === 'data-grid',
 )
 
 /** 是否显示尺寸区块（DX 控件且非表格模式的 data-grid） */
@@ -1623,6 +1687,25 @@ const eventDialogVisible = ref(false)
 const eventDialogName = ref('')
 const eventDialogValue = ref('')
 
+/** 切换设计器模式时关闭所有弹框 */
+watch(() => designerStore.bizMode, () => {
+  themeDialogVisible.value = false
+  refPageSelectVisible.value = false
+  fieldSelectVisible.value = false
+  valueFieldSelectVisible.value = false
+  dependFilterDialogVisible.value = false
+  textDialogVisible.value = false
+  jsonDialogVisible.value = false
+  columnDialogVisible.value = false
+  toolbarItemsDialogVisible.value = false
+  summaryDialogVisible.value = false
+  optionsDialogVisible.value = false
+  pageSelectDialogVisible.value = false
+  apiSelectDialogVisible.value = false
+  apiDetailVisible.value = false
+  eventDialogVisible.value = false
+})
+
 function getEventCode(eventName: string): string {
   void designerStore.schemaRevision
   const node = selectedNode.value
@@ -1674,6 +1757,7 @@ const isValidatable = computed(() => {
 const isRequired = computed(() => {
   const node = selectedNode.value
   if (!node) return false
+  if (node.props.required === true) return true
   const rules = node.props.validationRules
   if (!Array.isArray(rules)) return false
   return rules.some((r: ValidationRuleConfig) => r.type === 'required')
@@ -1691,6 +1775,7 @@ function onRequiredChange(e: { value?: unknown }) {
     rules.splice(idx, 1)
   }
   updateProps(node.id, 'validationRules', rules.length ? rules : undefined)
+  updateProps(node.id, 'required', required)
 }
 
 const nodeValidationRules = computed<ValidationRuleConfig[]>(() => {
@@ -1795,9 +1880,9 @@ function onAddRuleSelect(e: Event) {
       </div>
       <div class="prop-item">
         <div class="prop-label">{{ t('页面背景') }}</div>
-        <DxColorBox
-          :value="designerStore.pageCss.background"
-          @value-changed="onPageBackgroundChange"
+        <ElColorPicker
+          :model-value="designerStore.pageCss.background"
+          @update:model-value="(v) => onPageBackgroundChange({ value: v })"
         />
       </div>
       <div class="prop-item">
@@ -1819,15 +1904,19 @@ function onAddRuleSelect(e: Event) {
       <!-- 审批流绑定（仅单据页面显示） -->
       <div v-if="designerStore.pageType === 'document'" class="prop-item">
         <div class="prop-label">{{ t('绑定审批流') }}</div>
-        <DxSelectBox
-          :items="workflowOptions"
-          display-expr="name"
-          value-expr="id"
-          :value="designerStore.workflowId"
+        <ElSelect
+          :model-value="designerStore.workflowId"
           :placeholder="t('选择审批流')"
-          :show-clear-button="true"
-          @value-changed="onWorkflowChange"
-        />
+          clearable
+          @update:model-value="(v) => onWorkflowChange({ value: v })"
+        >
+          <ElOption
+            v-for="w in workflowOptions"
+            :key="w.id"
+            :label="w.name"
+            :value="w.id"
+          />
+        </ElSelect>
       </div>
       <div class="page-tip">{{ t('点击画布空白处即可设置页面信息') }}</div>
       <ThemeSelectDialog
@@ -1843,18 +1932,20 @@ function onAddRuleSelect(e: Event) {
         style="margin-top: 18px"
       >
         <div class="prop-section-title">{{ t('页面控件搜索') }}</div>
-        <DxSelectBox
-          :items="nodeSelectItems"
-          display-expr="label"
-          value-expr="id"
-          :value="null"
+        <ElSelect
+          :model-value="null"
           :placeholder="t('搜索并选择控件')"
-          :show-clear-button="true"
-          :search-enabled="true"
-          :search-expr="['label', 'type']"
-          search-mode="contains"
-          @value-changed="onNodeSelectChanged"
-        />
+          clearable
+          filterable
+          @update:model-value="(v) => onNodeSelectChanged({ value: v })"
+        >
+          <ElOption
+            v-for="n in nodeSelectItems"
+            :key="n.id"
+            :label="n.label"
+            :value="n.id"
+          />
+        </ElSelect>
       </div>
     </div>
 
@@ -1991,27 +2082,27 @@ function onAddRuleSelect(e: Event) {
         <!-- 栅格快捷布局（仅 el-row 显示） -->
         <div v-if="isRowLayout" class="prop-section">
           <div class="prop-section-title">{{ t('快捷布局') }}</div>
-          <div class="prop-item" style="display: flex; gap: 8px; align-items: flex-end;">
-            <div style="flex: 1;">
+          <div class="prop-item" style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 80px;">
               <div class="prop-label">{{ t('列数') }}</div>
-              <DxNumberBox
-                :value="gridCols"
+              <ElInputNumber
+                :model-value="gridCols"
                 :min="1"
                 :max="24"
-                :show-spin-buttons="false"
-                value-change-event="input"
-                @value-changed="gridCols = $event.value"
+                :controls="false"
+                style="width: 100%"
+                @update:model-value="(v) => gridCols = v ?? 1"
               />
             </div>
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 80px;">
               <div class="prop-label">{{ t('行数') }}</div>
-              <DxNumberBox
-                :value="gridRows"
+              <ElInputNumber
+                :model-value="gridRows"
                 :min="1"
                 :max="10"
-                :show-spin-buttons="false"
-                value-change-event="input"
-                @value-changed="gridRows = $event.value"
+                :controls="false"
+                style="width: 100%"
+                @update:model-value="(v) => gridRows = v ?? 1"
               />
             </div>
             <button
@@ -2110,7 +2201,7 @@ function onAddRuleSelect(e: Event) {
           <div class="prop-section-title">{{ t('验证') }}</div>
           <div class="prop-item">
             <div class="prop-label">{{ t('必填') }}</div>
-            <DxSwitch :value="isRequired" @value-changed="onRequiredChange" />
+            <ElSwitch :model-value="isRequired" @update:model-value="(v) => onRequiredChange({ value: v })" />
           </div>
         </div>
 
@@ -2175,10 +2266,10 @@ function onAddRuleSelect(e: Event) {
           </div>
         </div>
 
-        <DxTextBox
-          v-model:value="searchKeyword"
+        <ElInput
+          v-model="searchKeyword"
           :placeholder="t('搜索属性名或中文标签')"
-          :show-clear-button="true"
+          clearable
           class="prop-search"
         />
 
@@ -2208,10 +2299,10 @@ function onAddRuleSelect(e: Event) {
                 ▦
               </button>
             </div>
-            <DxTextBox
+            <ElInput
               v-if="setter.type === 'input'"
-              :value="String(getEditable(setter.prop) ?? '')"
-              @value-changed="makeHandler(setter)($event)"
+              :model-value="String(getEditable(setter.prop) ?? '')"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
             />
             <div
               v-else-if="setter.type === 'textarea'"
@@ -2224,25 +2315,30 @@ function onAddRuleSelect(e: Event) {
                 @input="onTextareaInput(setter.prop, $event)"
               />
             </div>
-            <DxNumberBox
+            <ElInputNumber
               v-else-if="setter.type === 'number'"
-              :value="Number(getEditable(setter.prop) ?? 0)"
-              :show-spin-buttons="true"
-              @value-changed="makeHandler(setter)($event)"
+              :model-value="getEditable(setter.prop) == null || getEditable(setter.prop) === '' ? undefined : Number(getEditable(setter.prop))"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
+              controls-position="right"
+              style="width: 100%"
             />
-            <DxSwitch
+            <ElSwitch
               v-else-if="setter.type === 'switch'"
-              :value="Boolean(getEditable(setter.prop))"
-              @value-changed="makeHandler(setter)($event)"
+              :model-value="Boolean(getEditable(setter.prop))"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
             />
-            <DxSelectBox
+            <ElSelect
               v-else-if="setter.type === 'select'"
-              :items="translatedOptions(setter.options)"
-              display-expr="label"
-              value-expr="value"
-              :value="getEditable(setter.prop)"
-              @value-changed="makeHandler(setter)($event)"
-            />
+              :model-value="(getEditable(setter.prop) as string | number | boolean | undefined)"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
+            >
+              <ElOption
+                v-for="o in translatedOptions(setter.options)"
+                :key="o.value"
+                :label="o.label"
+                :value="o.value"
+              />
+            </ElSelect>
             <div
               v-else-if="setter.type === 'apiSelect'"
               class="api-select-setter"
@@ -2295,10 +2391,10 @@ function onAddRuleSelect(e: Event) {
                 <span>{{ ic }}</span>
               </ElOption>
             </ElSelect>
-            <DxColorBox
+            <ElColorPicker
               v-else-if="setter.type === 'color'"
-              :value="String(getEditable(setter.prop) ?? '#333333')"
-              @value-changed="makeHandler(setter)($event)"
+              :model-value="String(getEditable(setter.prop) ?? '#333333')"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
             />
             <template v-else-if="setter.type === 'json' && selectedNode">
               <div class="json-wrapper">
@@ -2339,14 +2435,18 @@ function onAddRuleSelect(e: Event) {
               </button>
             </div>
             <!-- 从 items 中选择默认值 -->
-            <DxSelectBox
+            <ElSelect
               v-else-if="setter.type === 'itemsSelect' && selectedNode"
-              :items="selectItemsOptions"
-              display-expr="text"
-              value-expr="value"
-              :value="getEditable(setter.prop)"
-              @value-changed="makeHandler(setter)($event)"
-            />
+              :model-value="(getEditable(setter.prop) as string | number | boolean | undefined)"
+              @update:model-value="(v) => makeHandler(setter)({ value: v })"
+            >
+              <ElOption
+                v-for="o in selectItemsOptions"
+                :key="o.value"
+                :label="o.text"
+                :value="o.value"
+              />
+            </ElSelect>
             <!-- 列配置编辑器 -->
             <div v-else-if="setter.type === 'columns'" class="columns-setter">
               <button
@@ -2445,6 +2545,68 @@ function onAddRuleSelect(e: Event) {
                   )
                 "
               />
+              <div class="page-open-size-row">
+                <label class="page-open-size-label">{{ t('宽度') }}</label>
+                <input
+                  class="page-open-size-input"
+                  type="number"
+                  min="1"
+                  :value="parseSizeValue(getPageOpenConfig(setter.prop).width)"
+                  :placeholder="t('默认')"
+                  @input="
+                    setPageOpenSize(
+                      setter.prop,
+                      'width',
+                      ($event.target as HTMLInputElement).value
+                    )
+                  "
+                />
+                <select
+                  class="page-open-unit-select"
+                  :value="parseSizeUnit(getPageOpenConfig(setter.prop).width)"
+                  @change="
+                    setPageOpenSizeUnit(
+                      setter.prop,
+                      'width',
+                      ($event.target as HTMLSelectElement).value as 'px' | '%'
+                    )
+                  "
+                >
+                  <option value="px">px</option>
+                  <option value="%">%</option>
+                </select>
+                <template v-if="getPageOpenConfig(setter.prop).mode !== 'drawer'">
+                  <label class="page-open-size-label">{{ t('高度') }}</label>
+                  <input
+                    class="page-open-size-input"
+                    type="number"
+                    min="1"
+                    :value="parseSizeValue(getPageOpenConfig(setter.prop).height)"
+                    :placeholder="t('默认')"
+                    @input="
+                      setPageOpenSize(
+                        setter.prop,
+                        'height',
+                        ($event.target as HTMLInputElement).value
+                      )
+                    "
+                  />
+                  <select
+                    class="page-open-unit-select"
+                    :value="parseSizeUnit(getPageOpenConfig(setter.prop).height)"
+                    @change="
+                      setPageOpenSizeUnit(
+                        setter.prop,
+                        'height',
+                        ($event.target as HTMLSelectElement).value as 'px' | '%'
+                      )
+                    "
+                  >
+                    <option value="px">px</option>
+                    <option value="%">%</option>
+                  </select>
+                </template>
+              </div>
               <textarea
                 class="page-open-params"
                 :value="getPageOpenConfig(setter.prop).params"
@@ -2477,9 +2639,9 @@ function onAddRuleSelect(e: Event) {
           <div v-for="field in CSS_FIELDS" :key="field.key" class="prop-item">
             <div class="prop-label">{{ field.label }}</div>
             <template v-if="field.key === 'background'">
-              <DxColorBox
-                :value="getCssValue(field.key) || '#ffffff'"
-                @value-changed="onCssColorChange(field.key)($event)"
+              <ElColorPicker
+                :model-value="getCssValue(field.key) || '#ffffff'"
+                @update:model-value="(v) => onCssColorChange(field.key)({ value: v })"
               />
             </template>
             <template v-else-if="field.unitSelect && field.unitOptions">
@@ -2583,13 +2745,11 @@ function onAddRuleSelect(e: Event) {
               </div>
             </div>
           </div>
-          <DxButton
-            :text="t('＋ 添加列')"
-            icon="add"
-            styling-mode="outlined"
-            :width="120"
+          <ElButton
+            plain
+            style="width: 120px"
             @click="addLayoutChild"
-          />
+          >{{ t('＋ 添加列') }}</ElButton>
         </div>
 
         <!-- 分割面板：面板管理 -->
@@ -2673,22 +2833,20 @@ function onAddRuleSelect(e: Event) {
               </div>
               <div class="item-prop-row">
                 <span class="item-prop-label">{{ t('可折叠') }}</span>
-                <DxSwitch
-                  :value="!!panel.props.collapsible"
-                  @value-changed="
-                    onChildPropSwitch(panel.id, 'collapsible', $event)
+                <ElSwitch
+                  :model-value="!!panel.props.collapsible"
+                  @update:model-value="
+                    (v) => onChildPropSwitch(panel.id, 'collapsible', { value: v })
                   "
                 />
               </div>
             </div>
           </div>
-          <DxButton
-            :text="t('＋ 添加面板')"
-            icon="add"
-            styling-mode="outlined"
-            :width="130"
+          <ElButton
+            plain
+            style="width: 130px"
             @click="addLayoutChild"
-          />
+          >{{ t('＋ 添加面板') }}</ElButton>
         </div>
 
         <!-- 标签页：面板管理 -->
@@ -2746,13 +2904,11 @@ function onAddRuleSelect(e: Event) {
               </div>
             </div>
           </div>
-          <DxButton
-            :text="t('＋ 添加标签')"
-            icon="add"
-            styling-mode="outlined"
-            :width="130"
+          <ElButton
+            plain
+            style="width: 130px"
             @click="addLayoutChild"
-          />
+          >{{ t('＋ 添加标签') }}</ElButton>
         </div>
       </div>
 
@@ -2804,15 +2960,13 @@ function onAddRuleSelect(e: Event) {
               >
                 📝
               </button>
-              <DxButton
+              <ElButton
                 v-if="isEventSet(evt.name)"
-                icon="close"
-                styling-mode="text"
-                :width="22"
-                :height="22"
-                :hint="t('清除事件处理代码')"
+                text
+                :title="t('清除事件处理代码')"
+                style="width: 22px; height: 22px; padding: 0"
                 @click="clearEvent(evt.name)"
-              />
+              >✕</ElButton>
             </div>
             <textarea
               class="json-editor event-code-editor"
@@ -2956,7 +3110,7 @@ function onAddRuleSelect(e: Event) {
       v-model:model-value="summaryDialogValue"
       v-model:visible="summaryDialogVisible"
       :title="t('汇总高级配置')"
-      :columns="selectedNode?.type === 'dx-data-grid' ? (selectedNode.props.columns as unknown[] | undefined) : undefined"
+      :columns="selectedNode?.type === 'data-grid' ? (selectedNode.props.columns as unknown[] | undefined) : undefined"
       @update:model-value="onSummaryDialogConfirm"
     />
     <EventCodeDialog
@@ -3003,12 +3157,15 @@ function onAddRuleSelect(e: Event) {
     <!-- API 服务详情弹窗 -->
     <Teleport to="body" v-if="apiDetailVisible && apiDetailService">
       <div class="api-detail-overlay" @click="apiDetailVisible = false">
-        <div class="api-detail-dialog" @click.stop>
-          <div class="api-detail-header">
+        <div class="api-detail-dialog" :class="{ 'is-maximized': apiDetailMax, 'is-dragging': apiDetailDragging }" :style="apiDetailDragStyle" @click.stop>
+          <div class="api-detail-header" :class="{ 'is-draggable': !apiDetailMax }" @mousedown="onApiDetailHeaderDown">
             <span>{{ t('API 服务详情') }}</span>
-            <button class="api-detail-close" @click="apiDetailVisible = false">
-              ×
-            </button>
+            <div class="dialog-header-actions">
+              <DialogMaxButton :maximized="apiDetailMax" @toggle="toggleApiDetailMax" />
+              <button class="api-detail-close" @click="apiDetailVisible = false">
+                ×
+              </button>
+            </div>
           </div>
           <div class="api-detail-body">
             <div class="api-detail-row">
@@ -3586,6 +3743,35 @@ function onAddRuleSelect(e: Event) {
 .page-open-params {
   resize: vertical;
   font-family: monospace;
+}
+.page-open-size-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.page-open-size-label {
+  font-size: 12px;
+  color: #606266;
+  flex-shrink: 0;
+}
+.page-open-size-input {
+  width: 70px;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.page-open-unit-select {
+  width: 56px;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-shrink: 0;
 }
 .api-select-setter {
   display: flex;

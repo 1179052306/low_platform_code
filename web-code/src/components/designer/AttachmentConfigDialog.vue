@@ -14,6 +14,8 @@ import {
 } from 'element-plus'
 import { t } from '@/store/lang'
 import type { AttachmentConfig } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -59,16 +61,23 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('附件配置')"
     width="480px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('附件配置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElForm label-width="100px">
       <ElFormItem :label="t('允许类型')">
         <ElSelect v-model="form.fileTypes" multiple filterable allow-create :placeholder="t('文件类型')" style="width: 100%">

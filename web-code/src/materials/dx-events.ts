@@ -113,87 +113,87 @@ const IFRAME_EVENTS: EventConfig[] = [
 /** 事件元数据注册表：type -> 该控件支持的可用事件列表 */
 export const dxEvents: Record<string, EventConfig[]> = {
   // ---- 操作 ----
-  'dx-button': BUTTON_EVENTS,
-  'dx-button-group': [
+  'button': BUTTON_EVENTS,
+  'button-group': [
     { name: 'selectionChanged', label: '选择改变', description: '按钮组选中项变化时触发' },
     { name: 'itemClick', label: '按钮点击', description: '点击按钮组中的按钮时触发' },
   ],
-  'dx-speed-dial-action': BUTTON_EVENTS,
-  'dx-progress-bar': [
+  'speed-dial-action': BUTTON_EVENTS,
+  'progress-bar': [
     { name: 'complete', label: '完成', description: '进度达到100%时触发' },
     { name: 'valueChanged', label: '值改变', description: '进度值变化时触发' },
   ],
 
   // ---- 表单 ----
-  'dx-text-box': VALUE_CHANGE_EVENTS,
-  'dx-text-area': VALUE_CHANGE_EVENTS,
-  'dx-number-box': VALUE_CHANGE_EVENTS,
-  'dx-check-box': [
+  'text-box': VALUE_CHANGE_EVENTS,
+  'text-area': VALUE_CHANGE_EVENTS,
+  'number-box': VALUE_CHANGE_EVENTS,
+  'check-box': [
     { name: 'valueChanged', label: '值改变', description: '勾选状态变化时触发' },
   ],
-  'dx-switch': [
+  'switch': [
     { name: 'valueChanged', label: '值改变', description: '开关状态变化时触发' },
   ],
-  'dx-slider': [
+  'slider': [
     { name: 'valueChanged', label: '值改变', description: '滑块值变化时触发' },
   ],
-  'dx-range-slider': [
+  'range-slider': [
     { name: 'valueChanged', label: '值改变', description: '范围值变化时触发' },
   ],
-  'dx-calendar': [
+  'calendar': [
     { name: 'valueChanged', label: '值改变', description: '选中日期变化时触发' },
   ],
-  'dx-date-box': VALUE_CHANGE_EVENTS,
-  'dx-date-range-box': [
+  'date-box': VALUE_CHANGE_EVENTS,
+  'date-range-box': [
     { name: 'valueChanged', label: '值改变', description: '日期范围变化时触发' },
   ],
-  'dx-color-box': VALUE_CHANGE_EVENTS,
-  'dx-select-box': [
+  'color-box': VALUE_CHANGE_EVENTS,
+  'select-box': [
     { name: 'valueChanged', label: '值改变', description: '选中值变化时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选择项变化时触发' },
   ],
-  'dx-lookup': [
+  'lookup': [
     { name: 'valueChanged', label: '值改变', description: '选中值变化时触发' },
   ],
-  'dx-tag-box': [
+  'tag-box': [
     { name: 'valueChanged', label: '值改变', description: '选中标签变化时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选择项变化时触发' },
   ],
-  'dx-autocomplete': VALUE_CHANGE_EVENTS,
-  'dx-radio-group': [
+  'autocomplete': VALUE_CHANGE_EVENTS,
+  'radio-group': [
     { name: 'valueChanged', label: '值改变', description: '选中项变化时触发' },
   ],
-  'dx-drop-down-button': [
+  'drop-down-button': [
     { name: 'itemClick', label: '项点击', description: '点击下拉项时触发' },
     { name: 'opened', label: '已展开', description: '下拉菜单展开后触发' },
     { name: 'closed', label: '已收起', description: '下拉菜单收起后触发' },
   ],
-  'dx-drop-down-box': [
+  'drop-down-box': [
     { name: 'valueChanged', label: '值改变', description: '值变化时触发' },
     { name: 'opened', label: '已展开', description: '下拉框展开后触发' },
     { name: 'closed', label: '已收起', description: '下拉框收起后触发' },
   ],
-  'dx-file-uploader': [
+  'file-uploader': [
     { name: 'valueChanged', label: '值改变', description: '文件列表变化时触发' },
     { name: 'uploadStarted', label: '开始上传', description: '文件开始上传时触发' },
     { name: 'uploadError', label: '上传错误', description: '上传出错时触发' },
     { name: 'uploaded', label: '上传完成', description: '文件上传完成时触发' },
     { name: 'progress', label: '上传进度', description: '上传进度变化时触发' },
   ],
-  'dx-html-editor': VALUE_CHANGE_EVENTS,
+  'html-editor': VALUE_CHANGE_EVENTS,
   'dx-recurrence-editor': VALUE_CHANGE_EVENTS,
 
   // ---- 数据 ----
-  'dx-data-grid': DATAGRID_EVENTS,
-  'dx-tree-list': [
+  'data-grid': DATAGRID_EVENTS,
+  'tree-list': [
     { name: 'rowClick', label: '行点击', description: '点击数据行时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选中行变化时触发' },
     { name: 'contentReady', label: '内容就绪', description: '内容渲染完成时触发' },
     { name: 'itemExpanded', label: '节点展开', description: '节点展开时触发' },
     { name: 'itemCollapsed', label: '节点收起', description: '节点收起时触发' },
   ],
-  'dx-list': LIST_EVENTS,
-  'dx-tree-view': [
+  'list': LIST_EVENTS,
+  'tree-view': [
     { name: 'itemClick', label: '项点击', description: '点击树节点时触发' },
     { name: 'itemDblClick', label: '项双击', description: '双击树节点时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选中节点变化时触发' },
@@ -201,11 +201,11 @@ export const dxEvents: Record<string, EventConfig[]> = {
     { name: 'itemCollapsed', label: '节点收起', description: '节点收起时触发' },
     { name: 'contentReady', label: '内容就绪', description: '内容渲染完成时触发' },
   ],
-  'dx-pivot-grid': [
+  'pivot-grid': [
     { name: 'cellClick', label: '单元格点击', description: '点击单元格时触发' },
     { name: 'contentReady', label: '内容就绪', description: '内容渲染完成时触发' },
   ],
-  'dx-scheduler': [
+  'scheduler': [
     { name: 'appointmentClick', label: '日程点击', description: '点击日程项时触发' },
     { name: 'appointmentDblClick', label: '日程双击', description: '双击日程项时触发' },
     { name: 'appointmentAdding', label: '日程添加前', description: '添加日程之前触发' },
@@ -215,12 +215,12 @@ export const dxEvents: Record<string, EventConfig[]> = {
     { name: 'appointmentDeleting', label: '日程删除前', description: '删除日程之前触发' },
     { name: 'appointmentDeleted', label: '日程删除后', description: '删除日程之后触发' },
   ],
-  'dx-gantt': [
+  'gantt': [
     { name: 'taskClick', label: '任务点击', description: '点击任务时触发' },
     { name: 'taskDblClick', label: '任务双击', description: '双击任务时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选中任务变化时触发' },
   ],
-  'dx-file-manager': [
+  'file-manager': [
     { name: 'currentDirectoryChanged', label: '目录切换', description: '当前目录变化时触发' },
     { name: 'selectedFileOpened', label: '文件打开', description: '打开文件时触发' },
     { name: 'itemCreated', label: '创建项', description: '创建文件/文件夹时触发' },
@@ -229,17 +229,17 @@ export const dxEvents: Record<string, EventConfig[]> = {
   ],
 
   // ---- 图表 ----
-  'dx-chart': CHART_EVENTS,
-  'dx-pie-chart': CHART_EVENTS,
-  'dx-polar-chart': CHART_EVENTS,
-  'dx-bar-gauge': [
+  'chart': CHART_EVENTS,
+  'pie-chart': CHART_EVENTS,
+  'polar-chart': CHART_EVENTS,
+  'bar-gauge': [
     { name: 'tooltipCustomized', label: '提示框自定义', description: '提示框自定义时触发' },
   ],
-  'dx-funnel': [
+  'funnel': [
     { name: 'itemClick', label: '项点击', description: '点击漏斗项时触发' },
     { name: 'itemHoverChanged', label: '项悬停', description: '漏斗项悬停状态变化时触发' },
   ],
-  'dx-sankey': [
+  'sankey': [
     { name: 'nodeClick', label: '节点点击', description: '点击节点时触发' },
     { name: 'linkClick', label: '连线点击', description: '点击连线时触发' },
   ],
@@ -260,10 +260,10 @@ export const dxEvents: Record<string, EventConfig[]> = {
     { name: 'selectionChanged', label: '选择改变', description: '选中项变化时触发' },
     { name: 'itemHoverChanged', label: '项悬停', description: '菜单项悬停状态变化时触发' },
   ],
-  'dx-toolbar': [
+  'toolbar': [
     { name: 'itemClick', label: '项点击', description: '点击工具栏项时触发' },
   ],
-  'dx-gallery': [
+  'gallery': [
     { name: 'selectionChanged', label: '选择改变', description: '选中项变化时触发' },
     { name: 'contentReady', label: '内容就绪', description: '内容渲染完成时触发' },
   ],
@@ -275,18 +275,18 @@ export const dxEvents: Record<string, EventConfig[]> = {
   ],
 
   // ---- 弹层 ----
-  'dx-popup': OVERLAY_EVENTS,
-  'dx-toast': [
+  'popup': OVERLAY_EVENTS,
+  'toast': [
     { name: 'shown', label: '已显示', description: '提示显示后触发' },
     { name: 'hidden', label: '已隐藏', description: '提示隐藏后触发' },
   ],
-  'dx-load-panel': OVERLAY_EVENTS,
+  'load-panel': OVERLAY_EVENTS,
 
   // ---- 自定义控件 ----
   'image': IMAGE_EVENTS,
   'link': LINK_EVENTS,
   'iframe': IFRAME_EVENTS,
-  'dx-base-data': [
+  'base-data': [
     { name: 'valueChanged', label: '值改变', description: '选中基础资料值变化时触发' },
     { name: 'selectionChanged', label: '选择改变', description: '选中记录变化时触发' },
   ],

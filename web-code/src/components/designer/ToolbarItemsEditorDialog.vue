@@ -5,6 +5,8 @@ import PageSelectDialog from './PageSelectDialog.vue'
 import { designerStore } from '@/store/designer'
 import { t } from '@/store/lang'
 import { ElSelect, ElOption } from 'element-plus'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 export interface ToolbarItemConfig {
   name: string
@@ -30,6 +32,8 @@ export interface ToolbarItemConfig {
     title?: string
     bizMode?: 'form' | 'table' | 'mobile'
     passSelectedRow?: boolean
+    width?: number | string
+    height?: number | string
   }
 }
 
@@ -113,6 +117,7 @@ const emit = defineEmits<{
 const items = ref<ToolbarItemConfig[]>([])
 const searchKeyword = ref('')
 const expandedIdx = ref<number | null>(null)
+const selectedIdx = computed(() => expandedIdx.value ?? -1)
 const childExpandedIdx = ref<string | null>(null)
 const dragIdx = ref<number | null>(null)
 const dragOverIdx = ref<number | null>(null)
@@ -142,8 +147,8 @@ function getRealIndex(filteredIdx: number): number {
 }
 
 function defaultOpenPageForPreset(name: string): ToolbarItemConfig['openPage'] {
-  if (name === 'add') return { pageId: '__current__', bizMode: 'form', title: t('新增') }
-  if (name === 'edit') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, title: t('修改') }
+  if (name === 'add') return { pageId: '__current__', bizMode: 'form', title: t('新增'), width: '80%', height: '80%' }
+  if (name === 'edit') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, title: t('修改'), width: '80%', height: '80%' }
   return undefined
 }
 
@@ -378,6 +383,51 @@ function togglePassSelectedRow(realIdx: number, val: boolean) {
   item.openPage.passSelectedRow = val
 }
 
+function parseSizeUnit(val: unknown): 'px' | '%' {
+  if (val == null || val === '') return '%'
+  return String(val).endsWith('%') ? '%' : 'px'
+}
+
+function parseSizeValue(val: unknown): number | '' {
+  if (val == null) return ''
+  const s = String(val)
+  const stripped = s.endsWith('%') ? s.slice(0, -1) : (s.endsWith('px') ? s.slice(0, -2) : s)
+  const n = Number(stripped)
+  return Number.isFinite(n) ? n : ''
+}
+
+function setPageOpenWidth(realIdx: number, val: string) {
+  const item = items.value[realIdx]
+  if (!item.openPage) item.openPage = {}
+  const n = Number(val)
+  const unit = parseSizeUnit(item.openPage.width)
+  item.openPage.width = Number.isFinite(n) && n > 0 ? (unit === '%' ? `${n}%` : `${n}px`) : undefined
+}
+
+function setPageOpenHeight(realIdx: number, val: string) {
+  const item = items.value[realIdx]
+  if (!item.openPage) item.openPage = {}
+  const n = Number(val)
+  const unit = parseSizeUnit(item.openPage.height)
+  item.openPage.height = Number.isFinite(n) && n > 0 ? (unit === '%' ? `${n}%` : `${n}px`) : undefined
+}
+
+function setPageOpenWidthUnit(realIdx: number, unit: 'px' | '%') {
+  const item = items.value[realIdx]
+  if (!item.openPage) item.openPage = {}
+  const v = parseSizeValue(item.openPage.width)
+  if (v === '') return
+  item.openPage.width = unit === '%' ? `${v}%` : `${v}px`
+}
+
+function setPageOpenHeightUnit(realIdx: number, unit: 'px' | '%') {
+  const item = items.value[realIdx]
+  if (!item.openPage) item.openPage = {}
+  const v = parseSizeValue(item.openPage.height)
+  if (v === '') return
+  item.openPage.height = unit === '%' ? `${v}%` : `${v}px`
+}
+
 function pageIdDisplay(pageId: string): string {
   return pageId === '__current__' ? t('当前页面') : pageId
 }
@@ -451,14 +501,20 @@ function onConfirm() {
 function onCancel() {
   emit('update:visible', false)
 }
+
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onCancel">
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ title || t('工具栏按钮配置') }}</span>
-        <button class="dialog-close" @click="onCancel">x</button>
+        <div class="dialog-header-actions">
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+          <button class="dialog-close" @click="onCancel">x</button>
+        </div>
       </div>
       <div class="dialog-body">
         <div class="toolbar-editor">
@@ -479,199 +535,338 @@ function onCancel() {
             <span>{{ t('暂无按钮配置，点击上方按钮添加') }}</span>
           </div>
 
-          <!-- 按钮列表 -->
-          <div class="item-list">
-            <template
-              v-for="(item, fidx) in filteredItems"
-              :key="getRealIndex(fidx)"
-            >
-              <div
-                class="item-card"
-                :class="{ expanded: expandedIdx === getRealIndex(fidx), 'drag-over': dragOverIdx === getRealIndex(fidx), dragging: dragIdx === getRealIndex(fidx) }"
-                draggable="true"
-                @dragstart="onDragStart(getRealIndex(fidx))"
-                @dragover.prevent="onDragOver(getRealIndex(fidx))"
-                @drop="onDrop(getRealIndex(fidx))"
-                @dragend="onDragEnd"
+          <!-- 左右分栏布局 -->
+          <div class="toolbar-split-layout">
+            <!-- 左侧：按钮列表 -->
+            <div class="toolbar-list-left">
+              <template
+                v-for="(item, fidx) in filteredItems"
+                :key="getRealIndex(fidx)"
               >
                 <div
-                  class="item-card-header"
-                  @click="toggleExpand(getRealIndex(fidx))"
+                  class="item-card"
+                  :class="{
+                    selected: expandedIdx === getRealIndex(fidx),
+                    'drag-over': dragOverIdx === getRealIndex(fidx),
+                    dragging: dragIdx === getRealIndex(fidx),
+                  }"
+                  draggable="true"
+                  @dragstart="onDragStart(getRealIndex(fidx))"
+                  @dragover.prevent="onDragOver(getRealIndex(fidx))"
+                  @drop="onDrop(getRealIndex(fidx))"
+                  @dragend="onDragEnd"
                 >
-                  <div class="item-card-summary">
-                    <span
-                      class="item-badge"
-                      :class="item.isCustom ? 'badge-custom' : 'badge-preset'"
-                    >
-                      {{ item.isCustom ? t('自定义') : t('预设') }}
-                    </span>
-                    <span class="item-name">{{
-                      item.caption || item.name
-                    }}</span>
-                    <span
-                      class="item-field-tag"
-                      v-if="item.caption !== item.name"
-                      >({{ item.name }})</span
-                    >
-                    <span class="item-loc-tag">{{
-                      locationLabel(item.location)
-                    }}</span>
-                    <span class="item-tag-hide" v-if="!item.visible">{{
-                      t('隐藏')
-                    }}</span>
-                    <span class="item-tag-event" v-if="item.onClick">{{
-                      t('有事件')
-                    }}</span>
-                  </div>
-                  <div class="item-card-actions">
-                    <label
-                      class="vis-toggle"
-                      :title="item.visible ? t('点击隐藏') : t('点击显示')"
-                    >
-                      <input
-                        type="checkbox"
-                        :checked="item.visible"
-                        @change.stop="item.visible = !item.visible"
-                      />
-                      <span>{{ item.visible ? t('显示') : t('隐藏') }}</span>
-                    </label>
-                    <button
-                      class="row-move"
-                      @click.stop="moveUp(getRealIndex(fidx))"
-                      :disabled="getRealIndex(fidx) === 0"
-                      :title="t('上移')"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      class="row-move"
-                      @click.stop="moveDown(getRealIndex(fidx))"
-                      :disabled="getRealIndex(fidx) === items.length - 1"
-                      :title="t('下移')"
-                    >
-                      ↓
-                    </button>
-                    <span class="expand-icon">{{
-                      expandedIdx === getRealIndex(fidx) ? '▼' : '▶'
-                    }}</span>
-                    <button
-                      v-if="item.isCustom"
-                      class="row-delete"
-                      @click.stop="removeItem(getRealIndex(fidx))"
-                    >
-                      {{ t('删除') }}
-                    </button>
+                  <div
+                    class="item-card-header"
+                    @click="toggleExpand(getRealIndex(fidx))"
+                  >
+                    <div class="item-card-summary">
+                      <span
+                        class="item-badge"
+                        :class="item.isCustom ? 'badge-custom' : 'badge-preset'"
+                      >
+                        {{ item.isCustom ? t('自定义') : t('预设') }}
+                      </span>
+                      <span class="item-name">{{ item.caption || item.name }}</span>
+                      <span
+                        class="item-field-tag"
+                        v-if="item.caption !== item.name"
+                        >({{ item.name }})</span
+                      >
+                      <span class="item-loc-tag">{{
+                        locationLabel(item.location)
+                      }}</span>
+                      <span class="item-tag-hide" v-if="!item.visible">{{
+                        t('隐藏')
+                      }}</span>
+                      <span class="item-tag-event" v-if="item.onClick">{{
+                        t('有事件')
+                      }}</span>
+                    </div>
+                    <div class="item-card-actions">
+                      <label
+                        class="vis-toggle"
+                        :title="item.visible ? t('点击隐藏') : t('点击显示')"
+                      >
+                        <input
+                          type="checkbox"
+                          :checked="item.visible"
+                          @change.stop="item.visible = !item.visible"
+                        />
+                        <span>{{ item.visible ? t('显示') : t('隐藏') }}</span>
+                      </label>
+                      <button
+                        class="row-move"
+                        @click.stop="moveUp(getRealIndex(fidx))"
+                        :disabled="getRealIndex(fidx) === 0"
+                        :title="t('上移')"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        class="row-move"
+                        @click.stop="moveDown(getRealIndex(fidx))"
+                        :disabled="getRealIndex(fidx) === items.length - 1"
+                        :title="t('下移')"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        v-if="item.isCustom"
+                        class="row-delete"
+                        @click.stop="removeItem(getRealIndex(fidx))"
+                      >
+                        {{ t('删除') }}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div
-                  v-if="expandedIdx === getRealIndex(fidx)"
-                  class="item-card-body"
-                >
-                  <!-- 核心配置 -->
-                  <div class="form-grid-2col">
-                    <div class="form-row">
-                      <label class="form-label">{{ t('按钮名称') }}</label>
-                      <input
-                        class="form-input"
-                        v-model="item.name"
-                        :disabled="!item.isCustom"
-                        placeholder="name"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('显示文本') }}</label>
-                      <input
-                        class="form-input"
-                        v-model="item.caption"
-                        placeholder="caption"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('显示图标') }}</label>
-                      <select class="form-select" v-model="item.showIcon">
-                        <option :value="true">{{ t('显示') }}</option>
-                        <option :value="false">{{ t('隐藏') }}</option>
-                      </select>
-                    </div>
-                    <div class="form-row" v-if="item.showIcon !== false">
-                      <label class="form-label">{{ t('图标') }}</label>
-                      <ElSelect
-                        v-model="item.icon"
-                        filterable
-                        :placeholder="t('搜索选择图标')"
-                        popper-class="lc-icon-select-popper"
-                        style="flex: 1; min-width: 0"
-                      >
-                        <ElOption
-                          v-for="ic in DX_ICONS"
-                          :key="ic"
-                          :label="ic"
-                          :value="ic"
-                        >
-                          <i
-                            :class="`dx-icon-${ic}`"
-                            style="margin-right: 8px; vertical-align: middle"
-                          />
-                          <span>{{ ic }}</span>
-                        </ElOption>
-                      </ElSelect>
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('位置') }}</label>
-                      <select class="form-select" v-model="item.location">
-                        <option value="before">{{ t('左侧') }}</option>
-                        <option value="center">{{ t('中间') }}</option>
-                        <option value="after">{{ t('右侧') }}</option>
-                      </select>
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('按钮类型') }}</label>
-                      <select class="form-select" v-model="item.type" @change="onTypeChange(item)">
-                        <option value="normal">{{ t('默认') }}</option>
-                        <option value="default">{{ t('标准') }}</option>
-                        <option value="success">{{ t('成功') }}</option>
-                        <option value="danger">{{ t('危险') }}</option>
-                        <option value="warning">{{ t('警告') }}</option>
-                      </select>
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('样式模式') }}</label>
-                      <select class="form-select" v-model="item.stylingMode">
-                        <option value="text">{{ t('文字') }}</option>
-                        <option value="contained">{{ t('实心') }}</option>
-                        <option value="outlined">{{ t('描边') }}</option>
-                      </select>
-                    </div>
-                    <div class="form-row">
-                      <label class="form-label">{{ t('控件类型') }}</label>
-                      <select class="form-select" v-model="item.itemType" @change="onItemTypeChange(item)">
-                        <option value="button">{{ t('按钮') }}</option>
-                        <option value="dropdown">{{ t('下拉按钮') }}</option>
-                      </select>
-                    </div>
-                  </div>
+              </template>
+            </div>
 
-                  <!-- 下拉子按钮配置 -->
-                  <div v-if="item.itemType === 'dropdown'" class="children-section">
+            <!-- 右侧：详情面板 -->
+            <div class="toolbar-list-right">
+              <div v-if="expandedIdx === null" class="item-detail-empty">
+                {{ t('点击左侧按钮查看详情') }}
+              </div>
+              <template
+                v-for="item in (expandedIdx !== null ? [items[expandedIdx]] : [])"
+                :key="expandedIdx"
+              >
+                <div class="item-detail-title">
+                  {{ item.caption || item.name }} ({{ item.name }})
+                </div>
+
+                <!-- 基本属性 -->
+                <div class="section-header">{{ t('基本属性') }}</div>
+                <div class="form-grid-2col">
+                  <div class="form-row">
+                    <label class="form-label">{{ t('按钮名称') }}</label>
+                    <input
+                      class="form-input"
+                      v-model="item.name"
+                      :disabled="!item.isCustom"
+                      placeholder="name"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">{{ t('显示文本') }}</label>
+                    <input
+                      class="form-input"
+                      v-model="item.caption"
+                      placeholder="caption"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">{{ t('位置') }}</label>
+                    <select class="form-select" v-model="item.location">
+                      <option value="before">{{ t('左侧') }}</option>
+                      <option value="center">{{ t('中间') }}</option>
+                      <option value="after">{{ t('右侧') }}</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">{{ t('按钮类型') }}</label>
+                    <select
+                      class="form-select"
+                      v-model="item.type"
+                      @change="onTypeChange(item)"
+                    >
+                      <option value="normal">{{ t('默认') }}</option>
+                      <option value="default">{{ t('标准') }}</option>
+                      <option value="success">{{ t('成功') }}</option>
+                      <option value="danger">{{ t('危险') }}</option>
+                      <option value="warning">{{ t('警告') }}</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">{{ t('样式模式') }}</label>
+                    <select class="form-select" v-model="item.stylingMode">
+                      <option value="text">{{ t('文字') }}</option>
+                      <option value="contained">{{ t('实心') }}</option>
+                      <option value="outlined">{{ t('描边') }}</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">{{ t('控件类型') }}</label>
+                    <select
+                      class="form-select"
+                      v-model="item.itemType"
+                      @change="onItemTypeChange(item)"
+                    >
+                      <option value="button">{{ t('按钮') }}</option>
+                      <option value="dropdown">{{ t('下拉按钮') }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 图标设置 -->
+                <div class="section-header">{{ t('图标设置') }}</div>
+                <div class="form-grid-2col">
+                  <div class="form-row">
+                    <label class="form-label">{{ t('显示图标') }}</label>
+                    <select class="form-select" v-model="item.showIcon">
+                      <option :value="true">{{ t('显示') }}</option>
+                      <option :value="false">{{ t('隐藏') }}</option>
+                    </select>
+                  </div>
+                  <div class="form-row" v-if="item.showIcon !== false">
+                    <label class="form-label">{{ t('图标') }}</label>
+                    <ElSelect
+                      v-model="item.icon"
+                      filterable
+                      :placeholder="t('搜索选择图标')"
+                      popper-class="lc-icon-select-popper"
+                      style="flex: 1; min-width: 0"
+                    >
+                      <ElOption
+                        v-for="ic in DX_ICONS"
+                        :key="ic"
+                        :label="ic"
+                        :value="ic"
+                      >
+                        <i
+                          :class="`dx-icon-${ic}`"
+                          style="margin-right: 8px; vertical-align: middle"
+                        />
+                        <span>{{ ic }}</span>
+                      </ElOption>
+                    </ElSelect>
+                  </div>
+                </div>
+
+                <!-- 配色 -->
+                <div class="section-header">{{ t('配色') }}</div>
+                <div class="color-inline-row">
+                  <label class="color-inline-item">
+                    <span class="color-inline-tag">{{ t('背景') }}</span>
+                    <input
+                      class="color-picker-sm"
+                      type="color"
+                      :value="item.bgColor || '#1976d2'"
+                      @input="item.bgColor = ($event.target as HTMLInputElement).value"
+                    />
+                    <button
+                      v-if="item.bgColor"
+                      class="color-clear-xs"
+                      type="button"
+                      @click="item.bgColor = undefined"
+                    >
+                      ×
+                    </button>
+                  </label>
+                  <label class="color-inline-item">
+                    <span class="color-inline-tag">{{ t('字体') }}</span>
+                    <input
+                      class="color-picker-sm"
+                      type="color"
+                      :value="item.textColor || '#ffffff'"
+                      @input="item.textColor = ($event.target as HTMLInputElement).value"
+                    />
+                    <button
+                      v-if="item.textColor"
+                      class="color-clear-xs"
+                      type="button"
+                      @click="item.textColor = undefined"
+                    >
+                      ×
+                    </button>
+                  </label>
+                  <label class="color-inline-item">
+                    <span class="color-inline-tag">{{ t('悬停') }}</span>
+                    <input
+                      class="color-picker-sm"
+                      type="color"
+                      :value="item.hoverColor || '#1565c0'"
+                      @input="item.hoverColor = ($event.target as HTMLInputElement).value"
+                    />
+                    <button
+                      v-if="item.hoverColor"
+                      class="color-clear-xs"
+                      type="button"
+                      @click="item.hoverColor = undefined"
+                    >
+                      ×
+                    </button>
+                  </label>
+                </div>
+
+                <!-- 显示与权限 -->
+                <div class="section-header">{{ t('显示与权限') }}</div>
+                <div class="compact-row">
+                  <label class="compact-check">
+                    <input
+                      type="checkbox"
+                      v-model="item.visible"
+                      :true-value="true"
+                      :false-value="false"
+                    />
+                    <span>{{ t('显示') }}</span>
+                  </label>
+                  <label class="compact-label">{{ t('权限码') }}</label>
+                  <input
+                    class="compact-input"
+                    v-model="item.permCode"
+                    :placeholder="t('留空不鉴权')"
+                  />
+                </div>
+
+                <!-- 子按钮（下拉时） -->
+                <template v-if="item.itemType === 'dropdown'">
+                  <div class="section-header">{{ t('子按钮') }}</div>
+                  <div class="children-section">
                     <div class="children-header">
-                      <span class="event-section-title">{{ t('子按钮') }}</span>
-                      <button class="event-edit-btn" @click.stop="addChild(getRealIndex(fidx))">{{ t('+ 添加') }}</button>
+                      <button
+                        class="event-edit-btn"
+                        @click.stop="addChild(selectedIdx)"
+                      >
+                        {{ t('+ 添加') }}
+                      </button>
                     </div>
-                    <div v-if="!item.children || item.children.length === 0" class="event-empty-tip">
+                    <div
+                      v-if="!item.children || item.children.length === 0"
+                      class="event-empty-tip"
+                    >
                       {{ t('暂无子按钮，点击上方按钮添加') }}
                     </div>
-                    <div v-for="(child, ci) in item.children" :key="ci" class="child-card">
-                      <div class="child-card-header" @click.stop="toggleChildExpand(getRealIndex(fidx), ci)">
+                    <div
+                      v-for="(child, ci) in item.children"
+                      :key="ci"
+                      class="child-card"
+                    >
+                      <div
+                        class="child-card-header"
+                        @click.stop="toggleChildExpand(selectedIdx, ci)"
+                      >
                         <label class="compact-check" @click.stop>
                           <input type="checkbox" v-model="child.visible" />
                           <span></span>
                         </label>
-                        <input class="compact-input" v-model="child.caption" :placeholder="t('显示文本')" />
-                        <i v-if="child.showIcon !== false && child.icon" :class="`dx-icon-${child.icon}`" class="child-icon-preview" />
-                        <span class="expand-icon">{{ childExpandedIdx === `${getRealIndex(fidx)}-${ci}` ? '▼' : '▶' }}</span>
-                        <button v-if="child.isCustom" class="row-delete" @click.stop="removeChild(getRealIndex(fidx), ci)">{{ t('删除') }}</button>
+                        <input
+                          class="compact-input"
+                          v-model="child.caption"
+                          :placeholder="t('显示文本')"
+                        />
+                        <i
+                          v-if="child.showIcon !== false && child.icon"
+                          :class="`dx-icon-${child.icon}`"
+                          class="child-icon-preview"
+                        />
+                        <span class="expand-icon">{{
+                          childExpandedIdx === `${selectedIdx}-${ci}` ? '▼' : '▶'
+                        }}</span>
+                        <button
+                          v-if="child.isCustom"
+                          class="row-delete"
+                          @click.stop="removeChild(selectedIdx, ci)"
+                        >
+                          {{ t('删除') }}
+                        </button>
                       </div>
-                      <div v-if="childExpandedIdx === `${getRealIndex(fidx)}-${ci}`" class="child-card-body">
+                      <div
+                        v-if="childExpandedIdx === `${selectedIdx}-${ci}`"
+                        class="child-card-body"
+                      >
                         <div class="child-form-row">
                           <label class="open-page-label">{{ t('图标') }}</label>
                           <label class="compact-check">
@@ -687,180 +882,274 @@ function onCancel() {
                             popper-class="lc-icon-select-popper"
                             style="flex: 1; min-width: 0"
                           >
-                            <ElOption v-for="ic in DX_ICONS" :key="ic" :label="ic" :value="ic">
-                              <i :class="`dx-icon-${ic}`" style="margin-right: 8px; vertical-align: middle" />
+                            <ElOption
+                              v-for="ic in DX_ICONS"
+                              :key="ic"
+                              :label="ic"
+                              :value="ic"
+                            >
+                              <i
+                                :class="`dx-icon-${ic}`"
+                                style="margin-right: 8px; vertical-align: middle"
+                              />
                               <span>{{ ic }}</span>
                             </ElOption>
                           </ElSelect>
                         </div>
                         <div class="color-inline-row">
-                          <span class="color-inline-label">{{ t('配色') }}</span>
                           <label class="color-inline-item">
                             <span class="color-inline-tag">{{ t('背景') }}</span>
-                            <input class="color-picker-sm" type="color" :value="child.bgColor || '#1976d2'" @input="child.bgColor = ($event.target as HTMLInputElement).value" />
-                            <button v-if="child.bgColor" class="color-clear-xs" type="button" @click="child.bgColor = undefined">×</button>
+                            <input
+                              class="color-picker-sm"
+                              type="color"
+                              :value="child.bgColor || '#1976d2'"
+                              @input="child.bgColor = ($event.target as HTMLInputElement).value"
+                            />
+                            <button
+                              v-if="child.bgColor"
+                              class="color-clear-xs"
+                              type="button"
+                              @click="child.bgColor = undefined"
+                            >
+                              ×
+                            </button>
                           </label>
                           <label class="color-inline-item">
                             <span class="color-inline-tag">{{ t('字体') }}</span>
-                            <input class="color-picker-sm" type="color" :value="child.textColor || '#ffffff'" @input="child.textColor = ($event.target as HTMLInputElement).value" />
-                            <button v-if="child.textColor" class="color-clear-xs" type="button" @click="child.textColor = undefined">×</button>
+                            <input
+                              class="color-picker-sm"
+                              type="color"
+                              :value="child.textColor || '#ffffff'"
+                              @input="child.textColor = ($event.target as HTMLInputElement).value"
+                            />
+                            <button
+                              v-if="child.textColor"
+                              class="color-clear-xs"
+                              type="button"
+                              @click="child.textColor = undefined"
+                            >
+                              ×
+                            </button>
                           </label>
                           <label class="color-inline-item">
                             <span class="color-inline-tag">{{ t('悬停') }}</span>
-                            <input class="color-picker-sm" type="color" :value="child.hoverColor || '#1565c0'" @input="child.hoverColor = ($event.target as HTMLInputElement).value" />
-                            <button v-if="child.hoverColor" class="color-clear-xs" type="button" @click="child.hoverColor = undefined">×</button>
+                            <input
+                              class="color-picker-sm"
+                              type="color"
+                              :value="child.hoverColor || '#1565c0'"
+                              @input="child.hoverColor = ($event.target as HTMLInputElement).value"
+                            />
+                            <button
+                              v-if="child.hoverColor"
+                              class="color-clear-xs"
+                              type="button"
+                              @click="child.hoverColor = undefined"
+                            >
+                              ×
+                            </button>
                           </label>
                         </div>
                       </div>
                     </div>
                   </div>
+                </template>
 
-                  <!-- 配色：背景/字体/悬停 三色一行 -->
-                  <div class="color-inline-row">
-                    <span class="color-inline-label">{{ t('配色') }}</span>
-                    <label class="color-inline-item">
-                      <span class="color-inline-tag">{{ t('背景') }}</span>
-                      <input class="color-picker-sm" type="color" :value="item.bgColor || '#1976d2'" @input="item.bgColor = ($event.target as HTMLInputElement).value" />
-                      <button v-if="item.bgColor" class="color-clear-xs" type="button" @click="item.bgColor = undefined">×</button>
-                    </label>
-                    <label class="color-inline-item">
-                      <span class="color-inline-tag">{{ t('字体') }}</span>
-                      <input class="color-picker-sm" type="color" :value="item.textColor || '#ffffff'" @input="item.textColor = ($event.target as HTMLInputElement).value" />
-                      <button v-if="item.textColor" class="color-clear-xs" type="button" @click="item.textColor = undefined">×</button>
-                    </label>
-                    <label class="color-inline-item">
-                      <span class="color-inline-tag">{{ t('悬停') }}</span>
-                      <input class="color-picker-sm" type="color" :value="item.hoverColor || '#1565c0'" @input="item.hoverColor = ($event.target as HTMLInputElement).value" />
-                      <button v-if="item.hoverColor" class="color-clear-xs" type="button" @click="item.hoverColor = undefined">×</button>
-                    </label>
-                  </div>
-
-                  <!-- 显示 + 权限码 一行 -->
-                  <div class="compact-row">
-                    <label class="compact-check">
-                      <input type="checkbox" v-model="item.visible" :true-value="true" :false-value="false" />
-                      <span>{{ t('显示') }}</span>
-                    </label>
-                    <label class="compact-label">{{ t('权限码') }}</label>
-                    <input class="compact-input" v-model="item.permCode" :placeholder="t('留空不鉴权')" />
-                  </div>
-
-                  <!-- 事件代码配置 -->
-                  <div class="event-section">
-                    <div class="event-section-header">
-                      <span class="event-section-title"
-                        >点击事件 (onClick)</span
-                      >
-                      <button
-                        class="event-edit-btn"
-                        @click="openEventDialog(getRealIndex(fidx))"
-                      >
-                        {{ item.onClick ? '编辑代码' : '编写事件' }}
-                      </button>
-                    </div>
-                    <div v-if="item.onClick" class="event-code-preview">
-                      <pre class="event-code-text">{{ item.onClick }}</pre>
-                    </div>
-                    <div v-else class="event-empty-tip">
-                      暂无事件代码，点击右侧按钮编写
-                    </div>
-                  </div>
-
-                  <!-- 打开页面配置 -->
-                  <div class="event-section">
-                    <div class="event-section-header">
-                      <span class="event-section-title"
-                        >打开页面 (openPage)</span
-                      >
-                      <div class="open-page-btns">
-                        <button
-                          class="event-edit-btn"
-                          @click="useCurrentPage(getRealIndex(fidx))"
-                        >
-                          {{ t('当前页面') }}
-                        </button>
-                        <button
-                          class="event-edit-btn"
-                          @click="openPageSelectDialog(getRealIndex(fidx))"
-                        >
-                          {{ item.openPage?.pageId && item.openPage.pageId !== '__current__' ? '更换页面' : '选择页面' }}
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      v-if="item.openPage?.pageId"
-                      class="open-page-config"
+                <!-- 点击事件 -->
+                <div class="section-header">{{ t('点击事件 (onClick)') }}</div>
+                <div class="event-section">
+                  <div class="event-section-header">
+                    <button
+                      class="event-edit-btn"
+                      @click="openEventDialog(selectedIdx)"
                     >
-                      <div class="open-page-row">
-                        <span class="open-page-label">{{ t('页面') }}</span>
-                        <span class="open-page-value">{{ pageIdDisplay(item.openPage.pageId) }}</span>
-                        <button
-                          class="event-edit-btn"
-                          @click="clearPageSelect(getRealIndex(fidx))"
-                        >
-                          清除
-                        </button>
-                      </div>
-                      <div class="open-page-row">
-                        <label class="open-page-label">{{ t('模式') }}</label>
-                        <select
-                          class="form-select page-mode-select"
-                          :value="item.openPage.bizMode || 'form'"
-                          @change="setPageOpenBizMode(getRealIndex(fidx), ($event.target as HTMLSelectElement).value)"
-                        >
-                          <option value="form">{{ t('表单') }}</option>
-                          <option value="table">{{ t('表格') }}</option>
-                          <option value="mobile">{{ t('移动端') }}</option>
-                        </select>
-                        <label class="open-page-label">{{ t('形式') }}</label>
-                        <select
-                          class="form-select page-mode-select"
-                          :value="item.openPage.mode || 'popup'"
-                          @change="setPageOpenMode(getRealIndex(fidx), ($event.target as HTMLSelectElement).value)"
-                        >
-                          <option value="popup">{{ t('弹窗') }}</option>
-                          <option value="drawer">{{ t('抽屉') }}</option>
-                        </select>
-                      </div>
-                      <div class="open-page-row">
-                        <label class="open-page-label">{{ t('标题') }}</label>
-                        <input
-                          class="compact-input"
-                          type="text"
-                          :value="item.openPage.title || ''"
-                          :placeholder="item.caption || t('留空用默认')"
-                          @input="setPageOpenTitle(getRealIndex(fidx), ($event.target as HTMLInputElement).value)"
-                        />
-                        <template v-if="item.name === 'edit'">
-                          <label class="open-page-label">{{ t('传行') }}</label>
-                          <select
-                            class="form-select page-mode-select"
-                            :value="item.openPage.passSelectedRow === false ? 'false' : 'true'"
-                            @change="togglePassSelectedRow(getRealIndex(fidx), ($event.target as HTMLSelectElement).value === 'true')"
-                          >
-                            <option value="true">{{ t('是') }}</option>
-                            <option value="false">{{ t('否') }}</option>
-                          </select>
-                        </template>
-                      </div>
-                    </div>
-
-                    <div v-else class="event-empty-tip">
-                      {{ t('未配置，点击上方按钮选择要打开的页面') }}
-                    </div>
+                      {{ item.onClick ? t('编辑代码') : t('编写事件') }}
+                    </button>
+                  </div>
+                  <div v-if="item.onClick" class="event-code-preview">
+                    <pre class="event-code-text">{{ item.onClick }}</pre>
+                  </div>
+                  <div v-else class="event-empty-tip">
+                    {{ t('暂无事件代码，点击上方按钮编写') }}
                   </div>
                 </div>
-              </div>
-            </template>
+
+                <!-- 打开页面 -->
+                <div class="section-header">{{ t('打开页面 (openPage)') }}</div>
+                <div class="event-section">
+                  <div class="event-section-header">
+                    <div class="open-page-btns">
+                      <button
+                        class="event-edit-btn"
+                        @click="useCurrentPage(selectedIdx)"
+                      >
+                        {{ t('当前页面') }}
+                      </button>
+                      <button
+                        class="event-edit-btn"
+                        @click="openPageSelectDialog(selectedIdx)"
+                      >
+                        {{
+                          item.openPage?.pageId &&
+                          item.openPage.pageId !== '__current__'
+                            ? t('更换页面')
+                            : t('选择页面')
+                        }}
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="item.openPage?.pageId" class="open-page-config">
+                    <div class="open-page-row">
+                      <span class="open-page-label">{{ t('页面') }}</span>
+                      <span class="open-page-value">{{
+                        pageIdDisplay(item.openPage.pageId)
+                      }}</span>
+                      <button
+                        class="event-edit-btn"
+                        @click="clearPageSelect(selectedIdx)"
+                      >
+                        {{ t('清除') }}
+                      </button>
+                    </div>
+                    <div class="open-page-row">
+                      <label class="open-page-label">{{ t('模式') }}</label>
+                      <select
+                        class="form-select page-mode-select"
+                        :value="item.openPage.bizMode || 'form'"
+                        @change="
+                          setPageOpenBizMode(
+                            selectedIdx,
+                            ($event.target as HTMLSelectElement).value
+                          )
+                        "
+                      >
+                        <option value="form">{{ t('表单') }}</option>
+                        <option value="table">{{ t('表格') }}</option>
+                        <option value="mobile">{{ t('移动端') }}</option>
+                      </select>
+                      <label class="open-page-label">{{ t('形式') }}</label>
+                      <select
+                        class="form-select page-mode-select"
+                        :value="item.openPage.mode || 'popup'"
+                        @change="
+                          setPageOpenMode(
+                            selectedIdx,
+                            ($event.target as HTMLSelectElement).value
+                          )
+                        "
+                      >
+                        <option value="popup">{{ t('弹窗') }}</option>
+                        <option value="drawer">{{ t('抽屉') }}</option>
+                      </select>
+                    </div>
+                    <div class="open-page-row">
+                      <label class="open-page-label">{{ t('标题') }}</label>
+                      <input
+                        class="compact-input"
+                        type="text"
+                        :value="item.openPage.title || ''"
+                        :placeholder="item.caption || t('留空用默认')"
+                        @input="
+                          setPageOpenTitle(
+                            selectedIdx,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                      />
+                      <template v-if="item.name === 'edit'">
+                        <label class="open-page-label">{{ t('传行') }}</label>
+                        <select
+                          class="form-select page-mode-select"
+                          :value="
+                            item.openPage.passSelectedRow === false
+                              ? 'false'
+                              : 'true'
+                          "
+                          @change="
+                            togglePassSelectedRow(
+                              selectedIdx,
+                              ($event.target as HTMLSelectElement).value === 'true'
+                            )
+                          "
+                        >
+                          <option value="true">{{ t('是') }}</option>
+                          <option value="false">{{ t('否') }}</option>
+                        </select>
+                      </template>
+                    </div>
+                    <div class="open-page-row">
+                      <label class="open-page-label">{{ t('宽') }}</label>
+                      <input
+                        class="compact-input page-size-input"
+                        type="number"
+                        min="1"
+                        :value="parseSizeValue(item.openPage.width)"
+                        :placeholder="t('自动')"
+                        @input="
+                          setPageOpenWidth(
+                            selectedIdx,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                      />
+                      <select
+                        class="form-select page-unit-select"
+                        :value="parseSizeUnit(item.openPage.width)"
+                        @change="
+                          setPageOpenWidthUnit(
+                            selectedIdx,
+                            ($event.target as HTMLSelectElement).value as 'px' | '%'
+                          )
+                        "
+                      >
+                        <option value="px">px</option>
+                        <option value="%">%</option>
+                      </select>
+                      <template v-if="item.openPage.mode !== 'drawer'">
+                        <label class="open-page-label">{{ t('高') }}</label>
+                        <input
+                          class="compact-input page-size-input"
+                          type="number"
+                          min="1"
+                          :value="parseSizeValue(item.openPage.height)"
+                          :placeholder="t('自动')"
+                          @input="
+                            setPageOpenHeight(
+                              selectedIdx,
+                              ($event.target as HTMLInputElement).value
+                            )
+                          "
+                        />
+                        <select
+                          class="form-select page-unit-select"
+                          :value="parseSizeUnit(item.openPage.height)"
+                          @change="
+                            setPageOpenHeightUnit(
+                              selectedIdx,
+                              ($event.target as HTMLSelectElement).value as 'px' | '%'
+                            )
+                          "
+                        >
+                          <option value="px">px</option>
+                          <option value="%">%</option>
+                        </select>
+                      </template>
+                    </div>
+                  </div>
+                  <div v-else class="event-empty-tip">
+                    {{ t('未配置，点击上方按钮选择要打开的页面') }}
+                  </div>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
       </div>
       <div class="dialog-footer">
         <button class="dialog-btn dialog-btn-cancel" @click="onCancel">
-          取消
+          {{ t('取消') }}
         </button>
         <button class="dialog-btn dialog-btn-confirm" @click="onConfirm">
-          确定
+          {{ t('确定') }}
         </button>
       </div>
     </div>
@@ -900,9 +1189,9 @@ function onCancel() {
   background: #fff;
   border-radius: 6px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  width: 680px;
-  max-width: 95vw;
-  max-height: 90vh;
+  width: 960px;
+  max-width: 96vw;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -984,17 +1273,76 @@ function onCancel() {
   color: #fff;
 }
 
-/* 按钮卡片列表 */
-.item-list {
+/* ===================== 左右分栏布局 ===================== */
+.toolbar-split-layout {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+.toolbar-list-left {
+  flex: 0 0 280px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-height: 600px;
+  min-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  border-right: 2px solid #dcdfe6;
+  background: #fafafa;
 }
+.toolbar-list-right {
+  flex: 1;
+  min-width: 0;
+  max-height: 600px;
+  min-height: 400px;
+  overflow-y: auto;
+  padding: 10px 14px;
+  background: #fff;
+}
+.item-detail-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #c0c4cc;
+  font-size: 13px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+.item-detail-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  padding: 4px 0 10px;
+  border-bottom: 2px solid #1976d2;
+  margin-bottom: 8px;
+}
+
+/* 分区标题 */
+.section-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  padding-left: 8px;
+  border-left: 3px solid #1976d2;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+.section-header:first-child {
+  margin-top: 0;
+}
+
+/* ===================== 左侧按钮卡片 ===================== */
 .item-card {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  border-radius: 0;
   overflow: hidden;
   transition: border-color 0.15s;
+  background: #fff;
+  flex-shrink: 0;
 }
 .item-card.dragging {
   opacity: 0.5;
@@ -1004,26 +1352,31 @@ function onCancel() {
   border-style: dashed;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
-.item-card.expanded {
+.item-card.selected {
   border-color: #1976d2;
+  background: #ecf5ff;
 }
 .item-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 12px;
-  background: #f5f7fa;
+  padding: 7px 10px;
   cursor: pointer;
 }
 .item-card-header:hover {
-  background: #ecf5ff;
+  background: #f0f7ff;
+}
+.item-card.selected .item-card-header {
+  background: #e1f0ff;
 }
 .item-card-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 .item-badge {
   display: inline-block;
@@ -1031,6 +1384,7 @@ function onCancel() {
   border-radius: 3px;
   font-size: 11px;
   color: #fff;
+  flex-shrink: 0;
 }
 .badge-preset {
   background: #909399;
@@ -1054,6 +1408,7 @@ function onCancel() {
   background: #e8f4ff;
   color: #1976d2;
   border: 1px solid #b3d8ff;
+  flex-shrink: 0;
 }
 .item-tag-hide {
   display: inline-block;
@@ -1062,6 +1417,7 @@ function onCancel() {
   font-size: 11px;
   background: #f0f0f0;
   color: #909399;
+  flex-shrink: 0;
 }
 .item-tag-event {
   display: inline-block;
@@ -1071,11 +1427,13 @@ function onCancel() {
   background: #f0f9eb;
   color: #67c23a;
   border: 1px solid #c2e7b0;
+  flex-shrink: 0;
 }
 .item-card-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 .row-move {
   width: 22px;
@@ -1138,14 +1496,7 @@ function onCancel() {
   background: #fde2e2;
 }
 
-/* 展开内容 */
-.item-card-body {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+/* ===================== 右侧详情面板 ===================== */
 /* 双列网格布局 */
 .form-grid-2col {
   display: grid;
@@ -1183,116 +1534,31 @@ function onCancel() {
   color: #909399;
   cursor: not-allowed;
 }
-.color-row {
+.form-select {
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.color-text-input {
-  flex: 1;
-  min-width: 0;
-}
-.color-picker {
-  width: 32px;
-  height: 32px;
-  padding: 0;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
   background: #fff;
-  cursor: pointer;
-  flex-shrink: 0;
+  min-width: 0;
 }
-.color-clear-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: #f5f7fa;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #909399;
-  font-size: 14px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.color-clear-btn:hover {
-  background: #f0f0f0;
-  color: #f56c6c;
-}
-/* 紧凑配色行 */
+
+/* 配色行 */
 .color-inline-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 6px 8px;
   background: #fafafa;
   border-radius: 4px;
-}
-/* 下拉子按钮配置区 */
-.children-section {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  padding: 8px;
-  background: #fafafa;
-}
-.children-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.child-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.child-card {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  margin-bottom: 4px;
-  overflow: hidden;
-}
-.child-card-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: #f5f7fa;
-  cursor: pointer;
-}
-.child-card-header:hover {
-  background: #ecf5ff;
-}
-.child-icon-preview {
-  font-size: 14px;
-  color: #606266;
-  flex-shrink: 0;
-}
-.child-card-body {
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: #fff;
-}
-.child-form-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.color-inline-label {
-  font-size: 12px;
-  color: #606266;
-  flex-shrink: 0;
 }
 .color-inline-item {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   cursor: pointer;
 }
 .color-inline-tag {
@@ -1300,8 +1566,8 @@ function onCancel() {
   color: #909399;
 }
 .color-picker-sm {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid #dcdfe6;
   border-radius: 3px;
@@ -1325,7 +1591,8 @@ function onCancel() {
 .color-clear-xs:hover {
   color: #f56c6c;
 }
-/* 紧凑行：显示+权限码 */
+
+/* 紧凑行 */
 .compact-row {
   display: flex;
   align-items: center;
@@ -1365,57 +1632,64 @@ function onCancel() {
 .compact-input:focus {
   border-color: #1976d2;
 }
-.form-select {
-  flex: 1;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 13px;
-  outline: none;
-  box-sizing: border-box;
-  background: #fff;
-  min-width: 0;
-}
 
-/* 开关组 - 紧凑横排 */
-.switch-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 20px;
-  padding: 8px 12px;
-  background: #fafafa;
+/* 子按钮区 */
+.children-section {
+  border: 1px solid #ebeef5;
   border-radius: 4px;
+  padding: 8px;
+  background: #fafafa;
 }
-.switch-item {
+.children-header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: #606266;
-  cursor: pointer;
-  white-space: nowrap;
+  justify-content: flex-end;
+  margin-bottom: 6px;
 }
-.switch-item input {
-  width: 15px;
-  height: 15px;
+.child-card {
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+.child-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f5f7fa;
   cursor: pointer;
+}
+.child-card-header:hover {
+  background: #ecf5ff;
+}
+.child-icon-preview {
+  font-size: 14px;
+  color: #606266;
+  flex-shrink: 0;
+}
+.child-card-body {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fff;
+}
+.child-form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* 事件配置区域 */
 .event-section {
-  border-top: 1px dashed #e4e7ed;
-  padding-top: 10px;
+  padding-top: 4px;
 }
 .event-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 8px;
-}
-.event-section-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #303133;
 }
 .event-edit-btn {
   border: 1px solid #1976d2;
@@ -1476,9 +1750,17 @@ function onCancel() {
 .open-page-label {
   font-size: 12px;
   color: #606266;
-  width: 70px;
+  width: 50px;
   flex-shrink: 0;
   text-align: right;
+}
+.page-size-input {
+  width: 70px;
+  flex-shrink: 0;
+}
+.page-unit-select {
+  width: 56px;
+  flex-shrink: 0;
 }
 .open-page-value {
   font-size: 12px;

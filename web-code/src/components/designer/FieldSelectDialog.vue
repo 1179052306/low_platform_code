@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 export interface FieldOption {
   dbField: string
@@ -68,6 +70,9 @@ function closeDialog() {
   emit('update:visible', false)
 }
 
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
+
 watch(
   () => props.visible,
   (val) => {
@@ -83,10 +88,13 @@ watch(
 <template>
   <Teleport to="body">
     <div v-if="visible" class="fsd-overlay" @click.self="closeDialog">
-      <div class="fsd-dialog">
-        <div class="fsd-header">
+      <div class="fsd-dialog" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+        <div class="fsd-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
           <span>{{ title || t('选择字段') }}</span>
-          <button class="fsd-close" @click="closeDialog">✕</button>
+          <div class="dialog-header-actions">
+            <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+            <button class="fsd-close" @click="closeDialog">✕</button>
+          </div>
         </div>
         <div class="fsd-body">
           <div class="fsd-search">

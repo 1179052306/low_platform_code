@@ -3,6 +3,8 @@ import { ref, watch, computed } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElTable, ElTableColumn, ElSelect, ElOption, ElInputNumber, ElMessage } from 'element-plus'
 import { t } from '@/store/lang'
 import type { QueryConfig, QueryFieldConfig, FilterRule, SortRule } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -77,16 +79,23 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('查询条件配置')"
     width="720px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('查询条件配置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElForm label-width="100px">
       <ElFormItem :label="t('可查询字段')">
         <div class="field-list">

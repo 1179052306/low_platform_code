@@ -300,30 +300,43 @@ public class SqlExecutor {
         }
     }
 
-    /** 根据列类型提示转换值：String → Long/Double/Boolean */
+    /** 根据列类型转换值，确保绑定到 PreparedStatement 的值类型与数据库列类型匹配 */
     private Object convertValueByTypeHint(Object value, String typeHint) {
-        if (value == null || typeHint == null || !(value instanceof String)) {
-            return value;
-        }
-        String strValue = (String) value;
-        if (strValue.isEmpty()) {
+        if (value == null || typeHint == null) {
             return value;
         }
         String t = typeHint.toLowerCase(Locale.ROOT);
+        if (t.contains("char") || t.contains("text") || t.contains("varchar")) {
+            if (value instanceof String) return value;
+            return String.valueOf(value);
+        }
         if (t.contains("bigint") || t.contains("int") || t.contains("numeric") || t.contains("decimal")) {
-            try {
-                return Long.parseLong(strValue);
-            } catch (NumberFormatException e1) {
+            if (value instanceof Number) return value;
+            if (value instanceof String) {
+                String strValue = (String) value;
+                if (strValue.isEmpty()) return value;
                 try {
-                    return Double.parseDouble(strValue);
-                } catch (NumberFormatException e2) {
-                    return value;
+                    return Long.parseLong(strValue);
+                } catch (NumberFormatException e1) {
+                    try {
+                        return Double.parseDouble(strValue);
+                    } catch (NumberFormatException e2) {
+                        return value;
+                    }
                 }
             }
+            return value;
         }
         if (t.contains("boolean") || t.contains("bool")) {
-            if ("true".equalsIgnoreCase(strValue) || "1".equals(strValue) || "t".equals(strValue)) return Boolean.TRUE;
-            if ("false".equalsIgnoreCase(strValue) || "0".equals(strValue) || "f".equals(strValue)) return Boolean.FALSE;
+            if (value instanceof Boolean) return value;
+            if (value instanceof String) {
+                String strValue = (String) value;
+                if ("true".equalsIgnoreCase(strValue) || "1".equals(strValue) || "t".equals(strValue)) return Boolean.TRUE;
+                if ("false".equalsIgnoreCase(strValue) || "0".equals(strValue) || "f".equals(strValue)) return Boolean.FALSE;
+            }
+            if (value instanceof Number) {
+                return ((Number) value).intValue() != 0 ? Boolean.TRUE : Boolean.FALSE;
+            }
             return value;
         }
         return value;

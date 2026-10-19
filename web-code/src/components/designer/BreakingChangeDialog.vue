@@ -3,6 +3,8 @@ import { ref, watch } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElMessage, ElAlert } from 'element-plus'
 import { t } from '@/store/lang'
 import type { BreakingChange } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -37,16 +39,23 @@ function onConfirm() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('BREAKING 变更确认')"
     width="600px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('BREAKING 变更确认')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElAlert type="warning" :closable="false" :title="t('检测到 BREAKING 变更，请确认并提供迁移脚本')" style="margin-bottom: 16px;" />
     <ElForm label-width="120px">
       <ElFormItem v-for="c in changes" :key="c.type" :label="c.type">

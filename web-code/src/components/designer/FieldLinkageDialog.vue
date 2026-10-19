@@ -3,6 +3,8 @@ import { ref, watch, computed } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElSelect, ElOption, ElSwitch, ElMessage } from 'element-plus'
 import { t } from '@/store/lang'
 import type { FieldLinkageRule } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -57,16 +59,23 @@ function onSave() {
   emit('save', linkageRules.value)
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('字段联动配置')"
     width="720px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('字段联动配置')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div class="linkage-list">
       <div v-for="(rule, idx) in linkageRules" :key="rule.id" class="linkage-row">
         <ElSelect v-model="rule.triggerField" :placeholder="t('触发字段')" style="width: 130px">

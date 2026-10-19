@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -15,6 +17,8 @@ const emit = defineEmits<{
 
 const localValue = ref('')
 
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+
 watch(
   () => props.modelValue,
   (val) => {
@@ -22,6 +26,8 @@ watch(
   },
   { immediate: true }
 )
+
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 
 function onConfirm() {
   emit('update:modelValue', localValue.value)
@@ -35,10 +41,13 @@ function onCancel() {
 
 <template>
   <div v-if="visible" class="dialog-overlay" @click.self="onCancel">
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ title || t('文本编辑') }}</span>
-        <button class="dialog-close" @click="onCancel">✕</button>
+        <div class="dialog-header-actions">
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+          <button class="dialog-close" @click="onCancel">✕</button>
+        </div>
       </div>
       <div class="dialog-body">
         <textarea

@@ -1,6 +1,6 @@
-import { reactive, computed, ref, type InjectionKey } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule } from '@/types/schema'
-import { getConfig } from '@/materials'
+
 import { httpRequest, extractPayload, setDebugPageIdProvider } from '@/utils/request'
 import {
   LAYOUT_CONTAINER_TYPES,
@@ -238,27 +238,8 @@ export function redo(): void {
 export const canUndo = computed(() => history.undoStack.length > 0)
 export const canRedo = computed(() => history.redoStack.length > 0)
 
-/** 收集节点树中的所有节点（含自身） */
-export function collectAllNodes(list: ComponentSchema[]): ComponentSchema[] {
-  const result: ComponentSchema[] = []
-  const walk = (nodes: ComponentSchema[]) => {
-    for (const node of nodes) {
-      result.push(node)
-      if (node.children.length) walk(node.children)
-    }
-  }
-  walk(list)
-  return result
-}
-
-/** 按 fieldName 查找节点（纯函数，在指定 schema 中查找） */
-export function findNodeByFieldNameIn(
-  schema: ComponentSchema[],
-  fieldName: string,
-): ComponentSchema | null {
-  const all = collectAllNodes(schema)
-  return all.find((n) => n.fieldName === fieldName) ?? null
-}
+export { collectAllNodes, findNodeByFieldNameIn, DESIGNER_STORE_KEY, type RenderStore, getConfig } from './designer-shared'
+import { collectAllNodes, findNodeByFieldNameIn, getConfig, type RenderStore } from './designer-shared'
 
 /** 按 fieldName 查找节点（使用全局 store，向后兼容） */
 export function findNodeByFieldName(fieldName: string): ComponentSchema | null {
@@ -299,25 +280,25 @@ function defaultNodeSize(type: string): { width: number; height: number } {
     'link',
     'el-row',
     'el-col',
-    'dx-button',
-    'dx-text-box',
-    'dx-number-box',
-    'dx-check-box',
-    'dx-switch',
-    'dx-slider',
-    'dx-range-slider',
-    'dx-date-box',
-    'dx-color-box',
-    'dx-select-box',
-    'dx-lookup',
-    'dx-tag-box',
-    'dx-autocomplete',
-    'dx-radio-group',
-    'dx-drop-down-button',
-    'dx-drop-down-box',
+    'button',
+    'text-box',
+    'number-box',
+    'check-box',
+    'switch',
+    'slider',
+    'range-slider',
+    'date-box',
+    'color-box',
+    'select-box',
+    'lookup',
+    'tag-box',
+    'autocomplete',
+    'radio-group',
+    'drop-down-button',
+    'drop-down-box',
     'dx-recurrence-editor',
-    'dx-progress-bar',
-    'dx-base-data',
+    'progress-bar',
+    'base-data',
   ])
   const toNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -598,7 +579,7 @@ export function removeNode(id: string): void {
   const found = findNode(designerStore.schema, id)
   if (!found) return
   // 表格模式：禁止删除根级 dx-data-grid（保证始终有一个表格）
-  if (isTableMode() && !found.parent && found.node.type === 'dx-data-grid') {
+  if (isTableMode() && !found.parent && found.node.type === 'data-grid') {
     console.warn('[低代码设计器] 表格模式下的数据表格不可删除。')
     return
   }
@@ -626,7 +607,7 @@ export function removeNodes(ids: string[]): void {
   if (isTableMode()) {
     for (const id of ids) {
       const found = findNode(designerStore.schema, id)
-      if (found && !found.parent && found.node.type === 'dx-data-grid') {
+      if (found && !found.parent && found.node.type === 'data-grid') {
         console.warn('[低代码设计器] 表格模式下的数据表格不可删除。')
         return
       }
@@ -1183,6 +1164,10 @@ export function setBizMode(bizMode: 'form' | 'table' | 'mobile'): void {
   if (oldMode === bizMode) return
   // 保存当前 schema 到旧模式槽位
   designerStore.bizSchemas[oldMode] = designerStore.schema
+  // 从表单模式切出时：同步表单字段属性变更到表格列配置
+  if (oldMode === 'form') {
+    syncFormFieldsToTableColumns(designerStore.bizSchemas)
+  }
   // 切换到新模式槽位
   designerStore.bizMode = bizMode
   designerStore.schema = designerStore.bizSchemas[bizMode]
@@ -1245,14 +1230,82 @@ export function exportSchema(): PageSchema {
       mobile: designerStore.bizSchemas.mobile,
     }
     result.lastBizMode = designerStore.bizMode
+    // 表单模式保存时：同步表单字段属性变更到表格列配置
+    if (designerStore.bizMode === 'form' && result.bizSchemas) {
+      syncFormFieldsToTableColumns(result.bizSchemas)
+    }
   }
   return result
 }
 
 /**
- * 深度合并默认属性到目标对象
- * 只补全缺失的属性，不覆盖已有值
+ * 同步表单字段属性变更到表格列配置
+ * 当表单字段的 label/dbField 变化时，更新表格中对应列的 caption/dataField
+ * 匹配键：列的 formFieldName → 表单节点的 fieldName（含子字段路径 parent.child）
  */
+function syncFormFieldsToTableColumns(bizSchemas: BizSchemas): void {
+  const formNodes = bizSchemas.form
+  const tableNodes = bizSchemas.table
+  if (!formNodes?.length || !tableNodes?.length) return
+
+  // 收集表单字段映射：fieldName → { label, dbField, children }
+  const fieldMap = new Map<string, { label: string; dbField: string; children?: Map<string, { title: string; dbField: string }> }>()
+  const collect = (nodes: ComponentSchema[]) => {
+    for (const n of nodes) {
+      if (n.fieldName) {
+        const label = (n.props?.label as string) || ''
+        const dbField = n.dbField || ''
+        const entry: { label: string; dbField: string; children?: Map<string, { title: string; dbField: string }> } = { label, dbField }
+        if (n.children?.length) {
+          const childMap = new Map<string, { title: string; dbField: string }>()
+          for (const c of n.children) {
+            if (c.fieldName) {
+              childMap.set(c.fieldName, { title: (c.props?.label as string) || c.fieldName, dbField: c.dbField || c.fieldName })
+            }
+          }
+          entry.children = childMap
+        }
+        fieldMap.set(n.fieldName as string, entry)
+      }
+      if (n.children?.length) collect(n.children)
+    }
+  }
+  collect(formNodes)
+
+  // 遍历表格节点的列配置，按 formFieldName 匹配并同步
+  const syncColumns = (nodes: ComponentSchema[]) => {
+    for (const n of nodes) {
+      const cols = n.props?.columns
+      if (Array.isArray(cols)) {
+        for (const col of cols) {
+          const formFieldName = col.formFieldName as string
+          if (!formFieldName) continue
+          if (formFieldName.includes('.')) {
+            const dotIdx = formFieldName.indexOf('.')
+            const parentName = formFieldName.substring(0, dotIdx)
+            const childName = formFieldName.substring(dotIdx + 1)
+            const parent = fieldMap.get(parentName)
+            const child = parent?.children?.get(childName)
+            if (parent && child) {
+              const newCaption = `${parent.label || parentName}.${child.title}`
+              const newDataField = `${parent.dbField || parentName}.${child.dbField}`
+              col.caption = newCaption
+              col.dataField = newDataField
+            }
+          } else {
+            const field = fieldMap.get(formFieldName)
+            if (field) {
+              if (field.label) col.caption = field.label
+              if (field.dbField) col.dataField = field.dbField
+            }
+          }
+        }
+      }
+      if (n.children?.length) syncColumns(n.children)
+    }
+  }
+  syncColumns(tableNodes)
+}
 function deepMergeDefaults(target: Record<string, unknown>, defaults: Record<string, unknown>): void {
   for (const key of Object.keys(defaults)) {
     const defVal = defaults[key]
@@ -1346,19 +1399,6 @@ export function clearCanvas(): void {
   designerStore.selectedIds = []
 }
 
-/** 渲染用 store 接口（designerStore 和子页面 store 都满足此接口） */
-export interface RenderStore {
-  schema: ComponentSchema[]
-  schemaRevision: number
-  computeRules?: ComputeRule[]
-  primaryKeyField?: string
-  tableName?: string
-  selectMode?: boolean
-  selectedRowData?: Record<string, unknown> | null
-}
-
-/** designer store 的 injection key，用于 provide/inject 隔离子页面渲染 */
-export const DESIGNER_STORE_KEY: InjectionKey<RenderStore> = Symbol('designerStore')
 
 /** 创建独立渲染 store（用于子页面弹窗隔离渲染上下文） */
 export function createRenderStore(primaryKeyField?: string, tableName?: string, selectMode?: boolean): RenderStore {

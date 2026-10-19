@@ -5,6 +5,8 @@ import com.alibaba.fastjson2.JSONObject;
 import com.server.sqlengine.model.Condition;
 import com.server.sqlengine.model.Op;
 import com.server.sqlengine.model.SqlParam;
+import com.server.params.Table.TableNode;
+import com.server.params.Table.TableOperation;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +61,16 @@ import java.util.Map;
 @Service
 public class SqlTemplateEngine {
 
+    private final TableOperation tableOperation;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public SqlTemplateEngine(TableOperation tableOperation) {
+        this.tableOperation = tableOperation;
+    }
+
+    private String currentDbName = null;
+    private String currentTableName = null;
+
     /**
      * 将前端条件注入 SQL 模板。
      *
@@ -71,7 +83,11 @@ public class SqlTemplateEngine {
     public TemplateResult render(String sqlTemplate,
             @Nullable JSONArray conditions,
             @Nullable Map<String, SqlTemplateCondition> rpsTemplates,
-            @Nullable String defaultAlias) {
+            @Nullable String defaultAlias,
+            @Nullable String dbName,
+            @Nullable String tableName) {
+        this.currentDbName = dbName;
+        this.currentTableName = tableName;
         String sql = sqlTemplate;
         List<SqlParam> params = new ArrayList<SqlParam>();
 
@@ -230,34 +246,46 @@ public class SqlTemplateEngine {
                 ? qualifiedCol.substring(qualifiedCol.indexOf('.') + 1)
                 : qualifiedCol;
         if (op == null) {
-            params.add(new SqlParam(colName, tryConvertValue(value)));
+            params.add(createParam(colName, value));
             return " AND " + qualifiedCol + " = ?";
         }
 
         switch (op) {
             case EQ:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                if (value instanceof String && ((String) value).contains("\n")) {
+                    return buildInClause(colName, qualifiedCol, value, params, false);
+                }
+                if (value instanceof List && !((List<?>) value).isEmpty()) {
+                    return buildInClause(colName, qualifiedCol, value, params, false);
+                }
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " = ?";
             case NE:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                if (value instanceof String && ((String) value).contains("\n")) {
+                    return buildInClause(colName, qualifiedCol, value, params, true);
+                }
+                if (value instanceof List && !((List<?>) value).isEmpty()) {
+                    return buildInClause(colName, qualifiedCol, value, params, true);
+                }
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " <> ?";
             case LT:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " < ?";
             case LE:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " <= ?";
             case GT:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " > ?";
             case GE:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " >= ?";
             case LIKE:
-                params.add(new SqlParam(colName, "%" + value + "%"));
+                params.add(createParam(colName, "%" + value + "%"));
                 return " AND " + qualifiedCol + " LIKE ?";
             case NOT_LIKE:
-                params.add(new SqlParam(colName, "%" + value + "%"));
+                params.add(createParam(colName, "%" + value + "%"));
                 return " AND " + qualifiedCol + " NOT LIKE ?";
             case IS_NULL:
                 return " AND " + qualifiedCol + " IS NULL";
@@ -270,8 +298,27 @@ public class SqlTemplateEngine {
             case BETWEEN:
                 return buildBetweenClause(colName, qualifiedCol, value, params);
             default:
-                params.add(new SqlParam(colName, tryConvertValue(value)));
+                params.add(createParam(colName, value));
                 return " AND " + qualifiedCol + " = ?";
+        }
+    }
+
+    private SqlParam createParam(String colName, Object value) {
+        String typeHint = lookupColumnType(colName);
+        return new SqlParam(colName, value, typeHint);
+    }
+
+    @Nullable
+    private String lookupColumnType(String colName) {
+        if (colName == null || currentTableName == null) {
+            return null;
+        }
+        try {
+            String upperCol = colName.trim().toUpperCase(java.util.Locale.ROOT);
+            TableNode node = tableOperation.getTableNode(currentDbName, currentTableName, upperCol);
+            return node.getOracleType();
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -298,6 +345,16 @@ public class SqlTemplateEngine {
             String strVal = String.valueOf(value);
             if (strVal.startsWith("[")) {
                 values = JSONArray.parse(strVal).toJavaList(Object.class);
+            } else if (strVal.contains("\n")) {
+                String[] parts = strVal.split("\n");
+                List<Object> list = new ArrayList<Object>();
+                for (String p : parts) {
+                    String trimmed = p.trim();
+                    if (!trimmed.isEmpty()) {
+                        list.add(trimmed);
+                    }
+                }
+                values = list;
             } else {
                 String[] parts = strVal.split(",");
                 List<Object> list = new ArrayList<Object>();
@@ -315,11 +372,7 @@ public class SqlTemplateEngine {
                 sb.append(", ");
             }
             sb.append('?');
-            Object v = values.get(i);
-            if (v instanceof String) {
-                v = tryParseNumber((String) v);
-            }
-            params.add(new SqlParam(colName, v));
+            params.add(createParam(colName, values.get(i)));
         }
         sb.append(')');
         return sb.toString();
@@ -329,13 +382,11 @@ public class SqlTemplateEngine {
         String strVal = String.valueOf(value);
         String[] parts = strVal.split(",");
         if (parts.length < 2) {
-            params.add(new SqlParam(colName, value));
+            params.add(createParam(colName, value));
             return " AND " + col + " = ?";
         }
-        Object low = tryParseNumber(parts[0].trim());
-        Object high = tryParseNumber(parts[1].trim());
-        params.add(new SqlParam(colName, low));
-        params.add(new SqlParam(colName, high));
+        params.add(createParam(colName, parts[0].trim()));
+        params.add(createParam(colName, parts[1].trim()));
         return " AND " + col + " BETWEEN ? AND ?";
     }
 

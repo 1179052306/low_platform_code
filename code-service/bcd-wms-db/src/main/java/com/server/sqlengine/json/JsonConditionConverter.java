@@ -200,8 +200,20 @@ public class JsonConditionConverter {
 
         switch (op) {
             case EQ:
+                if (rawValue instanceof String && ((String) rawValue).contains("\n")) {
+                    return parseInCondition(qualifiedColumn, rawValue, false);
+                }
+                if (rawValue instanceof List && !((List<?>) rawValue).isEmpty()) {
+                    return parseInCondition(qualifiedColumn, rawValue, false);
+                }
                 return Condition.eq(qualifiedColumn, convertValue(rawValue));
             case NE:
+                if (rawValue instanceof String && ((String) rawValue).contains("\n")) {
+                    return parseInCondition(qualifiedColumn, rawValue, true);
+                }
+                if (rawValue instanceof List && !((List<?>) rawValue).isEmpty()) {
+                    return parseInCondition(qualifiedColumn, rawValue, true);
+                }
                 return Condition.ne(qualifiedColumn, convertValue(rawValue));
             case LT:
                 return Condition.lt(qualifiedColumn, convertValue(rawValue));
@@ -265,6 +277,15 @@ public class JsonConditionConverter {
             String strVal = String.valueOf(value);
             if (strVal.startsWith("[")) {
                 values = new ArrayList<Object>(JSONArray.parse(strVal).toJavaList(Object.class));
+            } else if (strVal.contains("\n")) {
+                String[] parts = strVal.split("\n");
+                values = new ArrayList<Object>();
+                for (String p : parts) {
+                    String trimmed = p.trim();
+                    if (!trimmed.isEmpty()) {
+                        values.add(trimmed);
+                    }
+                }
             } else {
                 String[] parts = strVal.split(",");
                 values = new ArrayList<Object>();
@@ -273,12 +294,7 @@ public class JsonConditionConverter {
                 }
             }
         }
-        for (int i = 0; i < values.size(); i++) {
-            Object v = values.get(i);
-            if (v instanceof String) {
-                values.set(i, tryParseNumber((String) v));
-            }
-        }
+
         return negate ? Condition.notIn(column, values) : Condition.in(column, values);
     }
 

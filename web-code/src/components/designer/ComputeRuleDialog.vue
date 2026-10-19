@@ -4,6 +4,8 @@ import { ElDialog, ElButton, ElInput, ElSwitch, ElMessage, ElMessageBox } from '
 import { t } from '@/store/lang'
 import ExprDialog from './ExprDialog.vue'
 import type { ComputeRule, ComputeRuleTarget } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -162,17 +164,24 @@ function onConfirm() {
   emit('confirm', innerRules.value)
   emit('update:modelValue', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.modelValue, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="modelValue"
     @update:model-value="emit('update:modelValue', $event)"
-    :title="t('计算规则')"
     width="900px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
     :close-on-click-modal="false"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('计算规则')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <div class="cr-dialog-body">
       <div class="cr-left">
         <div class="cr-left-header">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { ElDrawer, ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
-import DxDataGrid, { DxColumn } from 'devextreme-vue/data-grid'
+import LcTable from '@/materials/components/LcTable.vue'
 import { t } from '@/store/lang'
 import { useVersionHistory } from '@/composables/useVersionHistory'
 import type { MetaVersion } from '@/types/schema'
@@ -18,6 +18,15 @@ const emit = defineEmits<{
 }>()
 
 const { versions, loading, getVersionHistory, rollbackVersion } = useVersionHistory()
+
+const versionColumns = computed(() => [
+  { dataField: 'versionNo', caption: t('版本号'), width: 80 },
+  { dataField: 'changeLog', caption: t('变更说明') },
+  { dataField: 'breaking', caption: t('BREAKING'), width: 90, cellTemplate: 'breakingTpl' },
+  { dataField: 'createdBy', caption: t('创建人'), width: 100 },
+  { dataField: 'createdAt', caption: t('时间'), width: 160 },
+  { dataField: '_op', caption: t('操作'), width: 120, cellTemplate: 'actionTpl' },
+])
 
 watch(
   () => props.visible,
@@ -68,28 +77,23 @@ function onClose() {
     append-to-body
   >
     <div v-loading="loading" class="version-history-grid">
-      <DxDataGrid
+      <LcTable
         :data-source="versions"
         :show-borders="true"
         :column-auto-width="true"
         :filter-row="{ visible: true }"
         height="100%"
+        :columns="versionColumns"
       >
-        <DxColumn data-field="versionNo" :caption="t('版本号')" :width="80" />
-        <DxColumn data-field="changeLog" :caption="t('变更说明')" />
-        <DxColumn data-field="breaking" :caption="t('BREAKING')" :width="90" cell-template="breakingTpl" />
-        <template #breakingTpl="{ data }">
-          <ElTag v-if="data.value" type="danger" size="small">{{ t('是') }}</ElTag>
+        <template #breakingTpl="{ value }">
+          <ElTag v-if="value" type="danger" size="small">{{ t('是') }}</ElTag>
           <ElTag v-else type="info" size="small">{{ t('否') }}</ElTag>
         </template>
-        <DxColumn data-field="createdBy" :caption="t('创建人')" :width="100" />
-        <DxColumn data-field="createdAt" :caption="t('时间')" :width="160" />
-        <DxColumn :caption="t('操作')" :width="120" cell-template="actionTpl" />
         <template #actionTpl="{ data }">
-          <ElButton type="primary" link @click="onPreview(data.data as MetaVersion)">{{ t('预览') }}</ElButton>
-          <ElButton type="warning" link @click="onRollback(data.data as MetaVersion)">{{ t('回滚') }}</ElButton>
+          <ElButton type="primary" link @click="onPreview(data as MetaVersion)">{{ t('预览') }}</ElButton>
+          <ElButton type="warning" link @click="onRollback(data as MetaVersion)">{{ t('回滚') }}</ElButton>
         </template>
-      </DxDataGrid>
+      </LcTable>
     </div>
     <template #footer>
       <ElButton @click="onClose">{{ t('关闭') }}</ElButton>

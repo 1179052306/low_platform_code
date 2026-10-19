@@ -1,0 +1,114 @@
+/* 弹框拖拽移动 + 最大化/还原 通用样式（自定义 div 弹框） */
+
+/* 最大化状态：铺满视口 */
+.dialog-container.is-maximized {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+/* 拖拽中禁用文本选择 */
+.dialog-container.is-dragging {
+  user-select: none;
+}
+
+/* header 可拖拽时显示 move 光标 */
+.dialog-header.is-draggable {
+  cursor: move;
+  user-select: none;
+}
+
+/* header 操作按钮区 */
+.dialog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 最大化/还原按钮 */
+.dialog-max-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #909399;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  padding: 0;
+}
+.dialog-max-btn:hover {
+  color: #1976d2;
+  background: #f0f7ff;
+}
+
+/* Teleport 风格弹框（fsd/psd/asd 前缀）最大化 */
+.fsd-dialog.is-maximized,
+.psd-dialog.is-maximized,
+.asd-dialog.is-maximized {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+
+.fsd-dialog.is-dragging,
+.psd-dialog.is-dragging,
+.asd-dialog.is-dragging {
+  user-select: none;
+}
+
+.fsd-header.is-draggable,
+.psd-header.is-draggable,
+.asd-header.is-draggable {
+  cursor: move;
+  user-select: none;
+}
+/* ElDialog 使用 DialogMaxHeader 时，清除 dialog/header 默认 padding，由 .dialog-max-header 自行控制 header 布局 */
+.el-dialog:has(.dialog-max-header) {
+  padding: 0 !important;
+}
+.el-dialog:has(.dialog-max-header) .el-dialog__header {
+  padding: 0 !important;
+}
+.el-dialog:has(.dialog-max-header) .el-dialog__body {
+  padding: 12px !important;
+}
+.el-dialog:has(.dialog-max-header) .el-dialog__footer {
+  padding: 12px !important;
+}
+
+/* 内嵌弹框最大化（api-detail / form-import / asd-detail） */
+.api-detail-dialog.is-maximized,
+.form-import-dialog.is-maximized,
+.asd-detail-dialog.is-maximized {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+
+.api-detail-dialog.is-dragging,
+.form-import-dialog.is-dragging,
+.asd-detail-dialog.is-dragging {
+  user-select: none;
+}
+
+.api-detail-header.is-draggable,
+.form-import-title.is-draggable,
+.asd-detail-header.is-draggable {
+  cursor: move;
+  user-select: none;
+}

@@ -2,6 +2,8 @@
 import { ref, watch } from 'vue'
 import { ElDialog, ElForm, ElButton, ElSelect, ElOption, ElInput, ElMessage } from 'element-plus'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 export interface DependFilterCondition {
   field: string
@@ -81,20 +83,27 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="t('配置过滤条件')"
     width="680px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="t('配置过滤条件')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElForm label-width="90px">
       <div class="condition-list">
         <div v-for="(c, idx) in localConditions" :key="idx" class="condition-row">
-          <ElSelect v-model="c.field" :placeholder="t('字段')" style="width: 160px" filterable>
+          <ElSelect v-model="c.field" :placeholder="t('字段')" style="width: 160px" filterable popper-class="dialog-inner-popper">
             <ElOption
               v-for="f in fields"
               :key="f.dbField"
@@ -102,7 +111,7 @@ function onClose() {
               :label="f.displayText"
             />
           </ElSelect>
-          <ElSelect v-model="c.operator" style="width: 110px">
+          <ElSelect v-model="c.operator" style="width: 110px" popper-class="dialog-inner-popper">
             <ElOption
               v-for="op in OPERATORS"
               :key="op.value"
@@ -110,7 +119,7 @@ function onClose() {
               :label="t(op.label)"
             />
           </ElSelect>
-          <ElSelect v-model="c.valueType" style="width: 120px">
+          <ElSelect v-model="c.valueType" style="width: 120px" popper-class="dialog-inner-popper">
             <ElOption value="depend" :label="t('父控件值')" />
             <ElOption value="fixed" :label="t('固定值')" />
           </ElSelect>

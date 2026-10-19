@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-import DxTextBox from 'devextreme-vue/text-box'
-import DxButton from 'devextreme-vue/button'
+
 import AdvancedSearchPanel from '@/components/renderer/AdvancedSearchPanel.vue'
 import type {
   GridColumn,
@@ -14,7 +13,7 @@ import {
   deleteSystem,
   type SystemInfo,
 } from '@/store/persistence'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElButton, ElInput } from 'element-plus'
 import { t, loadModule } from '@/store/lang'
 
 const systemList = ref<SystemInfo[]>([])
@@ -173,13 +172,10 @@ async function deleteSystemHandler(s: SystemInfo) {
         <i class="dx-icon-folder sm-title-icon"></i>
         <span>{{ t('系统基础资料') }}</span>
       </div>
-      <DxButton
-        :text="t('新增系统')"
-        icon="add"
+      <ElButton
         type="default"
-        styling-mode="contained"
         @click="startAdd"
-      />
+      >{{ t('新增系统') }}</ElButton>
     </div>
 
     <!-- 查询面板 -->
@@ -215,19 +211,17 @@ async function deleteSystemHandler(s: SystemInfo) {
                 </span>
               </div>
               <div class="sm-card-btns">
-                <DxButton
-                  icon="edit"
-                  styling-mode="text"
-                  :hint="t('修改')"
+                <ElButton
+                  text
+                  :title="t('修改')"
                   @click="startEdit(s)"
-                />
-                <DxButton
+                >✎</ElButton>
+                <ElButton
                   v-if="s.id !== 'sys_default'"
-                  icon="trash"
-                  styling-mode="text"
-                  :hint="t('删除')"
+                  text
+                  :title="t('删除')"
                   @click="deleteSystemHandler(s)"
-                />
+                >🗑</ElButton>
               </div>
             </div>
             <div class="sm-card-name">{{ s.name }}</div>
@@ -256,60 +250,52 @@ async function deleteSystemHandler(s: SystemInfo) {
               {{ isAdding ? t('新增系统') : t('修改系统') }}
             </span>
           </div>
-          <DxButton icon="close" styling-mode="text" @click="cancelEdit" />
+          <ElButton text @click="cancelEdit">✕</ElButton>
         </div>
         <div class="sm-modal-body">
           <!-- 系统 ID -->
           <div class="sm-field">
             <label class="sm-label sm-required">{{ t('系统 ID') }}</label>
-            <DxTextBox
-              :value="form.id"
-              :read-only="!isAdding"
+            <ElInput
+              v-model="form.id"
+              :readonly="!isAdding"
               :placeholder="t('如 sys_wms')"
-              @value-changed="(e: any) => (form.id = e.value)"
             />
             <div class="sm-field-error" v-if="idError">{{ idError }}</div>
           </div>
           <!-- 系统名称 -->
           <div class="sm-field">
             <label class="sm-label sm-required">{{ t('系统名称') }}</label>
-            <DxTextBox
-              :value="form.name"
+            <ElInput
+              v-model="form.name"
               :placeholder="t('如 仓储管理系统')"
-              @value-changed="(e: any) => (form.name = e.value)"
             />
             <div class="sm-field-error" v-if="nameError">{{ nameError }}</div>
           </div>
           <!-- 排序 -->
           <div class="sm-field">
             <label class="sm-label">{{ t('排序') }}</label>
-            <DxTextBox
-              :value="String(form.sort)"
-              @value-changed="(e: any) => (form.sort = Number(e.value) || 0)"
+            <ElInput
+              :model-value="String(form.sort)"
+              @update:model-value="(v: string) => (form.sort = Number(v) || 0)"
             />
           </div>
         </div>
         <div class="sm-modal-footer">
-          <DxButton
-            :text="t('取消')"
-            styling-mode="outlined"
+          <ElButton
+            plain
             @click="cancelEdit"
-          />
-          <DxButton
+          >{{ t('取消') }}</ElButton>
+          <ElButton
             v-if="!isAdding && form.id !== 'sys_default'"
-            :text="t('删除')"
-            icon="trash"
             type="danger"
-            styling-mode="outlined"
+            plain
             @click="deleteSystemHandler(form)"
-          />
-          <DxButton
-            :text="t('保存')"
-            icon="save"
+          >{{ t('删除') }}</ElButton>
+          <ElButton
             type="default"
-            styling-mode="contained"
             @click="saveForm"
-          />
+          >{{ t('保存') }}</ElButton>
         </div>
       </div>
     </div>

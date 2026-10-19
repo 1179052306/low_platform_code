@@ -170,6 +170,31 @@ public class CrudExecutor {
         } else if (pageSize != null) {
             req.put("pageSize", pageSize);
         }
+        // 排序：前端传 sort 为 JSON 字符串 {"selector":"col","desc":false,"TableAlias":"T"}
+        String sortStr = payload.getString("sort");
+        if (sortStr != null && !sortStr.isEmpty()) {
+            try {
+                JSONObject sortObj = JSONObject.parseObject(sortStr);
+                if (sortObj != null) {
+                    String selector = sortObj.getString("selector");
+                    if (selector != null && !selector.isEmpty()) {
+                        JSONArray orderBy = new JSONArray();
+                        JSONObject ob = new JSONObject();
+                        String tableAlias = sortObj.getString("TableAlias");
+                        if (tableAlias != null && !tableAlias.isEmpty()) {
+                            ob.put("column", tableAlias + "." + selector);
+                        } else {
+                            ob.put("column", selector);
+                        }
+                        ob.put("direction", sortObj.getBooleanValue("desc") ? "desc" : "asc");
+                        orderBy.add(ob);
+                        req.put("orderBy", orderBy);
+                    }
+                }
+            } catch (Exception e) {
+                // sort 解析失败，忽略排序
+            }
+        }
         JSONArray conditions = new JSONArray();
         JSONObject connector = new JSONObject();
         connector.put("Symbol", "and");

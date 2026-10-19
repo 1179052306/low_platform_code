@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, inject, nextTick } from 'vue'
-import DxDataGrid from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
-import DxTextBox from 'devextreme-vue/text-box'
-import CustomStore from 'devextreme/data/custom_store'
+import LcTable from './LcTable.vue'
+import { ElInput, ElButton } from 'element-plus'
+
 import { gatewayCall } from '@/api'
 import { pageModal } from '@/components/renderer/pageModal'
 import { loadPage } from '@/store/persistence'
 import { t } from '@/store/lang'
-import { DESIGNER_STORE_KEY, findNodeByFieldNameIn, type RenderStore } from '@/store/designer'
+import { DESIGNER_STORE_KEY, findNodeByFieldNameIn, type RenderStore } from '@/store/designer-shared'
 import type { DependFilterCondition } from '@/components/designer/DependFilterDialog.vue'
 
 const props = withDefaults(
@@ -23,6 +22,9 @@ const props = withDefaults(
     visible?: boolean
     dependField?: string
     dependFilters?: DependFilterCondition[]
+    dropdownWidthOffset?: number
+    initialDisplayValue?: string
+    autoFocus?: boolean
   }>(),
   {
     refPageId: '',
@@ -35,12 +37,16 @@ const props = withDefaults(
     visible: true,
     dependField: '',
     dependFilters: () => [],
+    dropdownWidthOffset: 0,
+    initialDisplayValue: '',
+    autoFocus: false,
   },
 )
 
 const emit = defineEmits<{
-  (e: 'valueChanged', value: unknown): void
+  (e: 'valueChanged', value: unknown, displayValue?: string): void
   (e: 'selectionChanged', data: Record<string, unknown> | null): void
+  (e: 'dropdownClosed'): void
 }>()
 
 const isOpen = ref(false)
@@ -51,6 +57,24 @@ const gridColumns = ref<Record<string, unknown>[]>([])
 const tableName = ref('')
 const gridRef = ref<any>(null)
 const wrapRef = ref<HTMLElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
+const dropdownStyle = ref<Record<string, string>>({})
+const dropdownWidth = ref<number>(0)
+
+watch(isOpen, (open) => {
+  if (open && wrapRef.value) {
+    const rect = wrapRef.value.getBoundingClientRect()
+    dropdownWidth.value = rect.width + (props.dropdownWidthOffset || 0)
+    const stackLen = pageModal.stack.value.length
+    dropdownStyle.value = {
+      position: 'fixed',
+      top: `${rect.bottom}px`,
+      left: `${rect.left}px`,
+      width: `${dropdownWidth.value}px`,
+      zIndex: String(10000 + stackLen * 1000 - 500),
+    }
+  }
+})
 
 const isReadOnly = computed(() => props.readOnly || props.disabled)
 const textBoxRef = ref<any>(null)
@@ -71,8 +95,18 @@ const dependValue = computed(() => {
 
 const valueExpr = computed(() => (props.valueField || 'id').toUpperCase())
 const displayExprs = computed(() => {
-  const raw = props.displayField || 'name'
-  return raw.split(',').map((f) => f.trim().toUpperCase()).filter(Boolean)
+  const raw = props.displayField || ''
+  if (raw) {
+    return raw.split(',').map((f) => f.trim().toUpperCase()).filter(Boolean)
+  }
+  const cols = gridColumns.value as any[]
+  if (cols && cols.length) {
+    const candidates = cols.filter((c) => String(c.dataField || '') !== valueExpr.value)
+    const nameCol = candidates.find((c) => /名|name/i.test(String(c.caption || '')))
+    if (nameCol) return [String(nameCol.dataField).toUpperCase()]
+    if (candidates.length) return [String(candidates[0].dataField).toUpperCase()]
+  }
+  return ['NAME']
 })
 const displayExpr = computed(() => displayExprs.value[0] || 'NAME')
 
@@ -101,6 +135,28 @@ async function loadPageMeta() {
           const col: Record<string, unknown> = {
             dataField: df,
             caption: c.caption || c.dataField || '',
+          }
+          if (c.baseDataRef) {
+            col.baseDataRef = c.baseDataRef
+            const sourceField = (c.baseDataRef as any).sourceField
+            const displayField = (c.baseDataRef as any).displayField
+            if (sourceField && displayField && !df.includes('.')) {
+              const displayFields = String(displayField).split(',').map((s: string) => s.trim()).filter(Boolean)
+              col.calculateDisplayValue = (rowData: any) => {
+                const parts: string[] = []
+                for (const d of displayFields) {
+                  const v = rowData?.[`${sourceField}.${d}`]
+                  if (v != null && v !== '') parts.push(String(v))
+                }
+                return parts.length ? parts.join('-') : rowData?.[df]
+              }
+            }
+          }
+          if (c.dataType) {
+            col.dataType = c.dataType
+          }
+          if (c.lookup) {
+            col.lookup = c.lookup
           }
           if (df.includes('.')) {
             const flatKey = df
@@ -137,9 +193,26 @@ async function loadPageMeta() {
 
 watch(() => props.refPageId, loadPageMeta, { immediate: false })
 onMounted(async () => {
+  if (props.autoFocus) {
+    nextTick(() => {
+      const el = wrapRef.value
+      if (el) {
+        const input = el.querySelector('input') as HTMLElement | null
+        if (input) input.focus()
+      }
+    })
+  }
+
+  // 优先使用外部传入的初始显示值（行筛选场景：避免组件重建后异步加载闪烁）
+  if (props.initialDisplayValue) {
+    displayValue.value = props.initialDisplayValue
+    searchText.value = props.initialDisplayValue
+  }
   await loadPageMeta()
+  if (props.initialDisplayValue) return
   if (props.value != null && props.value !== '' && !displayValue.value) {
     const newVal = props.value
+
     if (!dataSource.value) {
       displayValue.value = String(newVal)
       searchText.value = String(newVal)
@@ -153,6 +226,7 @@ onMounted(async () => {
         take: 1,
       })
       const row = (data as any).data?.[0]
+
       if (row) {
         displayValue.value = getDisplayText(row)
         selectedRowData.value = row
@@ -173,8 +247,7 @@ const dataSource = computed(() => {
   void dependVersion.value
   void searchVersion.value
   const kw = searchKeyword
-  return new CustomStore({
-    key: valueExpr.value,
+  return {
     load: async (loadOptions: any) => {
       try {
         const echoMode = isEchoQuery
@@ -227,7 +300,7 @@ const dataSource = computed(() => {
         throw err
       }
     },
-  })
+  }
 })
 
 function mapOp(op: string): string {
@@ -306,7 +379,7 @@ function onSelectionChanged(e: { selectedRowsData: Record<string, unknown>[] }) 
     displayValue.value = getDisplayText(row)
     searchText.value = displayValue.value
     searchKeyword = ''
-    emit('valueChanged', val)
+    emit('valueChanged', val, displayValue.value)
     emit('selectionChanged', row)
     isOpen.value = false
   }
@@ -379,7 +452,7 @@ async function openPopupPage() {
       displayValue.value = getDisplayText(row)
       searchText.value = displayValue.value
       searchKeyword = ''
-      emit('valueChanged', val)
+      emit('valueChanged', val, displayValue.value)
       emit('selectionChanged', row)
     }
   } catch (err) {
@@ -387,8 +460,8 @@ async function openPopupPage() {
   }
 }
 
-function onSearchInput(e: any) {
-  const text = e.value ?? e.event?.target?.value ?? ''
+function onSearchInput(val: string) {
+  const text = val ?? ''
   searchText.value = text
   searchKeyword = text
   if (text && !isOpen.value) {
@@ -421,7 +494,7 @@ function clearValue() {
   emit('selectionChanged', null)
   isOpen.value = false
   nextTick(() => {
-    textBoxRef.value?.instance?.focus()
+    textBoxRef.value?.focus()
   })
 }
 
@@ -429,7 +502,11 @@ function onDocumentClick(e: MouseEvent) {
   if (!isOpen.value) return
   const target = e.target as Node
   if (wrapRef.value && !wrapRef.value.contains(target)) {
+    if (dropdownRef.value && dropdownRef.value.contains(target)) return
+    const el = target as HTMLElement
+    if (el.closest?.('.base-data-dropdown, .el-popper, .el-select-dropdown, .el-select__popper, .el-picker-panel, .el-date-table, .el-month-table, .el-year-table, .vxe-table--filter-wrapper, .el-overlay, .el-dialog, .el-message-box')) return
     isOpen.value = false
+    emit('dropdownClosed')
     if (searchText.value !== displayValue.value) {
       searchText.value = displayValue.value
       searchKeyword = ''
@@ -448,13 +525,13 @@ onUnmounted(() => {
 <template>
   <div v-show="visible" class="dx-base-data-control">
     <div class="base-data-wrap" ref="wrapRef">
-      <DxTextBox
+      <ElInput
         ref="textBoxRef"
-        :value="searchText"
+        v-model="searchText"
         :placeholder="placeholder"
         :disabled="disabled"
-        :read-only="readOnly"
-        @focus-in="onTextBoxFocusIn"
+        :readonly="readOnly"
+        @focus="onTextBoxFocusIn"
         @input="onSearchInput"
       />
       <button
@@ -464,18 +541,35 @@ onUnmounted(() => {
         :title="t('清空')"
         @click="clearValue"
       >×</button>
-      <div v-show="isOpen" class="base-data-dropdown">
-        <DxDataGrid
+    </div>
+    <ElButton
+      text
+      :disabled="isReadOnly"
+      :title="t('打开选择')"
+      style="width: 28px; height: 28px; padding: 0; flex-shrink: 0"
+      @click="openPopupPage"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.35-4.35" />
+      </svg>
+    </ElButton>
+    <Teleport to="body">
+      <div v-show="isOpen" ref="dropdownRef" class="base-data-dropdown" :style="dropdownStyle">
+        <LcTable
           v-if="dataSource"
           ref="gridRef"
           :data-source="dataSource"
           :columns="gridColumns"
+          :show-column-headers="true"
+          :show-seq="true"
           :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-          :hover-state-enabled="true"
+          :sorting="{ mode: 'none' }"
+          :allow-column-resizing="true"
+          size="mini"
           height="250"
           :filter-row="{ visible: true }"
           :paging="{ enabled: true, pageSize: 15 }"
-          :pager="{ visible: true, showInfo: true, showNavigationButtons: true }"
+          :pager="{ showInfo: true, showNavigationButtons: true }"
           :remote-operations="{ paging: true, filtering: true }"
           :no-data-text="t('未找到匹配的基础资料')"
           @content-ready="onContentReady"
@@ -483,16 +577,7 @@ onUnmounted(() => {
         />
         <div v-else class="no-data-tip">{{ t('请先配置关联基础资料页面') }}</div>
       </div>
-    </div>
-    <DxButton
-      icon="search"
-      styling-mode="text"
-      :width="28"
-      :height="28"
-      :disabled="isReadOnly"
-      :hint="t('打开选择')"
-      @click="openPopupPage"
-    />
+    </Teleport>
   </div>
 </template>
 
@@ -533,21 +618,14 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 .base-data-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 9999;
-  width: 500px;
-  max-width: 600px;
+
   background: #fff;
   border: 1px solid #ddd;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-radius: 2px;
   overflow: hidden;
 }
-.dx-base-data-control > :deep(.dx-button) {
-  flex-shrink: 0;
-}
+
 .no-data-tip {
   padding: 20px;
   text-align: center;

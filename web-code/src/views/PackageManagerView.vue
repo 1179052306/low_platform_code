@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
-import DxDataGrid, { DxColumn, DxToolbar, DxItem } from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
+import LcTable from '@/materials/components/LcTable.vue'
+
 import { t } from '@/store/lang'
 import type { AppPackage } from '@/types/schema'
 import { listPackages, savePackage, deletePackage } from '@/store/package'
@@ -12,6 +12,13 @@ const pkgList = ref<AppPackage[]>([])
 const showPkgDialog = ref(false)
 const editingPkg = ref<AppPackage | undefined>(undefined)
 const selectedPkg = ref<AppPackage | undefined>(undefined)
+
+const columns = computed(() => [
+  { dataField: 'name', caption: t('包名称') },
+  { dataField: 'version', caption: t('版本号'), width: 100 },
+  { dataField: 'description', caption: t('描述') },
+  { dataField: 'updatedAt', caption: t('更新时间'), width: 160 },
+])
 
 async function refresh() {
   pkgList.value = await listPackages()
@@ -62,10 +69,16 @@ async function onDeletePkg() {
 
 <template>
   <div class="pkg-manage">
-    <DxDataGrid
+    <div class="pkg-toolbar">
+      <ElButton type="default" @click="addPkg">{{ t('新建应用包') }}</ElButton>
+      <ElButton :disabled="!selectedPkg" @click="editPkg">{{ t('编辑') }}</ElButton>
+      <ElButton :disabled="!selectedPkg" @click="onDeletePkg">{{ t('删除') }}</ElButton>
+    </div>
+    <LcTable
+      class="pkg-grid"
       :data-source="pkgList"
+      :columns="columns"
       :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-      :hover-state-enabled="true"
       :show-borders="true"
       :show-column-lines="false"
       :show-row-lines="true"
@@ -73,29 +86,7 @@ async function onDeletePkg() {
       height="100%"
       key-expr="id"
       @selection-changed="onSelectionChanged"
-    >
-      <DxColumn data-field="name" :caption="t('包名称')" />
-      <DxColumn data-field="version" :caption="t('版本号')" :width="100" />
-      <DxColumn data-field="description" :caption="t('描述')" />
-      <DxColumn data-field="updatedAt" :caption="t('更新时间')" :width="160" />
-      <DxToolbar>
-        <DxItem location="after">
-          <template #default>
-            <DxButton :text="t('新建应用包')" type="default" @click="addPkg" />
-          </template>
-        </DxItem>
-        <DxItem location="after">
-          <template #default>
-            <DxButton :text="t('编辑')" :disabled="!selectedPkg" @click="editPkg" />
-          </template>
-        </DxItem>
-        <DxItem location="after">
-          <template #default>
-            <DxButton :text="t('删除')" :disabled="!selectedPkg" @click="onDeletePkg" />
-          </template>
-        </DxItem>
-      </DxToolbar>
-    </DxDataGrid>
+    />
     <PackageDialog v-model:visible="showPkgDialog" :pkg="editingPkg" @save="onSavePkg" />
   </div>
 </template>
@@ -105,5 +96,18 @@ async function onDeletePkg() {
   height: 100%;
   padding: 12px;
   background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pkg-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pkg-grid {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 </style>

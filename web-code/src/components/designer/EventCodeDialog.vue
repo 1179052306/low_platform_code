@@ -2,6 +2,8 @@
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { createSandboxedFunction } from '@/utils/sandbox'
 import { t } from '@/store/lang'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -87,6 +89,9 @@ function onConfirm() {
 function onCancel() {
   emit('update:visible', false)
 }
+
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 
 function captureKeydown(e: KeyboardEvent) {
   const ctrl = e.ctrlKey || e.metaKey
@@ -362,8 +367,8 @@ const examples = [
 
 <template>
   <div v-if="visible" class="dialog-overlay" @keydown.stop>
-    <div class="dialog-container">
-      <div class="dialog-header">
+    <div class="dialog-container" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+      <div class="dialog-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
         <span class="dialog-title">{{ title || t('事件代码编辑') }}</span>
         <div class="dialog-header-actions">
           <button
@@ -374,6 +379,7 @@ const examples = [
           >
             API
           </button>
+          <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
           <button class="dialog-close" @click="onCancel">✕</button>
         </div>
       </div>

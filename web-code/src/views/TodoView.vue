@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
-import DxDataGrid, { DxColumn, DxToolbar, DxItem } from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
+import LcTable from '@/materials/components/LcTable.vue'
+
 import { t } from '@/store/lang'
 import type { TodoItem } from '@/types/schema'
 import { httpRequest } from '@/utils/request'
 
 const todoList = ref<TodoItem[]>([])
 const activeTab = ref('todo')
+
+const columns = computed(() => [
+  { dataField: 'title', caption: t('标题') },
+  { dataField: 'workflowName', caption: t('流程'), width: 120 },
+  { dataField: 'currentNode', caption: t('当前节点'), width: 120 },
+  { dataField: 'initiator', caption: t('发起人'), width: 100 },
+  { dataField: 'createdAt', caption: t('创建时间'), width: 160 },
+])
 
 async function refresh() {
   try {
@@ -57,22 +65,16 @@ function onTabChange(tab: string) {
         @click="onTabChange('done')"
       >{{ t('已办') }}</button>
     </div>
-    <DxDataGrid
+    <LcTable
       :data-source="todoList"
-      :hover-state-enabled="true"
+      :columns="columns"
       :show-borders="true"
       :show-column-lines="false"
       :show-row-lines="true"
       :paging="{ pageSize: 20 }"
       height="100%"
       key-expr="id"
-    >
-      <DxColumn data-field="title" :caption="t('标题')" />
-      <DxColumn data-field="workflowName" :caption="t('流程')" :width="120" />
-      <DxColumn data-field="currentNode" :caption="t('当前节点')" :width="120" />
-      <DxColumn data-field="initiator" :caption="t('发起人')" :width="100" />
-      <DxColumn data-field="createdAt" :caption="t('创建时间')" :width="160" />
-    </DxDataGrid>
+    />
   </div>
 </template>
 

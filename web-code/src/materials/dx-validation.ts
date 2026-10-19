@@ -30,13 +30,13 @@ export interface ValidationRuleMeta {
 }
 
 export const VALIDATABLE_TYPES = new Set([
-  'dx-text-box', 'dx-text-area', 'dx-number-box',
-  'dx-check-box', 'dx-switch', 'dx-slider',
-  'dx-select-box', 'dx-tag-box', 'dx-lookup', 'dx-autocomplete',
-  'dx-date-box', 'dx-color-box',
-  'dx-radio-group', 'dx-check-box-group',
-  'dx-file-uploader', 'dx-html-editor',
-  'dx-base-data',
+  'text-box', 'text-area', 'number-box',
+  'check-box', 'switch', 'slider',
+  'select-box', 'tag-box', 'lookup', 'autocomplete',
+  'date-box', 'color-box',
+  'radio-group', 'check-box-group',
+  'file-uploader', 'html-editor',
+  'base-data',
 ])
 
 export const VALIDATION_RULES: ValidationRuleMeta[] = [

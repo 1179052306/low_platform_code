@@ -2,10 +2,11 @@
 import { provide, computed, ref, onBeforeUnmount } from 'vue'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import RendererNode from './RendererNode.vue'
-import { createRenderStore, DESIGNER_STORE_KEY } from '@/store/designer'
+import { createRenderStore, DESIGNER_STORE_KEY, collectAllNodes } from '@/store/designer'
 import { pageModal, type PageModalInstance } from './pageModal'
 import { gatewayCall } from '@/api'
 import { t } from '@/store/lang'
+import { getValidator } from '@/materials/dx-validation'
 import type { ComponentSchema } from '@/types/schema'
 
 const props = defineProps<{
@@ -19,7 +20,7 @@ store.computeRules = props.modal.computeRules
 provide(DESIGNER_STORE_KEY, store)
 
 const isDrawer = computed(() => props.modal.options.mode === 'drawer')
-const overlayZIndex = computed(() => 10000 + (props.stackIndex ?? 0) * 10)
+const overlayZIndex = computed(() => 10000 + (props.stackIndex ?? 0) * 1000)
 const saving = ref(false)
 
 const tableName = computed(() => (props.modal.params?.tableName as string) || '')
@@ -49,7 +50,7 @@ function fillFormValues(node: ComponentSchema, data: Record<string, unknown>): v
   if (node.dbField) {
     const v = getField(data, node.dbField)
     if (v !== undefined) {
-      if (node.type === 'dx-select-box') {
+      if (node.type === 'select-box') {
         const items = node.props.items as Record<string, unknown>[] | undefined
         const valueExpr = (node.props.valueExpr as string) || 'value'
         if (Array.isArray(items) && items.length > 0) {
@@ -152,6 +153,16 @@ async function close() {
 async function onSave() {
   if (!tableName.value) {
     ElMessage.warning(t('未配置数据表名'))
+    return
+  }
+  const allNodes = collectAllNodes(store.schema).filter(n => n.fieldName)
+  let hasError = false
+  for (const node of allNodes) {
+    const reg = getValidator(node.fieldName!)
+    if (reg && !reg.validate()) hasError = true
+  }
+  if (hasError) {
+    ElMessage.warning(t('表单验证未通过，请检查必填项'))
     return
   }
   const data: Record<string, unknown> = {}
@@ -288,6 +299,7 @@ const modalStyle = computed(() => {
             v-for="node in store.schema"
             :key="node.id"
             :node="node"
+            :positioned="true"
           />
         </div>
         <div class="page-modal-footer">
@@ -412,6 +424,7 @@ const modalStyle = computed(() => {
   color: #333;
 }
 .page-modal-body {
+  position: relative;
   flex: 1;
   overflow: auto;
   padding: 12px;

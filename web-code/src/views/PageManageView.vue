@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxSelectBox from 'devextreme-vue/select-box'
-import DxButton from 'devextreme-vue/button'
+
 import SearchIcon from '@/components/SearchIcon.vue'
 
 const router = useRouter()
@@ -29,7 +27,7 @@ import {
   type SavedPageMeta,
 } from '@/store/persistence'
 import type { PageSchema, PageType } from '@/types/schema'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElButton, ElInput, ElSelect, ElOption } from 'element-plus'
 import { t, loadModule } from '@/store/lang'
 
 // ================ 系统状态 ================
@@ -975,77 +973,72 @@ function formatTime(iso: string): string {
             <label class="pm-dialog-label pm-required">{{
               t('页面编码')
             }}</label>
-            <DxTextBox
-              :value="pageDialogCode"
+            <ElInput
+              v-model="pageDialogCode"
               :placeholder="t('页面唯一标识，如 page_order_list')"
-              :read-only="pageDialogMode === 'edit'"
-              @value-changed="(e: any) => (pageDialogCode = e.value)"
+              :readonly="pageDialogMode === 'edit'"
             />
             <label class="pm-dialog-label pm-required">{{
               t('页面名称')
             }}</label>
-            <DxTextBox
-              :value="pageDialogName"
+            <ElInput
+              v-model="pageDialogName"
               :placeholder="t('请输入页面名称')"
-              @value-changed="(e: any) => (pageDialogName = e.value)"
-              @enter-key="confirmPageDialog"
+              @keyup.enter="confirmPageDialog"
             />
             <template v-if="pageDialogMode !== 'add'">
               <label class="pm-dialog-label">{{ t('类型') }}</label>
-              <DxSelectBox
-                :value="pageDialogType"
-                :data-source="pageTypeOptions"
-                display-expr="label"
-                value-expr="value"
-                @value-changed="(e: any) => (pageDialogType = e.value)"
-              />
+              <ElSelect v-model="pageDialogType">
+                <ElOption
+                  v-for="item in pageTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </ElSelect>
             </template>
             <label class="pm-dialog-label pm-required">{{
               t('所属系统')
             }}</label>
-            <DxSelectBox
-              :value="pageDialogSystemId"
-              :data-source="systems"
-              display-expr="name"
-              value-expr="id"
-              @value-changed="(e: any) => (pageDialogSystemId = e.value)"
-            />
+            <ElSelect v-model="pageDialogSystemId">
+              <ElOption
+                v-for="item in systems"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </ElSelect>
             <label class="pm-dialog-label pm-required">{{
               t('所属模块')
             }}</label>
-            <DxSelectBox
-              :value="pageDialogModuleId"
-              :data-source="modules"
-              display-expr="name"
-              value-expr="id"
-              @value-changed="(e: any) => (pageDialogModuleId = e.value)"
-            />
+            <ElSelect v-model="pageDialogModuleId">
+              <ElOption
+                v-for="item in modules"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </ElSelect>
             <div v-if="pageDialogError" class="pm-dialog-error">
               {{ pageDialogError }}
             </div>
           </div>
 
           <div class="pm-dialog-footer">
-            <DxButton
+            <ElButton
               v-if="pageDialogMode === 'add' && pageDialogStep === 1"
-              :text="t('取消')"
               @click="pageDialogVisible = false"
-            />
+            >{{ t('取消') }}</ElButton>
             <template v-else>
-              <DxButton
+              <ElButton
                 v-if="pageDialogMode === 'add'"
-                :text="t('上一步')"
                 @click="pageDialogStep = 1"
-              />
-              <DxButton
-                :text="t('取消')"
-                @click="pageDialogVisible = false"
-              />
-              <DxButton
-                :text="t('确定')"
+              >{{ t('上一步') }}</ElButton>
+              <ElButton @click="pageDialogVisible = false">{{ t('取消') }}</ElButton>
+              <ElButton
                 type="default"
                 @click="confirmPageDialog"
-              />
+              >{{ t('确定') }}</ElButton>
             </template>
           </div>
         </div>
@@ -1105,20 +1098,18 @@ function formatTime(iso: string): string {
             <label class="pm-dialog-label pm-required">{{
               t('模块名称')
             }}</label>
-            <DxTextBox
-              :value="moduleDialogName"
+            <ElInput
+              v-model="moduleDialogName"
               :placeholder="t('请输入模块名称')"
-              @value-changed="(e: any) => (moduleDialogName = e.value)"
-              @enter-key="confirmAddModule"
+              @keyup.enter="confirmAddModule"
             />
           </div>
           <div class="pm-dialog-footer">
-            <DxButton :text="t('取消')" @click="moduleDialogVisible = false" />
-            <DxButton
-              :text="t('确定')"
+            <ElButton @click="moduleDialogVisible = false">{{ t('取消') }}</ElButton>
+            <ElButton
               type="default"
               @click="confirmAddModule"
-            />
+            >{{ t('确定') }}</ElButton>
           </div>
         </div>
       </div>

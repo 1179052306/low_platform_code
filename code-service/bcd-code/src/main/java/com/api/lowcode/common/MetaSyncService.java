@@ -32,22 +32,20 @@ public class MetaSyncService {
     private static final Map<String, String> TYPE_MAP = new HashMap<>();
 
     static {
-        TYPE_MAP.put("dx-text-box", "VARCHAR");
-        TYPE_MAP.put("dx-text-area", "TEXT");
-        TYPE_MAP.put("dx-number-box", "DECIMAL");
-        TYPE_MAP.put("dx-date-box", "TIMESTAMP");
-        TYPE_MAP.put("dx-date-time-box", "TIMESTAMP");
-        TYPE_MAP.put("dx-check-box", "BOOLEAN");
-        TYPE_MAP.put("dx-switch", "BOOLEAN");
-        TYPE_MAP.put("dx-select-box", "VARCHAR");
-        TYPE_MAP.put("dx-color-box", "VARCHAR");
-        TYPE_MAP.put("dx-tag-box", "VARCHAR");
-        TYPE_MAP.put("dx-lookup", "VARCHAR");
-        TYPE_MAP.put("dx-auto-complete", "VARCHAR");
-        TYPE_MAP.put("dx-radio-group", "VARCHAR");
-        TYPE_MAP.put("dx-slider", "DECIMAL");
-        TYPE_MAP.put("dx-range-slider", "VARCHAR");
-        TYPE_MAP.put("dx-progress-bar", "DECIMAL");
+        TYPE_MAP.put("text-box", "VARCHAR");
+        TYPE_MAP.put("text-area", "TEXT");
+        TYPE_MAP.put("number-box", "DECIMAL");
+        TYPE_MAP.put("date-box", "TIMESTAMP");
+        TYPE_MAP.put("check-box", "BOOLEAN");
+        TYPE_MAP.put("switch", "BOOLEAN");
+        TYPE_MAP.put("select-box", "VARCHAR");
+        TYPE_MAP.put("color-box", "VARCHAR");
+        TYPE_MAP.put("tag-box", "VARCHAR");
+        TYPE_MAP.put("lookup", "VARCHAR");
+        TYPE_MAP.put("radio-group", "VARCHAR");
+        TYPE_MAP.put("slider", "DECIMAL");
+        TYPE_MAP.put("range-slider", "VARCHAR");
+        TYPE_MAP.put("progress-bar", "DECIMAL");
     }
 
     private static final String DEFAULT_DATA_TYPE = "VARCHAR";
@@ -220,7 +218,7 @@ public class MetaSyncService {
             seen.add(dbField);
             String dataType = TYPE_MAP.getOrDefault(type, DEFAULT_DATA_TYPE);
             String baseDataRef = null;
-            if ("dx-base-data".equals(type)) {
+            if ("base-data".equals(type)) {
                 baseDataRef = extractBaseDataRef(node);
             }
             fields.add(new FieldDef(dbField.trim(), dataType, sortNo[0]++, baseDataRef));

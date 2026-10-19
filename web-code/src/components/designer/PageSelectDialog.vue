@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import DxDataGrid from 'devextreme-vue/data-grid'
-import DxTreeView from 'devextreme-vue/tree-view'
+import LcTable from '@/materials/components/LcTable.vue'
+import { ElTree } from 'element-plus'
 import AdvancedSearchPanel from '../renderer/AdvancedSearchPanel.vue'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxButton from './DialogMaxButton.vue'
 import type {
   GridColumn,
   SearchCondition,
@@ -51,8 +53,39 @@ const treeItems = computed<TreeItem[]>(() =>
   }))
 )
 
-function onTreeItemClick(e: { itemData?: { id?: string | number } }) {
-  if (e.itemData?.id) selectModule(String(e.itemData.id))
+interface TreeNode {
+  id: string
+  label: string
+  children?: TreeNode[]
+}
+
+const treeData = computed<TreeNode[]>(() => {
+  const items = treeItems.value
+  const map = new Map<string, TreeNode>()
+  const roots: TreeNode[] = []
+  for (const item of items) {
+    map.set(item.id, { id: item.id, label: item.text, children: [] })
+  }
+  for (const item of items) {
+    const node = map.get(item.id)!
+    if (item.parentId && map.has(item.parentId)) {
+      map.get(item.parentId)!.children!.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+  return roots
+})
+
+const treeProps = { label: 'label', children: 'children' }
+
+function onTreeNodeClick(data: any) {
+  if (data?.id) selectModule(String(data.id))
+}
+
+function filterTree(value: string, data: any): boolean {
+  if (!value) return true
+  return (data?.label ?? '').toLowerCase().includes(value.toLowerCase())
 }
 
 // ================ 页面列表 ================
@@ -110,6 +143,9 @@ function confirmSelect() {
 function closeDialog() {
   emit('update:visible', false)
 }
+
+const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 
 // ================ 高级查询 ================
 const advSearchConditions = ref<SearchCondition[]>([])
@@ -194,10 +230,13 @@ watch(
 <template>
   <Teleport to="body">
     <div v-if="visible" class="psd-overlay" @click.self="closeDialog">
-      <div class="psd-dialog">
-        <div class="psd-header">
+      <div class="psd-dialog" :class="{ 'is-maximized': isMaximized, 'is-dragging': isDragging }" :style="dragStyle">
+        <div class="psd-header" :class="{ 'is-draggable': !isMaximized }" @mousedown="onHeaderMouseDown">
           <span>{{ t('选择页面') }}</span>
-          <button class="psd-close" @click="closeDialog">✕</button>
+          <div class="dialog-header-actions">
+            <DialogMaxButton :maximized="isMaximized" @toggle="toggleMaximize" />
+            <button class="psd-close" @click="closeDialog">✕</button>
+          </div>
         </div>
         <div class="psd-body">
           <!-- 左侧模块树（DevExtreme TreeView + 搜索框） -->
@@ -209,21 +248,18 @@ watch(
                 :placeholder="t('搜索模块...')"
               />
             </div>
-            <DxTreeView
+            <ElTree
               class="psd-tree"
-              :data-source="treeItems"
-              data-structure="plain"
-              key-expr="id"
-              parent-id-expr="parentId"
-              display-expr="text"
-              :search-value="moduleSearch"
-              search-mode="contains"
-              :selected-item-keys="activeModuleId ? [activeModuleId] : []"
-              selection-mode="single"
-              :show-borders="true"
-              :expand-by-click="true"
-              height="100%"
-              @item-click="onTreeItemClick"
+              :data="treeData"
+              :props="treeProps"
+              :filter-node-method="filterTree"
+              :filter-value="moduleSearch"
+              :default-expanded-keys="activeModuleId ? [activeModuleId] : []"
+              :current-node-key="activeModuleId || undefined"
+              highlight-current
+              node-key="id"
+              style="height: 100%; overflow: auto"
+              @node-click="(data: any) => onTreeNodeClick(data)"
             />
           </div>
           <!-- 右侧：高级查询 + 页面表格 -->
@@ -234,7 +270,7 @@ watch(
               @search="onAdvSearch"
               @reset="onAdvSearchReset"
             />
-            <DxDataGrid
+            <LcTable
               class="psd-grid"
               :data-source="filteredPages"
               :selected-row-keys="selectedPageId ? [selectedPageId] : []"
@@ -243,7 +279,6 @@ watch(
                 { dataField: 'pageId', caption: t('页面编码') },
               ]"
               :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-              :hover-state-enabled="true"
               :show-borders="true"
               :show-column-lines="false"
               :show-row-lines="true"

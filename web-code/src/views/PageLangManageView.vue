@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxButton from 'devextreme-vue/button'
+
 import { httpRequest } from '@/utils/request'
 import { t, loadModule, type LangInfo } from '@/store/lang'
 import {
@@ -14,7 +13,7 @@ import {
   type SavedPageMeta,
 } from '@/store/persistence'
 import type { ComponentSchema } from '@/types/schema'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElButton } from 'element-plus'
 
 defineOptions({ name: 'PageLangManageView' })
 
@@ -537,16 +536,8 @@ onMounted(async () => {
         </button>
       </div>
       <div class="plm-lang-right">
-        <DxButton
-          :text="t('导出')"
-          type="normal"
-          @click="exportDialogVisible = true"
-        />
-        <DxButton
-          :text="t('导入')"
-          type="normal"
-          @click="importDialogVisible = true"
-        />
+        <ElButton @click="exportDialogVisible = true">{{ t('导出') }}</ElButton>
+        <ElButton @click="importDialogVisible = true">{{ t('导入') }}</ElButton>
       </div>
     </div>
 
@@ -625,17 +616,14 @@ onMounted(async () => {
                 {{ t('共') }} {{ pageTextStats.total }} {{ t('条') }}，
                 {{ t('已翻译') }} {{ pageTextStats.filled }} {{ t('条') }}
               </span>
-              <DxButton
-                :text="t('自动翻译')"
-                type="normal"
+              <ElButton
                 :disabled="autoTranslating"
                 @click="autoTranslate"
-              />
-              <DxButton
-                :text="t('一键保存')"
+              >{{ t('自动翻译') }}</ElButton>
+              <ElButton
                 type="default"
                 @click="savePageTranslations"
-              />
+              >{{ t('一键保存') }}</ElButton>
             </div>
           </div>
 
@@ -730,7 +718,7 @@ onMounted(async () => {
           </button>
         </div>
         <div class="plm-import-actions">
-          <DxButton :text="t('取消')" @click="exportDialogVisible = false" />
+          <ElButton @click="exportDialogVisible = false">{{ t('取消') }}</ElButton>
         </div>
       </div>
     </div>
@@ -770,11 +758,7 @@ onMounted(async () => {
         <div class="plm-sys-dialog-title">{{ t('导入翻译数据') }}</div>
         <div class="plm-import-body">
           <div class="plm-import-file-row">
-            <DxButton
-              :text="t('选择JSON文件')"
-              type="normal"
-              @click="triggerImportFile"
-            />
+            <ElButton @click="triggerImportFile">{{ t('选择JSON文件') }}</ElButton>
             <span class="plm-import-hint">{{ t('或直接粘贴JSON数据') }}</span>
           </div>
           <textarea
@@ -784,13 +768,12 @@ onMounted(async () => {
           />
         </div>
         <div class="plm-import-actions">
-          <DxButton :text="t('取消')" @click="importDialogVisible = false" />
-          <DxButton
-            :text="t('导入')"
+          <ElButton @click="importDialogVisible = false">{{ t('取消') }}</ElButton>
+          <ElButton
             type="default"
             :disabled="importLoading"
             @click="doImport"
-          />
+          >{{ t('导入') }}</ElButton>
         </div>
         <input
           ref="importFileInput"

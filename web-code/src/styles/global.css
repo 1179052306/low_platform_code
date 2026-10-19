@@ -49,8 +49,11 @@ body,
   background-color: var(--lc-btn-bg) !important;
   border-color: var(--lc-btn-bg) !important;
 }
+.lc-btn-has-text,
 .lc-btn-has-text .dx-button-content,
-.lc-btn-has-text .dx-icon {
+.lc-btn-has-text .dx-icon,
+.lc-btn-has-text span,
+.lc-btn-has-text svg {
   color: var(--lc-btn-text) !important;
 }
 .lc-btn-has-hover:hover {
@@ -61,8 +64,21 @@ body,
 .lc-icon-select-popper {
   z-index: 100000 !important;
 }
+/* 弹窗内 Element Plus 下拉/弹出层 z-index 高于 page-modal-overlay(10000+) 避免被遮挡 */
+.el-select__popper,
+.el-picker__popper,
+.el-autocomplete-suggestion,
+.el-cascader__dropdown,
+.el-tree-select__popper,
+.el-popover.el-popper {
+  z-index: 100000 !important;
+}
 /* 弹窗内关闭确认框：z-index 高于 page-modal-overlay(10000+) 避免被遮挡 */
 .el-overlay:has(.lc-modal-confirm) {
+  z-index: 100000 !important;
+}
+/* ElDialog 弹窗 z-index 高于 page-modal-overlay(10000+) 和 base-data-dropdown(10500+) 避免被遮挡 */
+.el-overlay:has(.el-dialog) {
   z-index: 100000 !important;
 }
 /* ElMessage / ElMessageBox 提示层级高于弹窗遮罩层(10000+) */
@@ -72,7 +88,12 @@ body,
 .el-overlay:has(.el-message-box) {
   z-index: 100000 !important;
 }
+
 /* 设计器页面：ElMessage 下移至 header(48px) 下方，避免遮挡顶部模式切换按钮 */
 body.designer-page .el-message {
   margin-top: 34px;
 }
+
+/* ElDialog 内 ElSelect 下拉面板 z-index 提升，避免被弹框遮挡（弹框 overlay z-index 为 100000） */
+.dialog-inner-popper { z-index: 100001 !important; }
+

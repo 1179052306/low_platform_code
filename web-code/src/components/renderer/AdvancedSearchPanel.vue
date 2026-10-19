@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { httpRequest, extractList } from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElInput, ElDatePicker, ElSelect, ElOption, ElDialog, ElButton } from 'element-plus'
 import type { QueryConfig } from '@/types/schema'
 import DxBaseData from '@/materials/components/DxBaseData.vue'
-import DxSelectBox from 'devextreme-vue/select-box'
+import ElSelectBox from '@/materials/components/ElSelectBox.vue'
 
 export interface GridColumn {
   dataField: string
@@ -126,6 +126,7 @@ function getOperators(dataType: string) {
         { label: '小于', value: '<' },
         { label: '小于等于', value: '<=' },
         { label: '之间', value: 'between' },
+
       ]
     case 'date':
     case 'datetime':
@@ -151,18 +152,59 @@ function getOperators(dataType: string) {
         { label: '不等于', value: '<>' },
         { label: '以...开头', value: 'startswith' },
         { label: '以...结尾', value: 'endswith' },
+
       ]
   }
 }
 
 function getOperatorsForField(dataField: string) {
-  if (getColLookup(dataField)) {
+  if (getColLookup(dataField) || getColBaseDataRef(dataField)) {
     return [
       { label: '等于', value: '=' },
       { label: '不等于', value: '<>' },
     ]
   }
   return getOperators(getColType(dataField))
+}
+
+const showMultiValueDialog = ref(false)
+const multiValueRows = ref<string[]>([])
+const multiValueCondIdx = ref(-1)
+const multiValueFieldCaption = ref('')
+
+function openMultiValueDialog(idx: number) {
+  multiValueCondIdx.value = idx
+  const cond = conditions.value[idx]
+  const col = visibleColumns.value.find(c => c.dataField === cond.field)
+  multiValueFieldCaption.value = col?.caption || cond.field
+  const existing = cond.value ? String(cond.value).split('\n').map(v => v.trim()).filter(v => v !== '') : []
+  const rows = [...existing]
+  while (rows.length < 100) rows.push('')
+  multiValueRows.value = rows
+  showMultiValueDialog.value = true
+}
+
+function confirmMultiValue() {
+  const values = multiValueRows.value.map(v => v.trim()).filter(v => v !== '')
+  const idx = multiValueCondIdx.value
+  if (idx >= 0 && idx < conditions.value.length) {
+    conditions.value[idx].value = values.join('\n')
+  }
+  showMultiValueDialog.value = false
+}
+
+function isMultiValueField(idx: number): boolean {
+  const cond = conditions.value[idx]
+  if (cond.operator !== '=' && cond.operator !== '<>') return false
+  const colType = getColType(cond.field)
+  if (getColLookup(cond.field) || getColBaseDataRef(cond.field)) return false
+  if (colType === 'date' || colType === 'datetime' || colType === 'boolean') return false
+  return true
+}
+
+function isMultiValueReadonly(idx: number): boolean {
+  const cond = conditions.value[idx]
+  return cond.value != null && String(cond.value).includes('\n')
 }
 
 
@@ -191,8 +233,7 @@ function getColType(dataField: string): string {
 /** 获取列的 lookup 配置（selectBox 下拉框数据源） */
 function getColLookup(dataField: string): GridColumn['lookup'] | undefined {
   const col = visibleColumns.value.find((c) => c.dataField === dataField)
-  if (col?.editorType === 'selectBox') return col.lookup
-  return undefined
+  return col?.lookup
 }
 
 /** 获取列的基础资料引用配置（dx-base-data 控件） */
@@ -448,44 +489,46 @@ onBeforeUnmount(() => {
           :key="idx"
           class="condition-cell"
         >
-          <select
+          <ElSelect
             class="field-select"
-            v-model="cond.field"
-            @change="onFieldChange(idx)"
+            :model-value="cond.field"
+            @update:model-value="(v: any) => { cond.field = v; onFieldChange(idx) }"
+            size="small"
+            style="width: 90px; flex-shrink: 0"
           >
-
-            <option
+            <ElOption
               v-for="col in visibleColumns"
               :key="col.dataField"
               :value="col.dataField"
-            >
-              {{ col.caption }}
-            </option>
-          </select>
+              :label="col.caption"
+            />
+          </ElSelect>
 
-          <select
+          <ElSelect
             class="op-select"
-            v-model="cond.operator"
-            @change="onOperatorChange(idx)"
+            :model-value="cond.operator"
+            @update:model-value="(v: any) => { cond.operator = v; onOperatorChange(idx) }"
+            size="small"
+            style="width: 65px; flex-shrink: 0"
           >
-            <option
+            <ElOption
               v-for="op in getOperatorsForField(cond.field)"
               :key="op.value"
               :value="op.value"
-            >
-              {{ op.label }}
-            </option>
-          </select>
+              :label="op.label"
+            />
+          </ElSelect>
 
-          <DxSelectBox
+          <ElSelectBox
             v-if="getColLookup(cond.field)"
             class="value-input value-lookup-select"
             :items="getLookupOptions(cond.field)"
             :display-expr="getLookupExprs(cond.field).displayExpr"
             :value-expr="getLookupExprs(cond.field).valueExpr"
-            :value="cond.value || null"
+            :value="cond.value ?? null"
             :show-clear-button="true"
-            @value-changed="(e: any) => { cond.value = e.value != null ? String(e.value) : '' }"
+            multiple
+            @value-changed="(e: any) => { cond.value = e.value ?? '' }"
           />
           <DxBaseData
             v-else-if="getColBaseDataRef(cond.field)"
@@ -493,51 +536,68 @@ onBeforeUnmount(() => {
             :ref-page-id="getColBaseDataRef(cond.field)!.refPageId"
             :display-field="getColBaseDataRef(cond.field)!.displayField"
             :value-field="getColBaseDataRef(cond.field)!.valueField"
-            :value="cond.value || null"
+            :value="cond.value ?? null"
             placeholder="请选择"
-            @value-changed="(val: any) => { cond.value = val != null ? String(val) : '' }"
+            @value-changed="(val: any) => { cond.value = val ?? '' }"
           />
-          <input
+          <ElDatePicker
             v-else-if="getColType(cond.field) === 'date'"
             class="value-input"
             type="date"
-            v-model="cond.value"
+            :model-value="cond.value"
+            @update:model-value="(v: any) => { cond.value = v ?? '' }"
+            size="small"
             :placeholder="cond.operator === 'between' ? '开始' : '输入值'"
+            value-format="YYYY-MM-DD"
           />
-          <input
+          <ElDatePicker
             v-else-if="getColType(cond.field) === 'datetime'"
             class="value-input"
-            type="datetime-local"
-            v-model="cond.value"
+            type="datetime"
+            :model-value="cond.value"
+            @update:model-value="(v: any) => { cond.value = v ?? '' }"
+            size="small"
             :placeholder="cond.operator === 'between' ? '开始' : '输入值'"
+            value-format="YYYY-MM-DD HH:mm:ss"
           />
-          <input
+          <ElInput
             v-else-if="getColType(cond.field) === 'number'"
             class="value-input"
             type="number"
-            v-model="cond.value"
+            :model-value="cond.value"
+            @update:model-value="(v: any) => { cond.value = v ?? '' }"
+            size="small"
             :placeholder="cond.operator === 'between' ? '开始' : '输入值'"
+            :readonly="isMultiValueReadonly(idx)"
           />
-          <input
+          <ElInput
             v-else
             class="value-input"
-            type="text"
-            v-model="cond.value"
+            :model-value="cond.value"
+            @update:model-value="(v: any) => { cond.value = v ?? '' }"
+            size="small"
             :placeholder="cond.operator === 'between' ? '开始' : '输入值'"
+            :readonly="isMultiValueReadonly(idx)"
           />
+          <ElButton
+            v-if="isMultiValueField(idx)"
+            class="multi-value-btn"
+            size="small"
+            @click="openMultiValueDialog(idx)"
+          >多值</ElButton>
 
           <!-- between 操作符的第二个值输入框（结束值） -->
           <template v-if="cond.operator === 'between'">
             <span class="between-sep">~</span>
-            <DxSelectBox
+            <ElSelectBox
               v-if="getColLookup(cond.field)"
               class="value-input value-lookup-select"
               :items="getLookupOptions(cond.field)"
               :display-expr="getLookupExprs(cond.field).displayExpr"
               :value-expr="getLookupExprs(cond.field).valueExpr"
-              :value="cond.value2 || null"
+              :value="cond.value2 ?? null"
               :show-clear-button="true"
-              @value-changed="(e: any) => { cond.value2 = e.value != null ? String(e.value) : '' }"
+              @value-changed="(e: any) => { cond.value2 = e.value ?? '' }"
             />
             <DxBaseData
               v-else-if="getColBaseDataRef(cond.field)"
@@ -545,36 +605,45 @@ onBeforeUnmount(() => {
               :ref-page-id="getColBaseDataRef(cond.field)!.refPageId"
               :display-field="getColBaseDataRef(cond.field)!.displayField"
               :value-field="getColBaseDataRef(cond.field)!.valueField"
-              :value="cond.value2 || null"
+              :value="cond.value2 ?? null"
               placeholder="请选择"
-              @value-changed="(val: any) => { cond.value2 = val != null ? String(val) : '' }"
+              @value-changed="(val: any) => { cond.value2 = val ?? '' }"
             />
-            <input
+            <ElDatePicker
               v-else-if="getColType(cond.field) === 'date'"
               class="value-input"
               type="date"
-              v-model="cond.value2"
+              :model-value="cond.value2"
+              @update:model-value="(v: any) => { cond.value2 = v ?? '' }"
+              size="small"
               placeholder="结束"
+              value-format="YYYY-MM-DD"
             />
-            <input
+            <ElDatePicker
               v-else-if="getColType(cond.field) === 'datetime'"
               class="value-input"
-              type="datetime-local"
-              v-model="cond.value2"
+              type="datetime"
+              :model-value="cond.value2"
+              @update:model-value="(v: any) => { cond.value2 = v ?? '' }"
+              size="small"
               placeholder="结束"
+              value-format="YYYY-MM-DD HH:mm:ss"
             />
-            <input
+            <ElInput
               v-else-if="getColType(cond.field) === 'number'"
               class="value-input"
               type="number"
-              v-model="cond.value2"
+              :model-value="cond.value2"
+              @update:model-value="(v: any) => { cond.value2 = v ?? '' }"
+              size="small"
               placeholder="结束"
             />
-            <input
+            <ElInput
               v-else
               class="value-input"
-              type="text"
-              v-model="cond.value2"
+              :model-value="cond.value2"
+              @update:model-value="(v: any) => { cond.value2 = v ?? '' }"
+              size="small"
               placeholder="结束"
             />
           </template>
@@ -612,10 +681,12 @@ onBeforeUnmount(() => {
         <button class="adv-btn" @click="clearConditions">清除</button>
       </div>
       <div class="bottom-bar-right">
-        <input
+        <ElInput
           class="scheme-name-input"
-          v-model="schemeName"
+          :model-value="schemeName"
+          @update:model-value="(v: any) => { schemeName = v ?? '' }"
           placeholder="方案名称"
+          size="small"
           @keyup.enter="saveScheme"
         />
         <button class="adv-btn" @click="saveScheme">方案保存</button>
@@ -673,6 +744,40 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </Teleport>
+
+    <ElDialog
+      v-model="showMultiValueDialog"
+      :title="`多值查询 - ${multiValueFieldCaption}`"
+      width="400"
+      append-to-body
+      class="multi-value-dialog"
+    >
+      <div class="multi-value-table-wrapper">
+        <div class="multi-value-table-header">
+          <span class="multi-value-col-field">{{ multiValueFieldCaption }}</span>
+          <span class="multi-value-col-op">操作</span>
+        </div>
+        <div class="multi-value-table-body">
+          <div v-for="(_, rowIdx) in multiValueRows" :key="rowIdx" class="multi-value-row">
+            <ElInput
+              v-model="multiValueRows[rowIdx]"
+              size="small"
+              class="multi-value-row-input"
+            />
+            <button
+              class="multi-value-row-del"
+              @click="multiValueRows[rowIdx] = ''"
+              title="清空"
+            >×</button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <ElButton @click="multiValueRows = multiValueRows.map(() => '')">清空全部</ElButton>
+        <ElButton @click="showMultiValueDialog = false">取消</ElButton>
+        <ElButton type="primary" @click="confirmMultiValue">确定</ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
@@ -714,14 +819,15 @@ onBeforeUnmount(() => {
 }
 .field-select,
 .op-select {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 3px 6px;
   font-size: 12px;
-  outline: none;
-  background: #fff;
   height: 28px;
   box-sizing: border-box;
+}
+.field-select :deep(.el-select__wrapper),
+.op-select :deep(.el-select__wrapper) {
+  min-height: 28px;
+  height: 28px;
+  font-size: 12px;
 }
 .field-select {
   width: 90px;
@@ -737,10 +843,16 @@ onBeforeUnmount(() => {
   height: 28px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  padding: 3px 8px;
+  padding: 0;
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
+}
+.value-input :deep(.el-input__wrapper) {
+  padding: 0;
+}
+.value-input :deep(.el-input__inner) {
+  padding: 0 8px;
 }
 .value-input:focus {
   border-color: #1976d2;
@@ -749,10 +861,11 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 70px;
   height: 28px;
+  padding: 0;
 }
-.value-lookup-select :deep(.dx-texteditor-input) {
-  height: 28px;
+.value-lookup-select :deep(.el-select__wrapper) {
   min-height: 28px;
+  height: 28px;
   font-size: 13px;
 }
 .between-sep {
@@ -972,5 +1085,64 @@ onBeforeUnmount(() => {
 .scheme-btn.delete:hover {
   background: #f56c6c;
   color: #fff;
+}
+.multi-value-btn {
+  flex-shrink: 0;
+  padding: 0 8px;
+  height: 28px;
+  font-size: 12px;
+}
+.multi-value-dialog :deep(.el-dialog__body) {
+  padding: 12px 20px;
+}
+.multi-value-table-wrapper {
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.multi-value-table-header {
+  display: flex;
+  align-items: center;
+  background: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #606266;
+}
+.multi-value-col-field {
+  flex: 1;
+}
+.multi-value-col-op {
+  width: 50px;
+  text-align: center;
+}
+.multi-value-table-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.multi-value-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.multi-value-row-input {
+  flex: 1;
+}
+.multi-value-row-del {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #c0c4cc;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.multi-value-row-del:hover {
+  color: #f56c6c;
 }
 </style>

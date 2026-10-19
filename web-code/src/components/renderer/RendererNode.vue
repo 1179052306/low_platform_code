@@ -8,6 +8,7 @@ import {
   h,
   nextTick,
   watch,
+  watchEffect,
   inject,
   provide,
 } from 'vue'
@@ -23,11 +24,6 @@ import {
   DESIGNER_STORE_KEY,
   type RenderStore,
 } from '@/store/designer'
-import { DxValidator } from 'devextreme-vue/validator'
-import DxDropDownBox from 'devextreme-vue/drop-down-box'
-import DxDataGrid from 'devextreme-vue/data-grid'
-import { DxMasterDetail } from 'devextreme-vue/data-grid'
-import DxToolbar from 'devextreme-vue/toolbar'
 import {
   VALIDATABLE_TYPES,
   type ValidationRuleConfig,
@@ -35,7 +31,7 @@ import {
   unregisterValidator,
   getValidator,
 } from '@/materials/dx-validation'
-import CustomStore from 'devextreme/data/custom_store'
+import LcTable from '@/materials/components/LcTable.vue'
 import AdvancedSearchPanel from './AdvancedSearchPanel.vue'
 import type { SearchCondition } from './AdvancedSearchPanel.vue'
 import { pageModal } from './pageModal'
@@ -43,11 +39,13 @@ import { httpRequest, extractPayload, extractList } from '@/utils/request'
 import { apiCall, resolveApi, type ApiCallResult } from '@/api'
 import { isFieldHidden, isFieldReadonly, isFrozen, isActionFrozen } from '@/utils/permission'
 import { evaluateExpr, pickFields } from '@/utils/compute-expr'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import { createSandboxedFunction } from '@/utils/sandbox'
 import { gatewayCall } from '@/api'
+import { useToolbarOverflow } from '@/composables/useToolbarOverflow'
 import { t } from '@/store/lang'
 import BatchActionDialog from './BatchActionDialog.vue'
+import ToolbarIcon from './ToolbarIcon.vue'
 
 const props = defineProps<{
   node: ComponentSchema
@@ -75,27 +73,27 @@ const nodeFieldReadonly = computed(() => {
 
 /** 表单控件类型集合（需要渲染独立 label） */
 const FORM_CONTROL_TYPES = new Set([
-  'dx-text-box',
-  'dx-text-area',
-  'dx-number-box',
-  'dx-check-box',
-  'dx-switch',
-  'dx-slider',
-  'dx-range-slider',
-  'dx-calendar',
-  'dx-date-box',
-  'dx-date-range-box',
-  'dx-color-box',
-  'dx-select-box',
-  'dx-lookup',
-  'dx-tag-box',
-  'dx-autocomplete',
-  'dx-radio-group',
-  'dx-drop-down-button',
-  'dx-drop-down-box',
-  'dx-file-uploader',
-  'dx-html-editor',
-  'dx-base-data',
+  'text-box',
+  'text-area',
+  'number-box',
+  'check-box',
+  'switch',
+  'slider',
+  'range-slider',
+  'calendar',
+  'date-box',
+  'date-range-box',
+  'color-box',
+  'select-box',
+  'lookup',
+  'tag-box',
+  'autocomplete',
+  'radio-group',
+  'drop-down-button',
+  'drop-down-box',
+  'file-uploader',
+  'html-editor',
+  'base-data',
 ])
 
 /** 计算规则运行时深度计数器（模块级，防止规则链无限循环） */
@@ -236,7 +234,7 @@ function buildCopyContextMenuItems(e: any): any[] {
 
 /** DataGrid 工具栏是否显示 */
 const showGridToolbar = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return false
+  if (props.node.type !== 'data-grid') return false
   if (store.selectMode) return false
   const toolbar = props.node.props.toolbar as
     | Record<string, unknown>
@@ -246,7 +244,7 @@ const showGridToolbar = computed(() => {
 
 /** 高级查询是否显示 */
 const showAdvancedSearch = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return false
+  if (props.node.type !== 'data-grid') return false
 
   return props.node.props.advancedSearch === true
 })
@@ -258,7 +256,7 @@ const formSelectBoxMap = computed(() => {
     const formSchema = (store as any).bizSchemas?.form
     if (!Array.isArray(formSchema)) return map
     for (const n of collectAllNodes(formSchema)) {
-      if (n.type === 'dx-select-box' && n.dbField) {
+      if (n.type === 'select-box' && n.dbField) {
         const items = n.props?.items as { value: string; text: string }[] | undefined
         if (Array.isArray(items) && items.length) {
           map.set((n.dbField as string).toUpperCase(), items)
@@ -276,7 +274,7 @@ const formBaseDataMap = computed(() => {
     const formSchema = (store as any).bizSchemas?.form
     if (!Array.isArray(formSchema)) return map
     for (const n of collectAllNodes(formSchema)) {
-      if (n.type === 'dx-base-data' && n.dbField) {
+      if (n.type === 'base-data' && n.dbField) {
         const p = n.props as any
         if (p?.refPageId && p?.displayField) {
           map.set((n.dbField as string).toUpperCase(), {
@@ -291,12 +289,32 @@ const formBaseDataMap = computed(() => {
   return map
 })
 
+/** 表单 schema 中字段类型映射（dbField 大写 → dataType），用于推断列的 dataType */
+const formFieldTypeMap = computed(() => {
+  const map = new Map<string, string>()
+  try {
+    const formSchema = (store as any).bizSchemas?.form
+    if (!Array.isArray(formSchema)) return map
+    for (const n of collectAllNodes(formSchema)) {
+      if (n.dbField && n.type) {
+        let dt = ''
+        if (n.type === 'date-box' || n.type === 'date-range-box') dt = 'date'
+        else if (n.type === 'number-box') dt = 'number'
+        else if (n.type === 'select-box') dt = 'string'
+        if (dt) map.set((n.dbField as string).toUpperCase(), dt)
+      }
+    }
+  } catch { /* ignore */ }
+  return map
+})
+
 /** DataGrid 列配置（用于高级查询面板） */
 const gridColumns = computed(() => {
   const cols = props.node.props.columns as Record<string, unknown>[] | undefined
   if (!Array.isArray(cols)) return []
   const selectBoxMap = formSelectBoxMap.value
   const baseDataMap = formBaseDataMap.value
+  const fieldTypeMap = formFieldTypeMap.value
   return cols
     .filter((c) => {
       const df = c.dataField
@@ -305,6 +323,7 @@ const gridColumns = computed(() => {
     .map((c) => {
       const dataField = c.dataField as string
       const editorType = c.editorType as string | undefined
+      const inferredDataType = fieldTypeMap.get(dataField.toUpperCase()) || 'string'
       const colLookup = c.lookup as
         | {
             dataSource: unknown[]
@@ -315,13 +334,13 @@ const gridColumns = computed(() => {
             method?: string
           }
         | undefined
-      if (editorType !== 'selectBox' && !colLookup) {
+      if (!colLookup) {
         const formItems = selectBoxMap.get(dataField.toUpperCase())
         if (formItems) {
           return {
             dataField,
             caption: (c.caption as string) || dataField,
-            dataType: (c.dataType as string) || 'string',
+            dataType: (c.dataType as string) || inferredDataType,
             visible: c.visible !== false,
             editorType: 'selectBox' as string,
             isSystemField: c.isSystemField as boolean | undefined,
@@ -338,7 +357,7 @@ const gridColumns = computed(() => {
           return {
             dataField,
             caption: (c.caption as string) || dataField,
-            dataType: (c.dataType as string) || 'string',
+            dataType: (c.dataType as string) || inferredDataType,
             visible: c.visible !== false,
             editorType,
             isSystemField: c.isSystemField as boolean | undefined,
@@ -350,7 +369,7 @@ const gridColumns = computed(() => {
       return {
         dataField,
         caption: (c.caption as string) || dataField,
-        dataType: (c.dataType as string) || 'string',
+        dataType: (c.dataType as string) || inferredDataType,
         visible: c.visible !== false,
         editorType,
         isSystemField: c.isSystemField as boolean | undefined,
@@ -388,6 +407,8 @@ function updateGridHeightOffset() {
     const el = children[i] as HTMLElement
     // 只计算 DataGrid 之前的元素（toolbar、高级查询面板等）
     if (
+      el.classList.contains('lc-table-wrapper') ||
+      el.querySelector('.lc-table-wrapper') ||
       el.classList.contains('dx-datagrid') ||
       el.querySelector('.dx-datagrid')
     )
@@ -401,67 +422,35 @@ function updateGridHeightOffset() {
   gridHeightOffset.value = offset
 }
 
-/** DataGrid 专用 props：根据上方元素高度动态调整 DataGrid 高度 */
+/** DataGrid 专用 props */
+const _stableToolbar = { visible: false }
+const _stableMasterDetail = { enabled: true }
+const _stableSelection = { mode: 'single', showCheckBoxesMode: 'none' }
+
 const gridBoundProps = computed<Record<string, unknown>>(() => {
   const base: Record<string, unknown> = { ...boundProps.value }
-  if (showGridToolbar.value || showAdvancedSearch.value) {
-    const h = base.height
-    const offset = gridHeightOffset.value
-    if (offset > 0) {
-      if (typeof h === 'number') {
-        base.height = Math.max(100, h - offset)
-      } else if (typeof h === 'string') {
-        // 百分比高度：如 "100%" → "calc(100% - 80px)"
-        const pctMatch = h.match(/^(\d+(?:\.\d+)?)%$/)
-        if (pctMatch) {
-          base.height = `calc(${pctMatch[1]}% - ${offset}px)`
-        } else {
-          // 像素字符串：如 "500px" → 420
-          const pxMatch = h.match(/^(\d+(?:\.\d+)?)px$/)
-          if (pxMatch) {
-            base.height = Math.max(100, Number(pxMatch[1]) - offset)
-          }
-        }
-      }
-    }
-  }
-  // FE-S10: 表格选中行追踪（供批量操作用）
+  base.toolbar = _stableToolbar
   base.onSelectionChanged = onGridSelectionChanged
+  base.pageId = designerStore.pageId
 
-  // 选择模式：强制单选 + 行双击回填
-  if (store.selectMode) {
-    base.selection = { mode: 'single', showCheckBoxesMode: 'none' }
-    base.onRowDblClick = onGridRowDblClick
+  if (props.node.type === 'data-grid') {
+    base.masterDetail = hasMasterDetail.value ? _stableMasterDetail : undefined
+    base.advFilterConditions = advSearchConditions.value
   }
 
-  // 内置右键复制功能：复制单元格内容 / 复制行数据
-  if (props.node.type === 'dx-data-grid') {
-    const userContextMenu = base.onContextMenuPreparing as
-      | ((e: any) => void)
-      | undefined
-    base.onContextMenuPreparing = (e: any) => {
-      if (typeof userContextMenu === 'function') {
-        try {
-          userContextMenu(e)
-        } catch (err) {
-          console.error('[内置右键菜单] 用户 contextMenuPreparing 错误:', err)
-        }
-      }
-      const builtItems = buildCopyContextMenuItems(e)
-      if (builtItems.length) {
-        if (!Array.isArray(e.items)) e.items = []
-        e.items.push(...builtItems)
-      }
-    }
-
+  if (store.selectMode) {
+    base.selection = _stableSelection
+    base.onRowDblClick = onGridRowDblClick
+    base.editing = undefined
   }
 
   return base
 })
 
 /** DataGrid 独立工具栏按钮配置 */
+
 const gridToolbarItems = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return []
+  if (props.node.type !== 'data-grid') return []
   const toolbar = props.node.props.toolbar as
     | Record<string, unknown>
     | undefined
@@ -474,7 +463,7 @@ const gridToolbarItems = computed(() => {
         location?: string
         isCustom?: boolean
         onClick?: string
-        type?: 'default' | 'normal' | 'success' | 'danger' | 'warning'
+        type?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'normal'
         stylingMode?: 'contained' | 'outlined' | 'text'
         showIcon?: boolean
         bgColor?: string
@@ -496,6 +485,8 @@ const gridToolbarItems = computed(() => {
           title?: string
           bizMode?: 'form' | 'table' | 'mobile'
           passSelectedRow?: boolean
+          width?: number | string
+          height?: number | string
         }
       }[]
     | undefined
@@ -549,7 +540,7 @@ const gridToolbarItems = computed(() => {
                       bizMode: openCfg.bizMode || 'form',
                       title: openCfg.title || t('新增'),
                       mode: (openCfg.mode as 'popup' | 'drawer') || 'popup',
-                      width: mc?.width ?? 900, height: mc?.height ?? 600,
+                      width: openCfg.width ?? mc?.width ?? 900, height: openCfg.height ?? mc?.height ?? 600,
                       maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true,
                     },
                   ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
@@ -568,7 +559,7 @@ const gridToolbarItems = computed(() => {
             case 'delete': {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
-              if (!sel || !sel.length) break
+              if (!sel || !sel.length) { ElMessage.warning(t('请先选择要删除的记录')); break }
               const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
               const key = sel[0][keyExpr]
               if (key === undefined || key === null) break
@@ -595,7 +586,7 @@ const gridToolbarItems = computed(() => {
             case 'edit': {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
-              if (!sel || !sel.length) break
+              if (!sel || !sel.length) { ElMessage.warning(t('请先选择要修改的记录')); break }
               const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
               const key = keyExpr ? sel[0][keyExpr] : sel[0]
               const openCfg = item.openPage
@@ -616,7 +607,7 @@ const gridToolbarItems = computed(() => {
                       bizMode: openCfg.bizMode || 'form',
                       title: openCfg.title || t('修改'),
                       mode: (openCfg.mode as 'popup' | 'drawer') || 'popup',
-                      width: mc?.width ?? 900, height: mc?.height ?? 600,
+                      width: openCfg.width ?? mc?.width ?? 900, height: openCfg.height ?? mc?.height ?? 600,
                       maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true,
                     },
                   ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
@@ -644,6 +635,9 @@ const gridToolbarItems = computed(() => {
               break
             case 'refresh':
               if (typeof grid.refresh === 'function') grid.refresh()
+              break
+            case 'columnConfig':
+              if (typeof grid.openColumnConfig === 'function') grid.openColumnConfig()
               break
             case 'save':
               if (typeof grid.saveEditData === 'function') grid.saveEditData()
@@ -691,8 +685,8 @@ const gridToolbarItems = computed(() => {
           options: {
             text: item.caption || item.name,
             icon: item.showIcon === false ? undefined : (item.icon || item.name),
-            type: item.type || 'normal',
-            stylingMode: item.stylingMode || 'text',
+            type: (item.type === 'normal' || !item.type) ? 'default' : item.type,
+            stylingMode: (!item.stylingMode || (item.stylingMode === 'text' && !item.isCustom)) ? 'contained' : item.stylingMode,
             items: childItems,
             onItemClick: (e: { itemData?: { name?: string } }) => {
               const grid = getGridInstance()
@@ -722,8 +716,8 @@ const gridToolbarItems = computed(() => {
           icon: item.showIcon === false ? undefined : (item.icon || item.name),
           text: item.caption || item.name,
           onClick,
-          type: item.type || 'normal',
-          stylingMode: item.stylingMode || (item.type && item.type !== 'normal' ? 'contained' : 'text'),
+          type: (item.type === 'normal' || !item.type) ? 'default' : item.type,
+          stylingMode: (!item.stylingMode || (item.stylingMode === 'text' && !item.isCustom)) ? 'contained' : item.stylingMode,
           ...((item.bgColor || item.textColor || item.hoverColor)
             ? {
                 elementAttr: {
@@ -743,46 +737,61 @@ const gridToolbarItems = computed(() => {
     })
 })
 
+const toolbarRef = ref<HTMLElement>()
+const { overflowIndices } = useToolbarOverflow(toolbarRef)
+const beforeItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => (item.location || 'before') === 'before'))
+const centerItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => item.location === 'center'))
+const afterItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => (item.location || 'after') === 'after'))
+
+const overflowIndicesArray = computed(() => [...overflowIndices.value].sort((a, b) => a - b))
+const moreMenuVisible = ref(false)
+const moreMenuStyle = ref<Record<string, string>>({})
+const expandedMoreIdx = ref<number | null>(null)
+function toggleMoreMenu(event: MouseEvent) {
+  if (moreMenuVisible.value) {
+    moreMenuVisible.value = false
+    return
+  }
+  const btn = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  moreMenuStyle.value = {
+    position: 'fixed',
+    top: `${btn.bottom}px`,
+    right: `${window.innerWidth - btn.right}px`,
+    zIndex: '10000',
+  }
+  moreMenuVisible.value = true
+}
+function triggerOverflowItem(idx: number) {
+  const item = gridToolbarItems.value[idx]
+  if (item?.widget === 'dxDropDownButton') {
+    expandedMoreIdx.value = expandedMoreIdx.value === idx ? null : idx
+    return
+  }
+  moreMenuVisible.value = false
+  if (item?.options) (item.options as any).onClick?.({})
+}
+
+function triggerOverflowChild(idx: number, childName: string) {
+  moreMenuVisible.value = false
+  expandedMoreIdx.value = null
+  const item = gridToolbarItems.value[idx]
+  if (item?.options) (item.options as any).onItemClick?.({ itemData: { name: childName } })
+}
+
 /** 处理导出子按钮动作 */
 function handleExportAction(actionName: string, grid: any): void {
   switch (actionName) {
-    case 'export_selected': {
-      const sel = typeof grid.getSelectedRowsData === 'function' ? grid.getSelectedRowsData() : []
-      if (!sel || !sel.length) {
-        ElMessage.warning(t('请先选择要导出的行'))
-        return
-      }
-      try {
-        const oldExport = grid.option('export')
-        grid.option('export', { ...(oldExport || {}), selectedRows: true, enabled: true })
-        grid.exportToExcel()
-        grid.option('export', oldExport)
-      } catch {
-        if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
-      }
+    case 'export_page':
+      if (typeof grid.exportPageData === 'function') grid.exportPageData()
+      else if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
       break
-    }
+    case 'export_selected':
+      if (typeof grid.exportSelected === 'function') grid.exportSelected()
+      else if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      break
     case 'export_query':
-      if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
-      break
-    case 'export_template_selected': {
-      const sel = typeof grid.getSelectedRowsData === 'function' ? grid.getSelectedRowsData() : []
-      if (!sel || !sel.length) {
-        ElMessage.warning(t('请先选择要导出的行'))
-        return
-      }
-      try {
-        const oldExport = grid.option('export')
-        grid.option('export', { ...(oldExport || {}), selectedRows: true, enabled: true })
-        grid.exportToExcel()
-        grid.option('export', oldExport)
-      } catch {
-        if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
-      }
-      break
-    }
-    case 'export_template_query':
-      if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
+      if (typeof grid.exportQuery === 'function') grid.exportQuery()
+      else if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
       break
     default:
       break
@@ -1270,7 +1279,7 @@ function reloadGrid() {
     realInst.reloadData()
   }
 }
-const OVERLAY_TYPES = new Set(['dx-popup', 'dx-toast', 'dx-load-panel'])
+const OVERLAY_TYPES = new Set(['popup', 'toast', 'load-panel'])
 const overlayProps = computed(() =>
   OVERLAY_TYPES.has(props.node.type)
     ? { container: `#renderer-node-${props.node.id}` }
@@ -1316,16 +1325,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
       base.parentNodeId = props.parentId
     }
   }
-  // 可验证控件：值变化时同步回 node.props.value，确保 validate API 读取到最新值
-  if (VALIDATABLE_TYPES.has(props.node.type)) {
-    const userHandler = base.onValueChanged
-    base.onValueChanged = (e: unknown) => {
-      const val = (e != null && typeof e === 'object' && 'value' in (e as object)) ? (e as any).value : e
-      props.node.props.value = val
-      store.schemaRevision += 1
-      if (typeof userHandler === 'function') userHandler(e)
-    }
-  }
+
 
   // 绑定事件处理函数：将事件名转为 Vue 的 on* 格式，注入运行时 API
   if (props.node.events) {
@@ -1355,8 +1355,19 @@ const boundProps = computed<Record<string, unknown>>(() => {
       }
     }
   }
+  // 可验证控件：值变化时同步回 node.props.value，确保 validate API 读取到最新值
+  // 放在事件绑定之后，包装可能存在的 onValueChanged 事件处理器
+  if (VALIDATABLE_TYPES.has(props.node.type)) {
+    const userHandler = base.onValueChanged
+    base.onValueChanged = (e: unknown) => {
+      const val = (e != null && typeof e === 'object' && 'value' in (e as object)) ? (e as any).value : e
+      props.node.props.value = val
+      store.schemaRevision += 1
+      if (typeof userHandler === 'function') userHandler(e)
+    }
+  }
   // dx-button：如果配置了 openPage，自动绑定点击事件打开子页面
-  if (props.node.type === 'dx-button') {
+  if (props.node.type === 'button') {
     const openPageCfg = base.openPage as
       | {
           pageId?: string
@@ -1416,7 +1427,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
     base.children = props.node.children
   }
   // dx-data-grid：根据数据源类型决定使用静态数据还是远程加载
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     // 主键字段始终跟随页面 primaryKeyField 配置
     base.keyExpr = store.primaryKeyField || 'id'
     const dataSourceType = (base.dataSourceType as string) || 'static'
@@ -1528,6 +1539,18 @@ const boundProps = computed<Record<string, unknown>>(() => {
             return 'like'
           case 'endswith':
             return 'like'
+          case 'equal':
+            return '='
+          case 'notequal':
+            return '<>'
+          case 'greaterthan':
+            return '>'
+          case 'greaterthanorequal':
+            return '>='
+          case 'lessthan':
+            return '<'
+          case 'lessthanorequal':
+            return '<='
           case '=':
             return '='
           case '<>':
@@ -1576,11 +1599,29 @@ const boundProps = computed<Record<string, unknown>>(() => {
           dxFilter.length >= 2 &&
           typeof dxFilter[0] === 'string'
         ) {
-          // 单条件：["field", "op", value]
+          // 单条件：["field", "op", value] 或 ["field", "between", val1, val2]
           const field = dxFilter[0]
           const op = dxFilter.length >= 3 ? String(dxFilter[1]) : '='
           const val = dxFilter.length >= 3 ? dxFilter[2] : dxFilter[1]
-          if (val !== '' && val !== null && val !== undefined) {
+          if (op === 'between' && dxFilter.length >= 4) {
+            const val2 = dxFilter[3]
+            if (val !== '' && val !== null && val !== undefined && val2 !== '' && val2 !== null && val2 !== undefined) {
+              result.push({ Symbol: 'and' })
+              result.push({
+                Id: field,
+                Symbol: '>=',
+                Val: val,
+                TableAlias: getColumnTableAlias(field),
+              })
+              result.push({ Symbol: 'and' })
+              result.push({
+                Id: field,
+                Symbol: '<=',
+                Val: val2,
+                TableAlias: getColumnTableAlias(field),
+              })
+            }
+          } else if (val !== '' && val !== null && val !== undefined) {
             // 格式：先连接符，再条件项
             result.push({ Symbol: 'and' })
             result.push({
@@ -1721,8 +1762,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
         return params
       }
 
-      base.dataSource = new CustomStore({
-        key: store.primaryKeyField || (props.node.props.keyExpr as string) || 'id',
+      base.dataSource = {
         load: async (loadOptions: {
           skip?: number
           take?: number
@@ -1753,6 +1793,12 @@ const boundProps = computed<Record<string, unknown>>(() => {
               // 复用 buildLoadParams：行筛选 + 高级查询条件统一转成后端 filterData 格式
               if (dxParams.filterData) {
                 gwPayload.filterData = dxParams.filterData
+              }
+              if (dxParams.sort) {
+                gwPayload.sort = dxParams.sort
+              }
+              if (dxParams.searchValue) {
+                gwPayload.searchValue = dxParams.searchValue
               }
 
               result = await httpRequest('/api/lowcode/gateway', {
@@ -1845,7 +1891,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
         remove: async (key: unknown) => {
           if (storeRemoveFn) return await storeRemoveFn(key)
         },
-      })
+      }
       // 开启远程操作：筛选、排序、分页都走后端
       if (base.remoteOperations === undefined) {
         base.remoteOperations = true
@@ -1864,24 +1910,24 @@ const boundProps = computed<Record<string, unknown>>(() => {
     }
   }
   // dx-data-grid: 捕获实例，供 editCellTemplate 中 cellValue 调用
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     base.onInitialized = (e: { component?: unknown }) => {
       gridInstanceRef.value = e.component
     }
   }
   // dx-data-grid：删除 toolbar 属性（使用独立 DxToolbar 组件渲染，不依赖表格自带工具栏）
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     if (base.toolbar) delete base.toolbar
   }
   // dx-data-grid 列处理：为 selectBox 列添加 lookup，为 dropDownGrid 列添加 editCellTemplate
-  if (props.node.type === 'dx-data-grid' && Array.isArray(base.columns)) {
+  if (props.node.type === 'data-grid' && Array.isArray(base.columns)) {
     // 预处理：表单中下拉框字段自动注入 selectBox + lookup，使行筛选/高级查询为下拉框
     const selectBoxMap = formSelectBoxMap.value
     if (selectBoxMap.size) {
       base.columns = (base.columns as Record<string, unknown>[]).map((col) => {
         const et = col.editorType as string
         const df = col.dataField as string
-        if (et !== 'selectBox' && typeof df === 'string' && !df.includes('.') && !col.lookup) {
+        if (typeof df === 'string' && !df.includes('.') && !col.lookup) {
           const formItems = selectBoxMap.get(df.toUpperCase())
           if (formItems) {
             return {
@@ -1901,31 +1947,29 @@ const boundProps = computed<Record<string, unknown>>(() => {
     }
     base.columns = (base.columns as Record<string, unknown>[]).map((col) => {
       const editorType = col.editorType as string
-      // 清理自定义属性，不传给 DevExtreme
+      // 清理自定义属性，保留 editorType/allowEditing 供 LcTable 编辑器判断
       const {
-        editorType: _et,
         dropDownGrid: _ddg,
         visible: _vis,
         writeBack: _wb,
         allowEditing: _ae,
-        baseDataRef: _bdr,
         ...cleanCol
       } = col
-      void _et
       void _ddg
       void _vis
       void _wb
-      void _bdr
-      // allowEditing: 只传 false（禁用编辑），true/undefined 不传（继承 editing.allowUpdating）
-      if (_ae === false) {
-        cleanCol.allowEditing = false
+      if (_ae !== undefined) {
+        cleanCol.allowEditing = _ae
       }
       // visible=false 的列设置 visible 属性
       if (col.visible === false) {
         cleanCol.visible = false
       }
       // 确保列有 dataType，否则 filterRow、lookup 等功能可能异常
-      if (!cleanCol.dataType) cleanCol.dataType = 'string'
+      if (!cleanCol.dataType) {
+        const fieldTypeMap = formFieldTypeMap.value
+        cleanCol.dataType = (typeof cleanCol.dataField === 'string' && fieldTypeMap.get((cleanCol.dataField as string).toUpperCase())) || 'string'
+      }
       // 默认日期格式：datetime → yyyy-MM-dd HH:mm:ss，date → yyyy-MM-dd
       if (!cleanCol.format) {
         if (cleanCol.dataType === 'datetime') {
@@ -1948,6 +1992,25 @@ const boundProps = computed<Record<string, unknown>>(() => {
         cleanCol.allowFiltering = false
         cleanCol.allowSorting = false
         cleanCol.allowEditing = false
+      } else if (
+        // 基础资料父字段（如 ORG_KEY）：有 baseDataRef + displayField，后端回填 ORG_KEY.ORG_NAME
+        // 单元格应显示显示字段值而非主键，用 calculateDisplayValue 从扁平 key 取值
+        typeof cleanCol.dataField === 'string' &&
+        !cleanCol.dataField.includes('.') &&
+        (cleanCol as any).baseDataRef?.displayField &&
+        (cleanCol as any).baseDataRef?.sourceField
+      ) {
+        const _sourceField = (cleanCol as any).baseDataRef.sourceField as string
+        const _displayFields = String((cleanCol as any).baseDataRef.displayField).split(',').map((s: string) => s.trim()).filter(Boolean)
+        const _fallbackKey = cleanCol.dataField as string
+        cleanCol.calculateDisplayValue = (rowData: any) => {
+          const parts: string[] = []
+          for (const df of _displayFields) {
+            const v = rowData?.[`${_sourceField}.${df}`]
+            if (v != null && v !== '') parts.push(String(v))
+          }
+          return parts.length ? parts.join('-') : rowData?.[_fallbackKey]
+        }
       }
 
 
@@ -1971,8 +2034,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
             : null
           const remoteUrl = lookupResolved?.url || lookup.remoteUrl || ''
           const remoteMethod = lookupResolved?.method || lookup.method || 'GET'
-          const remoteStore = new CustomStore({
-            key: lookup.valueExpr,
+          const remoteStore = {
             load: async () => {
               try {
                 const result = await httpRequest(remoteUrl, {
@@ -1983,7 +2045,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
                 return []
               }
             },
-          })
+          }
           cleanCol.lookup = {
             valueExpr: lookup.valueExpr,
             displayExpr: lookup.displayExpr,
@@ -2041,8 +2103,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
         const popupWidth = Number(ddg.popupWidth) || 600
 
         // 创建远程数据源（只创建一次，避免每次 render 都新建）
-        const gridDataSource = new CustomStore({
-          key: valueExpr,
+        const gridDataSource = {
           // 提供空的 update/insert/remove 避免 E4011 错误
           update: async () => {},
           insert: async () => {},
@@ -2144,155 +2205,17 @@ const boundProps = computed<Record<string, unknown>>(() => {
             }
             return { data: arr, totalCount: tc }
           },
-        })
+        }
 
-        // 编辑单元格模板：用 Vue createApp 渲染 DropDownBox + DataGrid
-        // DevExtreme Vue 模板签名: (cellElement, cellInfo)
-        // DataGrid 实例通过 onInitialized 捕获到 gridInstanceRef
+        // dropDownGrid: 交给 LcTable 内置编辑器（el-dialog + 嵌套表格选择），不再用 createApp+h 渲染
         const colDataField = String(col.dataField || '')
-        cleanCol.editCellTemplate = (
-          cellElement: HTMLElement,
-          cellInfo: any
-        ) => {
-          // 获取 DataGrid 实例：cellInfo.component 可能是实例或 Vue 包装器
-          const getGridInstance = () => {
-            const comp = cellInfo.component
-            if (comp) {
-              if (typeof comp.cellValue === 'function') return comp
-              if (
-                comp.instance &&
-                typeof comp.instance.cellValue === 'function'
-              )
-                return comp.instance
-            }
-            return gridInstanceRef.value
-          }
-          const app = createApp({
-            data() {
-              return { currentValue: cellInfo.value, _isSelecting: false }
-            },
-            mounted() {
-              ;(this as any)._ddbRef = (this as any).$refs.ddb
-            },
-            methods: {
-              async handleSelection(selected: Record<string, unknown>) {
-                if ((this as any)._isSelecting) return
-                ;(this as any)._isSelecting = true
-
-                const val = selected[valueExpr]
-                const displayVal = selected[displayExpr]
-                this.currentValue = val
-                const gridInstance = getGridInstance()
-
-                // 1. 设置当前单元格值
-                cellInfo.setValue(val, displayVal)
-
-                // 更新 data 对象
-                if (cellInfo.data) {
-                  cellInfo.data[colDataField] = val
-                }
-
-                // 2. 反写所有勾选了 writeBack 的列
-                if (
-                  ddgAllColumns &&
-                  cellInfo.rowIndex !== undefined &&
-                  gridInstance
-                ) {
-                  for (const nc of ddgAllColumns) {
-                    if (nc.dataField && nc.writeBack) {
-                      const writeVal = selected[nc.dataField]
-                      cellInfo.data[nc.dataField] = writeVal
-                      gridInstance.cellValue(
-                        cellInfo.rowIndex,
-                        nc.dataField,
-                        writeVal
-                      )
-                    }
-                  }
-                }
-
-                // 3. 关闭下拉框
-                const ddb = (this as any)._ddbRef
-                if (ddb && ddb.instance) {
-                  ddb.instance.close()
-                }
-
-                // 4. 保存编辑数据
-                if (gridInstance) {
-                  try {
-                    await gridInstance.saveEditData()
-                    gridInstance.cancelEditData()
-                  } catch (e) {
-                    console.error('[4] save/cancel error:', e)
-                  }
-                }
-
-                setTimeout(() => {
-                  ;(this as any)._isSelecting = false
-                }, 200)
-              },
-            },
-            render() {
-              const self = this as any
-              return h(
-                DxDropDownBox,
-                {
-                  ref: 'ddb',
-                  value: this.currentValue,
-                  displayExpr,
-                  valueExpr,
-                  contentTemplate: 'gridContent',
-                  dropDownOptions: { width: popupWidth },
-                  onValueChanged: (e: { value?: unknown }) => {
-                    // 仅在非选择过程中同步值，不重复调 setValue
-                    if (!(this as any)._isSelecting) {
-                      this.currentValue = e.value
-                    }
-                  },
-                },
-                {
-                  gridContent: () =>
-                    h(DxDataGrid, {
-                      dataSource: gridDataSource,
-                      columns: ddgColumns || [
-                        { dataField: valueExpr, caption: valueExpr },
-                        { dataField: displayExpr, caption: displayExpr },
-                      ],
-                      selection: { mode: 'single', showCheckBoxesMode: 'none' },
-                      hoverStateEnabled: true,
-                      height: 250,
-                      remoteOperations: true,
-                      paging: { enabled: true, pageSize: 15 },
-                      pager: {
-                        visible: true,
-                        showPageSizeSelector: true,
-                        allowedPageSizes: [15, 30, 50, 100],
-                        showInfo: true,
-                        showNavigationButtons: true,
-                      },
-                      filterRow:
-                        ddg.filterRow === true ? { visible: true } : undefined,
-                      selectedRowKeys:
-                        this.currentValue !== undefined &&
-                        this.currentValue !== null
-                          ? [this.currentValue]
-                          : [],
-                      onSelectionChanged: (e: {
-                        selectedRowsData: Record<string, unknown>[]
-                      }) => {
-                        if (e.selectedRowsData.length > 0) {
-                          self.handleSelection(e.selectedRowsData[0])
-                        }
-                      },
-                    }),
-                }
-              )
-            },
-          })
-          app.mount(cellElement)
-          return () => {
-            app.unmount()
-          }
+        void colDataField
+        cleanCol.dropDownGrid = {
+          dataSource: gridDataSource,
+          valueExpr,
+          displayExpr,
+          columns: ddgAllColumns,
+          popupWidth,
         }
       }
 
@@ -2341,7 +2264,9 @@ const labelConfig = computed(() => {
     label: (p.label as string) ?? cfg?.title ?? '',
     labelVisible: p.labelVisible !== false,
     labelPosition: (p.labelPosition as string) || 'top',
-    required: p.required === true,
+    required: p.required === true ||
+      (Array.isArray(p.validationRules) &&
+        (p.validationRules as ValidationRuleConfig[]).some(r => r.type === 'required')),
     requiredPosition: (p.requiredPosition as string) || 'after',
     tooltipEnabled: p.tooltipEnabled === true,
     tooltipText: (p.tooltipText as string) || '',
@@ -2356,22 +2281,170 @@ const showLabel = computed(
     !!labelConfig.value.label
 )
 
-/** DxValidator 组件引用 */
-const validatorRef = ref<InstanceType<typeof DxValidator> | null>(null)
+/** 当前节点的验证错误信息（null 表示无错误） */
+const validationError = ref<string | null>(null)
+
+/** 字段是否已被交互过（blur 或值变化后标记为 true） */
+const fieldTouched = ref(false)
+
+/** 验证当前节点，设置错误状态并返回结果 */
+function validateSelf(): boolean {
+  if (!isValidatable.value || !props.node.fieldName) {
+    validationError.value = null
+    return true
+  }
+  const rules = props.node.props.validationRules
+  if (!Array.isArray(rules) || !rules.length) {
+    validationError.value = null
+    return true
+  }
+  const node = props.node
+  const value =
+    node.props.value ?? node.props.text ?? node.props.selectedItem ?? ''
+  let errorMsg: string | null = null
+  for (const rule of rules as ValidationRuleConfig[]) {
+    let valid = true
+    switch (rule.type) {
+      case 'required':
+        valid = !!value || value === 0 || value === false
+        break
+      case 'email':
+        valid =
+          !value || /^[\d\w._-]+@[\d\w._-]+\.[\w]+$/i.test(String(value))
+        break
+      case 'numeric':
+        valid = !value || !isNaN(Number(value))
+        break
+      case 'pattern':
+        valid =
+          !value || !rule.pattern || new RegExp(rule.pattern).test(String(value))
+        break
+      case 'range': {
+        if (!value) break
+        const num = Number(value)
+        if (rule.min !== undefined && num < Number(rule.min)) valid = false
+        if (rule.max !== undefined && num > Number(rule.max)) valid = false
+        break
+      }
+      case 'stringLength': {
+        const len = String(value || '').length
+        if (rule.min !== undefined && len < Number(rule.min)) valid = false
+        if (rule.max !== undefined && len > Number(rule.max)) valid = false
+        break
+      }
+      case 'compare': {
+        if (!rule.comparisonTarget) break
+        const targetNode = findNodeByFieldNameIn(
+          store.schema,
+          rule.comparisonTarget
+        )
+        if (!targetNode) break
+        const tv = targetNode.props.value
+        const ct = rule.comparisonType || '=='
+        if (ct === '==') valid = value === tv
+        else if (ct === '!=') valid = value !== tv
+        else if (ct === '>') valid = Number(value) > Number(tv)
+        else if (ct === '>=') valid = Number(value) >= Number(tv)
+        else if (ct === '<') valid = Number(value) < Number(tv)
+        else if (ct === '<=') valid = Number(value) <= Number(tv)
+        break
+      }
+      case 'custom': {
+        if (!rule.validationCallback) break
+        try {
+          const fn = createSandboxedFunction(['value'], rule.validationCallback)
+          valid = !!fn(value)
+        } catch {
+          valid = true
+        }
+        break
+      }
+    }
+    if (!valid) {
+      errorMsg = rule.message || `${rule.type} 验证失败`
+      break
+    }
+  }
+  validationError.value = errorMsg
+  return errorMsg === null
+}
+
+/** 表单控件 blur 时触发验证 */
+function onFieldBlur() {
+  if (isValidatable.value && props.node.fieldName) {
+    fieldTouched.value = true
+    validateSelf()
+  }
+}
+
+/** 表单控件值变化时触发验证（仅在已交互过后） */
+function onFieldValueChanged() {
+  if (isValidatable.value && props.node.fieldName && fieldTouched.value) {
+    validateSelf()
+  }
+}
+
+/** 转换为 DevExtreme DxValidator 可用的规则格式 */
+const dxValidationRules = computed<unknown[] | null>(() => {
+  const rawRules = Array.isArray(props.node.props.validationRules) ? props.node.props.validationRules : []
+  const rules = [...rawRules]
+  if (props.node.props.required === true && !rules.some((r: any) => r.type === 'required')) {
+    rules.push({ type: 'required', message: '此字段为必填项' })
+  }
+  if (!rules.length) return null
+  return rules.map((rule: Record<string, unknown>) => {
+    const r: Record<string, unknown> = {
+      type: rule.type,
+      message: rule.message,
+    }
+    if (rule.type === 'pattern' && rule.pattern) {
+      try {
+        r.pattern = new RegExp(rule.pattern as string)
+      } catch {
+        /* invalid pattern */
+      }
+    }
+    if (rule.type === 'range' || rule.type === 'stringLength') {
+      if (rule.min !== undefined) r.min = rule.min
+      if (rule.max !== undefined) r.max = rule.max
+    }
+    if (rule.type === 'compare' && rule.comparisonTarget) {
+      const targetFieldName = rule.comparisonTarget as string
+      r.comparisonTarget = () => {
+        const targetNode = findNodeByFieldNameIn(store.schema, targetFieldName)
+        return targetNode?.props.value
+      }
+      r.comparisonType = rule.comparisonType || '=='
+    }
+    if (rule.type === 'custom' && rule.validationCallback) {
+      const code = rule.validationCallback as string
+      r.validationCallback = (e: { value: unknown }) => {
+        try {
+          const fn = createSandboxedFunction(['value'], code)
+          return fn(e.value)
+        } catch {
+          return true
+        }
+      }
+    }
+    return r
+  })
+})
+
+/** 响应式注册/注销验证器到全局注册表 */
+watchEffect(() => {
+  if (isValidatable.value && props.node.fieldName && dxValidationRules.value) {
+    registerValidator(props.node.fieldName, { validate: validateSelf }, validateSelf)
+  } else if (props.node.fieldName) {
+    unregisterValidator(props.node.fieldName)
+  }
+})
 
 /** 注册/注销验证器到全局注册表 */
 onMounted(() => {
-  if (isValidatable.value && props.node.fieldName && dxValidationRules.value) {
-    const dxv = validatorRef.value as any
-    if (dxv?.instance) {
-      registerValidator(props.node.fieldName, dxv.instance, () =>
-        dxv.instance.validate()
-      )
-    }
-  }
   // 计算 DataGrid 上方元素高度
   if (
-    props.node.type === 'dx-data-grid' &&
+    props.node.type === 'data-grid' &&
     (showGridToolbar.value || showAdvancedSearch.value)
   ) {
     nextTick(() => updateGridHeightOffset())
@@ -2380,7 +2453,7 @@ onMounted(() => {
 
 // 监听工具栏/高级查询显示状态变化，重新计算高度
 watch([showGridToolbar, showAdvancedSearch], () => {
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     nextTick(() => updateGridHeightOffset())
   }
 })
@@ -2512,8 +2585,7 @@ function getDetailCustomStore(
   masterRow: Record<string, unknown>,
   detail: DetailTableConfig,
 ) {
-  return new CustomStore({
-    key: 'id',
+  return {
     load: async () => {
       const data = await loadDetailData(
         masterRow,
@@ -2522,7 +2594,7 @@ function getDetailCustomStore(
       )
       return { data, totalCount: data.length }
     },
-  })
+  }
 }
 
 onBeforeUnmount(() => {
@@ -2531,48 +2603,6 @@ onBeforeUnmount(() => {
   }
 })
 
-/** 转换为 DevExtreme DxValidator 可用的规则格式 */
-const dxValidationRules = computed<unknown[] | null>(() => {
-  const rules = props.node.props.validationRules
-  if (!Array.isArray(rules) || !rules.length) return null
-  return rules.map((rule: Record<string, unknown>) => {
-    const r: Record<string, unknown> = {
-      type: rule.type,
-      message: rule.message,
-    }
-    if (rule.type === 'pattern' && rule.pattern) {
-      try {
-        r.pattern = new RegExp(rule.pattern as string)
-      } catch {
-        /* invalid pattern */
-      }
-    }
-    if (rule.type === 'range' || rule.type === 'stringLength') {
-      if (rule.min !== undefined) r.min = rule.min
-      if (rule.max !== undefined) r.max = rule.max
-    }
-    if (rule.type === 'compare' && rule.comparisonTarget) {
-      const targetFieldName = rule.comparisonTarget as string
-      r.comparisonTarget = () => {
-        const targetNode = findNodeByFieldNameIn(store.schema, targetFieldName)
-        return targetNode?.props.value
-      }
-      r.comparisonType = rule.comparisonType || '=='
-    }
-    if (rule.type === 'custom' && rule.validationCallback) {
-      const code = rule.validationCallback as string
-      r.validationCallback = (e: { value: unknown }) => {
-        try {
-          const fn = createSandboxedFunction(['value'], code)
-          return fn(e.value)
-        } catch {
-          return true
-        }
-      }
-    }
-    return r
-  })
-})
 
 /** 支持子节点自由定位的容器类型（子节点可像画布一样自由拖拽） */
 const FREE_POSITION_CONTAINERS = new Set(['el-splitter-panel', 'el-tab-pane'])
@@ -2779,7 +2809,7 @@ const wrapperStyle = computed(() => {
   >
     <template v-if="!isContainer">
       <!-- dx-data-grid：wrapper 包裹工具栏、高级查询和表格 -->
-      <template v-if="node.type === 'dx-data-grid'">
+      <template v-if="node.type === 'data-grid'">
         <div class="data-grid-wrapper" ref="wrapperRef">
           <AdvancedSearchPanel
             v-if="showAdvancedSearch"
@@ -2790,11 +2820,103 @@ const wrapperStyle = computed(() => {
             @reset="onAdvSearchReset"
             @height-change="updateGridHeightOffset"
           />
-          <DxToolbar
-            v-if="showGridToolbar"
-            class="grid-toolbar"
-            :items="gridToolbarItems"
-          />
+          <div v-if="showGridToolbar" class="grid-toolbar" ref="toolbarRef">
+            <div class="toolbar-group toolbar-before">
+              <template v-for="({ item, idx }, ti) in beforeItems" :key="'b'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" @command="(cmd: string) => (item.options as any)?.onItemClick?.({ itemData: { name: cmd } })">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div class="toolbar-group toolbar-center">
+              <template v-for="({ item, idx }, ti) in centerItems" :key="'c'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" @command="(cmd: string) => (item.options as any)?.onItemClick?.({ itemData: { name: cmd } })">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div class="toolbar-group toolbar-after">
+              <template v-for="({ item, idx }, ti) in afterItems" :key="'a'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" @command="(cmd: string) => (item.options as any)?.onItemClick?.({ itemData: { name: cmd } })">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div v-if="overflowIndicesArray.length" class="toolbar-more-wrap" data-more-btn>
+              <button class="more-btn-native" @click="toggleMoreMenu">更多 ▾</button>
+              <Teleport to="body">
+                <div v-if="moreMenuVisible" class="more-dropdown-overlay-fs" @click="moreMenuVisible = false"></div>
+                <div v-if="moreMenuVisible" class="more-dropdown-menu-fs" :style="moreMenuStyle">
+                  <template v-for="idx in overflowIndicesArray" :key="'more'+idx">
+                    <div class="more-dropdown-item-fs" @click="triggerOverflowItem(idx)">
+                      <ToolbarIcon v-if="gridToolbarItems[idx]?.options?.icon" :name="(gridToolbarItems[idx].options as any).icon" />
+                      <span>{{ gridToolbarItems[idx]?.options?.text }}</span>
+                      <span v-if="gridToolbarItems[idx]?.widget === 'dxDropDownButton'" class="more-arrow">{{ expandedMoreIdx === idx ? '▸' : '▾' }}</span>
+                    </div>
+                    <template v-if="expandedMoreIdx === idx">
+                      <div
+                        v-for="child in ((gridToolbarItems[idx] as any)?.options?.items || [])"
+                        :key="'more-child-'+child.name"
+                        class="more-dropdown-child-fs"
+                        @click="triggerOverflowChild(idx, child.name)"
+                      >
+                        <ToolbarIcon v-if="child.icon" :name="child.icon" />
+                        <span>{{ child.text }}</span>
+                      </div>
+                    </template>
+                  </template>
+                </div>
+              </Teleport>
+            </div>
+          </div>
           <!-- FE-S10: 批量操作按钮（表格页选中行后显示） -->
           <div v-if="showGridToolbar && batchSelectedRows.length > 1" class="batch-action-bar">
             <span class="batch-count">{{ t('已选') }} {{ batchSelectedRows.length }} {{ t('条') }}</span>
@@ -2809,41 +2931,30 @@ const wrapperStyle = computed(() => {
             :is="materialComponents[node.type]"
             v-bind="gridBoundProps"
           >
-            <DxValidator
-              v-if="isValidatable && dxValidationRules"
-              ref="validatorRef"
-              :validation-rules="(dxValidationRules as any)"
-            />
-            <!-- G2: 主从表渲染 -->
-            <DxMasterDetail
-              v-if="hasMasterDetail && masterDetailConfig"
-              :enabled="true"
-            >
-              <template #default="{ data }">
-                <div class="master-detail-container">
-                  <div
-                    v-for="detail in masterDetailConfig!.details"
-                    :key="detail.tableName"
-                    class="detail-table-section"
-                  >
-                    <div class="detail-table-label">{{ detail.label }}</div>
-                    <DxDataGrid
-                      :data-source="getDetailCustomStore(data.data, detail)"
-                      :show-borders="true"
-                      :show-row-lines="true"
-                      :paging="{ enabled: false }"
-                      :column-auto-width="true"
-                      :editing="{
-                        allowUpdating: detail.editable,
-                        allowAdding: detail.allowAdd || false,
-                        allowDeleting: detail.allowDelete || false,
-                        mode: 'row',
-                      }"
-                    />
-                  </div>
+            <template v-if="hasMasterDetail && masterDetailConfig" #detail="{ row }">
+              <div class="master-detail-container">
+                <div
+                  v-for="detail in masterDetailConfig!.details"
+                  :key="detail.tableName"
+                  class="detail-table-section"
+                >
+                  <div class="detail-table-label">{{ detail.label }}</div>
+                  <LcTable
+                    :data-source="getDetailCustomStore(row, detail)"
+                    :show-borders="true"
+                    :show-row-lines="true"
+                    :paging="{ enabled: false }"
+                    :column-auto-width="true"
+                    :editing="{
+                      allowUpdating: detail.editable,
+                      allowAdding: detail.allowAdd || false,
+                      allowDeleting: detail.allowDelete || false,
+                      mode: 'row',
+                    }"
+                  />
                 </div>
-              </template>
-            </DxMasterDetail>
+              </div>
+            </template>
           </component>
         </div>
       </template>
@@ -2877,27 +2988,20 @@ const wrapperStyle = computed(() => {
               }}</span></span
             >
           </label>
-          <div class="form-field-control">
-            <component :is="materialComponents[node.type]" v-bind="boundProps">
-              <DxValidator
-                v-if="isValidatable && dxValidationRules"
-                ref="validatorRef"
-                :validation-rules="(dxValidationRules as any)"
-              />
-            </component>
+          <div class="form-field-control" :class="{ 'has-error': validationError }">
+            <component :is="materialComponents[node.type]" v-bind="boundProps" @focus-out="onFieldBlur" @value-changed="onFieldValueChanged" />
+            <div v-if="validationError" class="field-error-msg">{{ validationError }}</div>
           </div>
         </div>
-        <component
-          v-else
-          :is="materialComponents[node.type]"
-          v-bind="boundProps"
-        >
-          <DxValidator
-            v-if="isValidatable && dxValidationRules"
-            ref="validatorRef"
-            :validation-rules="(dxValidationRules as any)"
+        <div v-else class="form-field-control" :class="{ 'has-error': validationError }">
+          <component
+            :is="materialComponents[node.type]"
+            v-bind="boundProps"
+            @focus-out="onFieldBlur"
+            @value-changed="onFieldValueChanged"
           />
-        </component>
+          <div v-if="validationError" class="field-error-msg">{{ validationError }}</div>
+        </div>
       </template>
     </template>
 
@@ -2929,16 +3033,113 @@ const wrapperStyle = computed(() => {
 .renderer-node {
   box-sizing: border-box;
 }
-/* DataGrid wrapper 布局（不用 flex，避免影响 DataGrid 内部行筛选） */
 .data-grid-wrapper {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .grid-toolbar {
-  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 40px;
+  padding: 4px 12px;
   border-bottom: 1px solid #e4e7ed;
   background-color: #ffffff;
+  box-sizing: border-box;
+  flex-shrink: 0;
+
+}
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  min-height: 32px;
+}
+.toolbar-before {
+}
+.toolbar-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+.toolbar-after {
+  margin-left: auto;
+}
+.grid-toolbar .el-button {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  margin-left: 0;
+}
+.grid-toolbar .el-button > * + * {
+  margin-left: 4px;
+}
+.toolbar-more-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.more-btn-native {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.more-btn-native:hover {
+  border-color: #c0c4cc;
+  color: #606266;
+}
+.more-dropdown-overlay-fs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+.more-dropdown-menu-fs {
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  padding: 4px 0;
+  min-width: 120px;
+}
+.more-dropdown-item-fs {
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.more-dropdown-item-fs:hover {
+  background: #f5f7fa;
+  color: #409eff;
+}
+.more-arrow { margin-left: auto; font-size: 10px; color: #909399; }
+.more-dropdown-child-fs {
+  padding: 6px 16px 6px 32px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: #606266;
+}
+.more-dropdown-child-fs:hover {
+  background: #f5f7fa;
+  color: #409eff;
 }
 .renderer-node :deep(.lc-container) {
   height: 100%;
@@ -3061,6 +3262,17 @@ const wrapperStyle = computed(() => {
 }
 .form-field-control > :deep(.dx-widget) {
   width: 100%;
+}
+.form-field-control.has-error :deep(.el-input__wrapper),
+.form-field-control.has-error :deep(.el-select__wrapper),
+.form-field-control.has-error :deep(.el-date-editor .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #f56c6c inset !important;
+}
+.field-error-msg {
+  color: #f56c6c;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 2px;
 }
 .batch-action-bar {
   display: flex;

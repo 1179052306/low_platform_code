@@ -3,6 +3,8 @@ import { ref, watch } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElSelect, ElOption, ElMessage } from 'element-plus'
 import { t } from '@/store/lang'
 import type { AppPackage } from '@/types/schema'
+import { useDialogDragAndMax } from './useDialogDragAndMax'
+import DialogMaxHeader from './DialogMaxHeader.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -71,16 +73,23 @@ function onSave() {
 function onClose() {
   emit('update:visible', false)
 }
+
+const { isMaximized, toggleMaximize, resetDialog } = useDialogDragAndMax()
+watch(() => props.visible, (v) => { if (!v) resetDialog() })
 </script>
 
 <template>
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="isEdit ? t('编辑应用包') : t('新建应用包')"
     width="560px"
     append-to-body
+    draggable
+    :fullscreen="isMaximized"
   >
+    <template #header>
+      <DialogMaxHeader :title="isEdit ? t('编辑应用包') : t('新建应用包')" :is-maximized="isMaximized" @toggle="toggleMaximize" />
+    </template>
     <ElForm label-width="100px">
       <ElFormItem :label="t('包名称')">
         <ElInput v-model="form.name" :placeholder="t('如 销售管理包')" />

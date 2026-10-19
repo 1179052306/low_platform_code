@@ -93,7 +93,7 @@ public class PageService {
     String syncMsg = null;
     if (lastBizMode == null || "form".equals(lastBizMode)) {
       syncMsg = tableSyncService.syncTable(schema);
-      // 同步字段关联（dx-base-data 控件关联的基础资料页面）
+      // 同步字段关联（base-data 控件关联的基础资料页面）
       syncFieldRefs(pageId, schema);
     }
 
@@ -175,7 +175,7 @@ public class PageService {
     return helper.queryAndMap(TABLE, cols, null, null, false, ALL_MAPPING);
   }
 
-  /** 同步字段关联：扫描 schema 中的 dx-base-data 控件，记录到 lowcode_field_ref 表 */
+  /** 同步字段关联：扫描 schema 中的 base-data 控件，记录到 lowcode_field_ref 表 */
   private void syncFieldRefs(String pageId, JSONObject schema) {
     try {
       SqlEngineJson.check(helper.delete("lowcode_field_ref", helper.eq("source_page_id", pageId)));
@@ -197,13 +197,13 @@ public class PageService {
     }
   }
 
-  /** 递归扫描节点数组，提取 dx-base-data 控件关联信息并插入 */
+  /** 递归扫描节点数组，提取 base-data 控件关联信息并插入 */
   private void collectAndInsertFieldRefs(String pageId, JSONArray nodes) {
     if (nodes == null) return;
     for (int i = 0; i < nodes.size(); i++) {
       JSONObject node = nodes.getJSONObject(i);
       String type = node.getString("type");
-      if ("dx-base-data".equals(type)) {
+      if ("base-data".equals(type)) {
         try {
           JSONObject refData = new JSONObject();
           refData.put("source_page_id", pageId);

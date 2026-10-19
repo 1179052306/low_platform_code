@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import DxDataGrid, { DxColumn } from 'devextreme-vue/data-grid'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxButton from 'devextreme-vue/button'
+import LcTable from '@/materials/components/LcTable.vue'
 import { httpRequest } from '@/utils/request'
 import { t, loadModule, type LangInfo } from '@/store/lang'
 import { SYSTEM_TEXTS } from '@/store/system-texts'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElButton, ElInput } from 'element-plus'
 
 defineOptions({ name: 'LangManageView' })
 
@@ -46,6 +44,14 @@ const textList = computed(() =>
   allTextList.value.filter((r) => isSystemModule(r.module))
 )
 const totalCount = computed(() => textList.value.length)
+
+const langColumns = computed(() => [
+  { dataField: 'textKey', caption: t('中文原文'), width: 300 },
+  { dataField: 'textVal', caption: t('译文') },
+  { dataField: 'module', caption: t('模块'), width: 120, alignment: 'center' as const },
+  { dataField: 'updatedAt', caption: t('更新时间'), width: 180, alignment: 'center' as const },
+  { dataField: '_op', caption: t('操作'), width: 120, alignment: 'center' as const, cellTemplate: 'actionCell' },
+])
 
 const selectedLangName = computed(
   () => langs.value.find((l) => l.locale === selectedLocale.value)?.name ?? ''
@@ -494,91 +500,56 @@ onMounted(() => {
         <!-- 工具栏 -->
         <div class="lm-toolbar">
           <div class="lm-search">
-            <DxTextBox
+            <ElInput
               v-model="keyword"
               :placeholder="t('搜索中文原文或译文')"
-              width="280px"
-              mode="search"
+              style="width: 280px"
+              clearable
             />
           </div>
           <div class="lm-toolbar-right">
             <span class="lm-count"
               >{{ t('共') }} {{ totalCount }} {{ t('条') }}</span
             >
-            <DxButton
-              :text="t('导出')"
-              type="normal"
-              icon="export"
-              @click="exportLang"
-            />
-            <DxButton
-              :text="t('导入')"
-              type="normal"
-              icon="import"
-              @click="importDialogVisible = true"
-            />
-            <DxButton
-              :text="t('批量翻译系统文本')"
-              type="normal"
-              icon="edit"
-              @click="openBatch"
-            />
-            <DxButton :text="t('新增翻译')" type="default" @click="openAdd" />
+            <ElButton @click="exportLang">{{ t('导出') }}</ElButton>
+            <ElButton @click="importDialogVisible = true">{{ t('导入') }}</ElButton>
+            <ElButton @click="openBatch">{{ t('批量翻译系统文本') }}</ElButton>
+            <ElButton type="default" @click="openAdd">{{ t('新增翻译') }}</ElButton>
           </div>
         </div>
 
         <!-- 翻译列表 -->
-        <DxDataGrid
+        <LcTable
           class="lm-grid"
           :data-source="textList"
-          :hover-state-enabled="true"
           :show-borders="true"
           :show-column-lines="false"
           :show-row-lines="true"
           :paging="{ enabled: false }"
           height="100%"
           key-expr="id"
-          :load-panel="{ enabled: loading }"
+          :load-panel-enabled="loading"
+          :columns="langColumns"
         >
-          <DxColumn data-field="textKey" :caption="t('中文原文')" width="300" />
-          <DxColumn data-field="textVal" :caption="t('译文')" />
-          <DxColumn
-            data-field="module"
-            :caption="t('模块')"
-            width="120"
-            alignment="center"
-          />
-          <DxColumn
-            data-field="updatedAt"
-            :caption="t('更新时间')"
-            width="180"
-            alignment="center"
-          />
-          <DxColumn
-            :caption="t('操作')"
-            width="120"
-            alignment="center"
-            cell-template="actionCell"
-          />
           <template #actionCell="{ data }">
             <div class="lm-action-row">
               <button
                 class="lm-action-btn"
                 :title="t('编辑')"
-                @click="openEdit(data.data)"
+                @click="openEdit(data as any)"
               >
                 ✎
               </button>
               <button
                 class="lm-action-btn lm-action-del"
                 :title="t('删除')"
-                @click="deleteRow(data.data)"
+                @click="deleteRow(data as any)"
               >
                 🗑
               </button>
             </div>
           </template>
-        </DxDataGrid>
+        </LcTable>
       </div>
     </div>
 
@@ -596,30 +567,30 @@ onMounted(() => {
         <div class="lm-edit-body">
           <div class="lm-edit-row">
             <label class="lm-edit-label">{{ t('中文原文') }}</label>
-            <DxTextBox
+            <ElInput
               v-model="editForm.textKey"
               :placeholder="t('请输入中文原文')"
-              :read-only="isEditing"
+              :readonly="isEditing"
             />
           </div>
           <div class="lm-edit-row">
             <label class="lm-edit-label">{{ t('译文') }}</label>
-            <DxTextBox
+            <ElInput
               v-model="editForm.textVal"
               :placeholder="t('请输入译文')"
             />
           </div>
           <div class="lm-edit-row">
             <label class="lm-edit-label">{{ t('模块') }}</label>
-            <DxTextBox
+            <ElInput
               v-model="editForm.module"
               :placeholder="t('如 common、home、page')"
             />
           </div>
         </div>
         <div class="lm-edit-actions">
-          <DxButton :text="t('取消')" @click="editDialogVisible = false" />
-          <DxButton :text="t('保存')" type="default" @click="saveForm" />
+          <ElButton @click="editDialogVisible = false">{{ t('取消') }}</ElButton>
+          <ElButton type="default" @click="saveForm">{{ t('保存') }}</ElButton>
         </div>
       </div>
     </div>
@@ -637,11 +608,11 @@ onMounted(() => {
         </div>
 
         <div class="lm-batch-toolbar">
-          <DxTextBox
+          <ElInput
             v-model="batchKeyword"
             :placeholder="t('搜索中文原文或译文')"
-            width="300px"
-            mode="search"
+            style="width: 300px"
+            clearable
           />
           <div class="lm-batch-toolbar-right">
             <span class="lm-batch-stats">
@@ -649,25 +620,12 @@ onMounted(() => {
               {{ t('已翻译') }} {{ batchStats.filled }} {{ t('条') }}，
               {{ t('新增') }} {{ batchStats.newCount }} {{ t('条') }}
             </span>
-            <DxButton
-              :text="t('导出待翻译')"
-              type="normal"
-              icon="export"
-              @click="batchExport"
-            />
-            <DxButton
-              :text="t('导入翻译结果')"
-              type="normal"
-              icon="import"
-              @click="triggerBatchImport"
-            />
-            <DxButton
-              :text="t('自动翻译')"
-              type="normal"
-              icon="refresh"
+            <ElButton @click="batchExport">{{ t('导出待翻译') }}</ElButton>
+            <ElButton @click="triggerBatchImport">{{ t('导入翻译结果') }}</ElButton>
+            <ElButton
               :disabled="autoTranslating"
               @click="autoTranslate"
-            />
+            >{{ t('自动翻译') }}</ElButton>
           </div>
         </div>
 
@@ -707,12 +665,11 @@ onMounted(() => {
         </div>
 
         <div class="lm-edit-actions">
-          <DxButton :text="t('取消')" @click="batchDialogVisible = false" />
-          <DxButton
-            :text="t('一键保存') + ` (${batchStats.filled})`"
+          <ElButton @click="batchDialogVisible = false">{{ t('取消') }}</ElButton>
+          <ElButton
             type="default"
             @click="batchSave"
-          />
+          >{{ t('一键保存') + ` (${batchStats.filled})` }}</ElButton>
         </div>
         <input
           ref="batchImportInput"
@@ -735,12 +692,7 @@ onMounted(() => {
         <div class="lm-edit-body">
           <div class="lm-edit-row">
             <div class="lm-import-file-row">
-              <DxButton
-                :text="t('选择JSON文件')"
-                type="normal"
-                icon="import"
-                @click="triggerImportFile"
-              />
+              <ElButton @click="triggerImportFile">{{ t('选择JSON文件') }}</ElButton>
               <span class="lm-import-hint">{{ t('或直接粘贴JSON数据') }}</span>
             </div>
             <textarea
@@ -751,13 +703,12 @@ onMounted(() => {
           </div>
         </div>
         <div class="lm-edit-actions">
-          <DxButton :text="t('取消')" @click="importDialogVisible = false" />
-          <DxButton
-            :text="t('导入')"
+          <ElButton @click="importDialogVisible = false">{{ t('取消') }}</ElButton>
+          <ElButton
             type="default"
             :disabled="importLoading"
             @click="doImport"
-          />
+          >{{ t('导入') }}</ElButton>
         </div>
         <input
           ref="importFileInput"

@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import DxDataGrid, {
-  DxToolbar,
-  DxItem,
-  DxColumn,
-} from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
-import DxLoadPanel from 'devextreme-vue/load-panel'
+import { ref, computed, onMounted } from 'vue'
+import LcTable from '@/materials/components/LcTable.vue'
+import type { LcColumn } from '@/materials/components/LcTable.vue'
+import { ElButton } from 'element-plus'
 import { httpRequest } from '@/utils/request'
 import { t, loadModule } from '@/store/lang'
 
@@ -46,6 +42,40 @@ const queryVisible = ref(false)
 
 /** 管理接口 admin token（从 localStorage 读取或用户输入） */
 const adminToken = ref(localStorage.getItem('basedata_admin_token') || '')
+
+const cacheColumns = computed<LcColumn[]>(() => [
+  { dataField: 'cacheName', caption: t('缓存名'), width: 140 },
+  { dataField: 'tableName', caption: t('表名'), width: 150 },
+  { dataField: 'fieldCount', caption: t('字段数'), width: 80, alignment: 'center' },
+  { dataField: 'schemaVersion', caption: t('Schema版本'), width: 90, alignment: 'center' },
+  {
+    dataField: 'l1HitRate',
+    caption: t('L1命中率'),
+    width: 100,
+    alignment: 'center',
+    calculateDisplayValue: (e: EntityWithMetrics) => formatRate(e.l1HitRate),
+  },
+  { dataField: 'l1HitCount', caption: t('L1命中'), width: 80, alignment: 'center' },
+  { dataField: 'l1MissCount', caption: t('L1未命中'), width: 90, alignment: 'center' },
+  {
+    dataField: 'l2HitRate',
+    caption: t('L2命中率'),
+    width: 100,
+    alignment: 'center',
+    calculateDisplayValue: (e: EntityWithMetrics) => formatRate(e.l2HitRate),
+  },
+  { dataField: 'l2HitCount', caption: t('L2命中'), width: 80, alignment: 'center' },
+  { dataField: 'dbLoadCount', caption: t('DB加载'), width: 80, alignment: 'center' },
+  {
+    dataField: 'avgDbLoadMillis',
+    caption: t('平均DB耗时(ms)'),
+    width: 120,
+    alignment: 'center',
+    calculateDisplayValue: (e: EntityWithMetrics) => e.avgDbLoadMillis?.toFixed(2) || '-',
+  },
+  { dataField: 'invalidateCount', caption: t('失效次数'), width: 90, alignment: 'center' },
+  { dataField: '__action', caption: t('操作'), width: 100, alignment: 'center', cellTemplate: 'actionCell' },
+])
 
 /** 保存 admin token 到 localStorage */
 function saveAdminToken() {
@@ -228,17 +258,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="cache-manage">
-    <DxLoadPanel
-      :visible="loadPanelVisible"
-      :message="loadPanelText"
-      :show-indicator="true"
-      :close-on-outside-click="false"
-    />
-    <DxDataGrid
+  <div
+    class="cache-manage"
+    v-loading.fullscreen="loadPanelVisible"
+    :element-loading-text="loadPanelText"
+  >
+    <div class="cache-toolbar">
+      <ElButton @click="loadStats">{{ t('刷新统计') }}</ElButton>
+      <ElButton type="default" @click="publishMetadata">{{ t('发布元数据') }}</ElButton>
+      <ElButton @click="rollbackMetadata">{{ t('回滚元数据') }}</ElButton>
+    </div>
+
+    <LcTable
       class="cache-grid"
       :data-source="statsList"
-      :hover-state-enabled="true"
+      :columns="cacheColumns"
       :show-borders="true"
       :show-column-lines="false"
       :show-row-lines="true"
@@ -246,115 +280,14 @@ onMounted(() => {
       height="60%"
       key-expr="cacheName"
     >
-      <DxToolbar>
-        <DxItem location="after">
-          <template #default>
-            <DxButton :text="t('刷新统计')" icon="refresh" @click="loadStats" />
-          </template>
-        </DxItem>
-        <DxItem location="after">
-          <template #default>
-            <DxButton
-              :text="t('发布元数据')"
-              type="default"
-              @click="publishMetadata"
-            />
-          </template>
-        </DxItem>
-        <DxItem location="after">
-          <template #default>
-            <DxButton
-              :text="t('回滚元数据')"
-              type="normal"
-              @click="rollbackMetadata"
-            />
-          </template>
-        </DxItem>
-        <DxItem name="columnChooser" />
-      </DxToolbar>
-
-      <DxColumn data-field="cacheName" :caption="t('缓存名')" width="140" />
-      <DxColumn data-field="tableName" :caption="t('表名')" width="150" />
-      <DxColumn
-        data-field="fieldCount"
-        :caption="t('字段数')"
-        width="80"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="schemaVersion"
-        :caption="t('Schema版本')"
-        width="90"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="l1HitRate"
-        :caption="t('L1命中率')"
-        width="100"
-        alignment="center"
-        :calculate-display-value="(e: EntityWithMetrics) => formatRate(e.l1HitRate)"
-      />
-      <DxColumn
-        data-field="l1HitCount"
-        :caption="t('L1命中')"
-        width="80"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="l1MissCount"
-        :caption="t('L1未命中')"
-        width="90"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="l2HitRate"
-        :caption="t('L2命中率')"
-        width="100"
-        alignment="center"
-        :calculate-display-value="(e: EntityWithMetrics) => formatRate(e.l2HitRate)"
-      />
-      <DxColumn
-        data-field="l2HitCount"
-        :caption="t('L2命中')"
-        width="80"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="dbLoadCount"
-        :caption="t('DB加载')"
-        width="80"
-        alignment="center"
-      />
-      <DxColumn
-        data-field="avgDbLoadMillis"
-        :caption="t('平均DB耗时(ms)')"
-        width="120"
-        alignment="center"
-        :calculate-display-value="(e: EntityWithMetrics) => e.avgDbLoadMillis?.toFixed(2) || '-'"
-      />
-      <DxColumn
-        data-field="invalidateCount"
-        :caption="t('失效次数')"
-        width="90"
-        alignment="center"
-      />
-      <DxColumn
-        :caption="t('操作')"
-        width="100"
-        alignment="center"
-        cell-template="actionCell"
-      />
-
       <template #actionCell="{ data }">
-        <DxButton
-          :text="t('清除')"
-          icon="trash"
+        <ElButton
           type="danger"
-          :element-attr="{ class: 'cache-action-btn' }"
+          class="cache-action-btn"
           @click="evictCache(data.cacheName)"
-        />
+        >{{ t('清除') }}</ElButton>
       </template>
-    </DxDataGrid>
+    </LcTable>
 
     <!-- 查询测试面板 -->
     <div class="query-panel">
@@ -401,6 +334,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.cache-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .cache-grid {

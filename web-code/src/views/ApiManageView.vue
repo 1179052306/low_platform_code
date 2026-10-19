@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-import DxDataGrid, { DxToolbar, DxItem } from 'devextreme-vue/data-grid'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxSelectBox from 'devextreme-vue/select-box'
-import DxButton from 'devextreme-vue/button'
-import { ElTabs, ElTabPane, ElMessage, ElMessageBox } from 'element-plus'
+import LcTable from '@/materials/components/LcTable.vue'
+import {
+  ElTabs,
+  ElTabPane,
+  ElMessage,
+  ElMessageBox,
+  ElButton,
+  ElInput,
+  ElSelect,
+  ElOption,
+} from 'element-plus'
 import AdvancedSearchPanel from '@/components/renderer/AdvancedSearchPanel.vue'
 import type {
   GridColumn,
@@ -312,7 +318,10 @@ async function refreshRoles() {
               @search="onAdvSearch"
               @reset="onAdvSearchReset"
             />
-            <DxDataGrid
+            <div class="am-list-toolbar">
+              <ElButton type="default" @click="startAdd">{{ t('新增 API') }}</ElButton>
+            </div>
+            <LcTable
               class="am-grid"
               :data-source="filteredList"
               :columns="[
@@ -324,7 +333,6 @@ async function refreshRoles() {
                 { dataField: 'group', caption: t('分组'), width: 90 },
               ]"
               :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-              :hover-state-enabled="true"
               :show-borders="true"
               :show-column-lines="false"
               :show-row-lines="true"
@@ -336,21 +344,7 @@ async function refreshRoles() {
                   if (e.selectedRowsData.length > 0) startEdit(e.selectedRowsData[0])
                 }
               "
-            >
-              <DxToolbar>
-                <DxItem location="after">
-                  <template #default>
-                    <DxButton
-                      :text="t('新增 API')"
-                      type="default"
-                      @click="startAdd"
-                    />
-                  </template>
-                </DxItem>
-                <DxItem name="columnChooser" />
-                <DxItem name="searchPanel" :visible="false" />
-              </DxToolbar>
-            </DxDataGrid>
+            />
           </div>
           <!-- 右侧：新增/编辑表单 -->
           <div class="am-form-panel" v-if="editing">
@@ -360,60 +354,56 @@ async function refreshRoles() {
             <div class="am-form-body">
               <div class="am-form-row">
                 <label class="am-required">{{ t('服务 ID') }}</label>
-                <DxTextBox
-                  :value="form.id"
-                  :read-only="!isAdding"
+                <ElInput
+                  v-model="form.id"
+                  :readonly="!isAdding"
                   :placeholder="t('如 order.list')"
-                  @value-changed="(e: any) => (form.id = e.value)"
                 />
               </div>
               <div class="am-form-row">
                 <label class="am-required">URL</label>
-                <DxTextBox
-                  :value="form.url"
+                <ElInput
+                  v-model="form.url"
                   placeholder="/api/order/list"
-                  @value-changed="(e: any) => (form.url = e.value)"
                 />
               </div>
               <div class="am-form-row">
                 <label>{{ t('请求方法') }}</label>
-                <DxSelectBox
-                  :items="methodOptions"
-                  display-expr="label"
-                  value-expr="value"
-                  :value="form.method"
-                  @value-changed="(e: any) => (form.method = e.value)"
-                />
+                <ElSelect v-model="form.method">
+                  <ElOption
+                    v-for="item in methodOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </ElSelect>
               </div>
               <div class="am-form-row">
                 <label>{{ t('权限码') }}</label>
-                <DxTextBox
-                  :value="form.permCode"
+                <ElInput
+                  v-model="form.permCode"
                   :placeholder="t('如 order:view')"
-                  @value-changed="(e: any) => (form.permCode = e.value)"
                 />
               </div>
               <div class="am-form-row">
                 <label>{{ t('描述') }}</label>
-                <DxTextBox
-                  :value="form.description"
+                <ElInput
+                  v-model="form.description"
                   :placeholder="t('如 订单列表')"
-                  @value-changed="(e: any) => (form.description = e.value)"
                 />
               </div>
               <div class="am-form-row">
                 <label>{{ t('分组') }}</label>
-                <DxTextBox
-                  :value="form.group"
+                <ElInput
+                  v-model="form.group"
                   :placeholder="t('如 订单')"
-                  @value-changed="(e: any) => (form.group = e.value)"
                 />
               </div>
               <div class="am-form-error" v-if="formError">{{ formError }}</div>
             </div>
             <div class="am-form-actions">
-              <DxButton :text="t('取消')" @click="cancelEdit" />
-              <DxButton :text="t('保存')" type="default" @click="saveForm" />
+              <ElButton @click="cancelEdit">{{ t('取消') }}</ElButton>
+              <ElButton type="default" @click="saveForm">{{ t('保存') }}</ElButton>
             </div>
           </div>
           <div class="am-form-panel am-form-empty" v-else>
@@ -427,7 +417,18 @@ async function refreshRoles() {
       <!-- Tab 2: 网关权限矩阵（新增） -->
       <ElTabPane :label="t('网关权限矩阵')" name="gatewayPermission">
         <div class="am-tab-body">
-          <DxDataGrid
+          <div class="am-list-toolbar">
+            <ElButton type="default" @click="startAddGatewayPerm">{{ t('新增权限规则') }}</ElButton>
+            <ElButton
+              :disabled="!selectedGatewayRule"
+              @click="() => { if (selectedGatewayRule) startEditGatewayPerm(selectedGatewayRule) }"
+            >{{ t('编辑') }}</ElButton>
+            <ElButton
+              :disabled="!selectedGatewayRule"
+              @click="() => { if (selectedGatewayRule) onDeleteGatewayPerm(selectedGatewayRule) }"
+            >{{ t('删除') }}</ElButton>
+          </div>
+          <LcTable
             class="am-grid"
             :data-source="gatewayPermList"
             :columns="[
@@ -439,7 +440,6 @@ async function refreshRoles() {
               { dataField: 'enabled', caption: t('启用'), width: 70, dataType: 'boolean' },
             ]"
             :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-            :hover-state-enabled="true"
             :show-borders="true"
             :show-column-lines="false"
             :show-row-lines="true"
@@ -447,42 +447,25 @@ async function refreshRoles() {
             height="100%"
             key-expr="id"
             @selection-changed="onGatewayPermSelectionChanged"
-          >
-            <DxToolbar>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton :text="t('新增权限规则')" type="default" @click="startAddGatewayPerm" />
-                </template>
-              </DxItem>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton
-                    :text="t('编辑')"
-                    :disabled="!selectedGatewayRule"
-                    @click="() => { if (selectedGatewayRule) startEditGatewayPerm(selectedGatewayRule) }"
-                  />
-                </template>
-              </DxItem>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton
-                    :text="t('删除')"
-                    :disabled="!selectedGatewayRule"
-                    @click="() => { if (selectedGatewayRule) onDeleteGatewayPerm(selectedGatewayRule) }"
-                  />
-                </template>
-              </DxItem>
-              <DxItem name="columnChooser" />
-              <DxItem name="searchPanel" :visible="false" />
-            </DxToolbar>
-          </DxDataGrid>
+          />
         </div>
       </ElTabPane>
 
       <!-- Tab 3: 字段权限（新增） -->
       <ElTabPane :label="t('字段权限')" name="fieldPermission">
         <div class="am-tab-body">
-          <DxDataGrid
+          <div class="am-list-toolbar">
+            <ElButton type="default" @click="startAddFieldPerm">{{ t('新增字段权限') }}</ElButton>
+            <ElButton
+              :disabled="!selectedFieldRule"
+              @click="() => { if (selectedFieldRule) startEditFieldPerm(selectedFieldRule) }"
+            >{{ t('编辑') }}</ElButton>
+            <ElButton
+              :disabled="!selectedFieldRule"
+              @click="() => { if (selectedFieldRule) onDeleteFieldPerm(selectedFieldRule) }"
+            >{{ t('删除') }}</ElButton>
+          </div>
+          <LcTable
             class="am-grid"
             :data-source="fieldPermList"
             :columns="[
@@ -494,7 +477,6 @@ async function refreshRoles() {
               { dataField: 'enabled', caption: t('启用'), width: 70, dataType: 'boolean' },
             ]"
             :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-            :hover-state-enabled="true"
             :show-borders="true"
             :show-column-lines="false"
             :show-row-lines="true"
@@ -502,35 +484,7 @@ async function refreshRoles() {
             height="100%"
             key-expr="id"
             @selection-changed="onFieldPermSelectionChanged"
-          >
-            <DxToolbar>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton :text="t('新增字段权限')" type="default" @click="startAddFieldPerm" />
-                </template>
-              </DxItem>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton
-                    :text="t('编辑')"
-                    :disabled="!selectedFieldRule"
-                    @click="() => { if (selectedFieldRule) startEditFieldPerm(selectedFieldRule) }"
-                  />
-                </template>
-              </DxItem>
-              <DxItem location="after">
-                <template #default>
-                  <DxButton
-                    :text="t('删除')"
-                    :disabled="!selectedFieldRule"
-                    @click="() => { if (selectedFieldRule) onDeleteFieldPerm(selectedFieldRule) }"
-                  />
-                </template>
-              </DxItem>
-              <DxItem name="columnChooser" />
-              <DxItem name="searchPanel" :visible="false" />
-            </DxToolbar>
-          </DxDataGrid>
+          />
         </div>
       </ElTabPane>
     </ElTabs>

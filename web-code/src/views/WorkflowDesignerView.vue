@@ -2,8 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElButton, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElMessage, ElMessageBox, ElDialog } from 'element-plus'
-import DxDataGrid, { DxColumn, DxToolbar, DxItem } from 'devextreme-vue/data-grid'
-import DxButton from 'devextreme-vue/button'
+import LcTable from '@/materials/components/LcTable.vue'
+
 import { t } from '@/store/lang'
 import type { WorkflowDef, WorkflowNode, WorkflowType } from '@/types/workflow'
 import { listWorkflows, saveWorkflow, deleteWorkflow, validateWorkflow, publishWorkflow } from '@/store/workflow'
@@ -21,6 +21,12 @@ const billList = ref<{ code: string; name: string }[]>([])
 
 const canvasWf = ref<WorkflowDef | null>(null)
 const selectedNode = ref<WorkflowNode | null>(null)
+
+const columns = computed(() => [
+  { dataField: 'code', caption: t('编码'), width: 100 },
+  { dataField: 'name', caption: t('名称') },
+  { dataField: 'enabled', caption: t('启用'), width: 50, dataType: 'boolean' },
+])
 
 const route = useRoute()
 const isBizFlowMode = computed(() => route.name === 'biz-flow-designer')
@@ -295,36 +301,25 @@ const workflowTypes: { value: WorkflowType; label: string }[] = [
   <div class="wf-designer">
     <!-- 左栏：流程列表 -->
     <div class="wf-list-panel" :style="{ width: leftWidth + 'px' }">
-      <DxDataGrid
+      <div class="wf-list-toolbar">
+        <ElButton type="default" @click="addWf">{{ t('新建流程') }}</ElButton>
+        <ElButton :disabled="!selectedWf" @click="onDeleteWf">{{ t('删除') }}</ElButton>
+      </div>
+      <LcTable
+        class="wf-list-grid"
         :data-source="workflowList"
+        :columns="columns"
         :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
-        :hover-state-enabled="true"
         :show-borders="true"
         :show-column-lines="false"
         :show-row-lines="true"
-        :search-panel="{ visible: true, width: 120, placeholder: '搜索...' }"
-        :filter-row="{ visible: true, showOperationChooser: false }"
+        :search-panel="{ visible: true }"
+        :filter-row="{ visible: true }"
         :paging="{ enabled: false }"
         height="100%"
         key-expr="id"
         @selection-changed="onSelectionChanged"
-      >
-        <DxColumn data-field="code" :caption="t('编码')" :width="100" />
-        <DxColumn data-field="name" :caption="t('名称')" />
-        <DxColumn data-field="enabled" :caption="t('启用')" :width="50" data-type="boolean" />
-        <DxToolbar>
-          <DxItem location="after">
-            <template #default>
-              <DxButton :text="t('新建流程')" type="default" @click="addWf" />
-            </template>
-          </DxItem>
-          <DxItem location="after">
-            <template #default>
-              <DxButton :text="t('删除')" :disabled="!selectedWf" @click="onDeleteWf" />
-            </template>
-          </DxItem>
-        </DxToolbar>
-      </DxDataGrid>
+      />
     </div>
 
     <!-- 左分割条 -->
@@ -427,6 +422,20 @@ const workflowTypes: { value: WorkflowType; label: string }[] = [
   background: #fff;
   border-radius: 4px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.wf-list-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.wf-list-grid {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 .wf-splitter {
   width: 8px;

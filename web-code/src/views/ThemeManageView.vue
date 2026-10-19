@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import DxColorBox from 'devextreme-vue/color-box'
-import DxTextBox from 'devextreme-vue/text-box'
-import DxNumberBox from 'devextreme-vue/number-box'
+import { ElInput, ElInputNumber, ElColorPicker } from 'element-plus'
 import { t, loadModule } from '@/store/lang'
 import type { Theme, ThemeColors } from '@/types/schema'
 import {
@@ -320,16 +318,16 @@ onMounted(() => {
         <div class="edit-body">
           <div class="form-item">
             <label class="form-label">{{ t('主题名称') }}</label>
-            <DxTextBox v-model="editName" :placeholder="t('请输入主题名称')" />
+            <ElInput v-model="editName" :placeholder="t('请输入主题名称')" />
           </div>
           <div class="form-item">
             <label class="form-label">{{ t('圆角(px)') }}</label>
-            <DxNumberBox v-model="editRadius" :min="0" :max="20" :step="1" />
+            <ElInputNumber v-model="editRadius" :min="0" :max="20" :step="1" />
           </div>
           <div class="color-grid">
             <div v-for="f in colorFields" :key="f.key" class="color-item">
               <label class="form-label">{{ t(f.label) }}</label>
-              <DxColorBox v-model="editColors[f.key]" />
+              <ElColorPicker v-model="editColors[f.key]" />
             </div>
           </div>
           <div

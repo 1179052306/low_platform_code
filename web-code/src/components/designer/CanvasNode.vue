@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import type { ComponentSchema } from '@/types/schema'
 import { materialComponents, getConfig, resolveNodeProps } from '@/materials'
+import { MATERIAL_TYPES } from '@/materials/dx-materials'
 import { t } from '@/store/lang'
 import {
   designerStore,
@@ -25,8 +26,10 @@ import {
   SUB_CONTAINER_TYPES,
 } from '@/constants/container-types'
 import { containerDragGuides } from '@/composables/useCanvasDragState'
-import DxToolbar from 'devextreme-vue/toolbar'
+import { ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import AdvancedSearchPanel from '@/components/renderer/AdvancedSearchPanel.vue'
+import ToolbarIcon from '@/components/renderer/ToolbarIcon.vue'
+import { useToolbarOverflow } from '@/composables/useToolbarOverflow'
 
 const props = defineProps<{
   node: ComponentSchema
@@ -37,27 +40,27 @@ const props = defineProps<{
 }>()
 
 const FORM_CONTROL_TYPES = new Set([
-  'dx-text-box',
-  'dx-text-area',
-  'dx-number-box',
-  'dx-check-box',
-  'dx-switch',
-  'dx-slider',
-  'dx-range-slider',
-  'dx-calendar',
-  'dx-date-box',
-  'dx-date-range-box',
-  'dx-color-box',
-  'dx-select-box',
-  'dx-lookup',
-  'dx-tag-box',
-  'dx-autocomplete',
-  'dx-radio-group',
-  'dx-drop-down-button',
-  'dx-drop-down-box',
-  'dx-file-uploader',
-  'dx-html-editor',
-  'dx-base-data',
+  'text-box',
+  'text-area',
+  'number-box',
+  'check-box',
+  'switch',
+  'slider',
+  'range-slider',
+  'calendar',
+  'date-box',
+  'date-range-box',
+  'color-box',
+  'select-box',
+  'lookup',
+  'tag-box',
+  'autocomplete',
+  'radio-group',
+  'drop-down-button',
+  'drop-down-box',
+  'file-uploader',
+  'html-editor',
+  'base-data',
 ])
 
 const isFormField = computed(() => FORM_CONTROL_TYPES.has(props.node.type))
@@ -67,7 +70,7 @@ const labelConfig = computed(() => {
     label: (p.label as string) ?? getConfig(props.node.type)?.title ?? '',
     labelVisible: p.labelVisible !== false,
     labelPosition: (p.labelPosition as string) || 'top',
-    required: p.required === true,
+    required: p.required === true || (Array.isArray(p.validationRules) && p.validationRules.some((r: any) => r.type === 'required')),
     requiredPosition: (p.requiredPosition as string) || 'after',
     tooltipEnabled: p.tooltipEnabled === true,
     tooltipText: (p.tooltipText as string) || '',
@@ -116,11 +119,11 @@ const isSelected = computed(
 )
 const isPositioned = computed(() => props.positioned === true)
 const isContainer = computed(() => !!cfg.value?.isContainer)
-const OVERLAY_TYPES = new Set(['dx-popup', 'dx-toast', 'dx-load-panel'])
+const OVERLAY_TYPES = new Set(['popup', 'toast', 'load-panel'])
 
 /** DataGrid 工具栏是否显示（设计器画布用） */
 const showGridToolbar = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return false
+  if (props.node.type !== 'data-grid') return false
   const toolbar = props.node.props.toolbar as
     | Record<string, unknown>
     | undefined
@@ -129,7 +132,7 @@ const showGridToolbar = computed(() => {
 
 /** 高级查询是否显示（设计器画布用） */
 const showAdvancedSearch = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return false
+  if (props.node.type !== 'data-grid') return false
   return props.node.props.advancedSearch === true
 })
 
@@ -180,6 +183,8 @@ function updateGridHeightOffset() {
   for (let i = 0; i < children.length; i++) {
     const el = children[i] as HTMLElement
     if (
+      el.classList.contains('lc-table-wrapper') ||
+      el.querySelector('.lc-table-wrapper') ||
       el.classList.contains('dx-datagrid') ||
       el.querySelector('.dx-datagrid')
     )
@@ -211,7 +216,7 @@ const gridBoundProps = computed(() => {
 
 /** DataGrid 独立工具栏按钮配置（设计器画布用，仅显示无事件） */
 const gridToolbarItems = computed(() => {
-  if (props.node.type !== 'dx-data-grid') return []
+  if (props.node.type !== 'data-grid') return []
   const toolbar = props.node.props.toolbar as
     | Record<string, unknown>
     | undefined
@@ -222,42 +227,114 @@ const gridToolbarItems = computed(() => {
         icon: string
         visible: boolean
         location?: string
-        type?: 'default' | 'normal' | 'success' | 'danger' | 'warning'
+        type?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'normal'
         stylingMode?: 'contained' | 'outlined' | 'text'
         showIcon?: boolean
         bgColor?: string
         textColor?: string
         hoverColor?: string
+        isCustom?: boolean
+        itemType?: string
+        children?: { name: string; caption: string; icon: string; visible: boolean; showIcon?: boolean }[]
       }[]
     | undefined
   if (!Array.isArray(items)) return []
   return items
     .filter((item) => item.visible !== false)
-    .map((item) => ({
-      widget: 'dxButton',
-      location: item.location || 'before',
-      options: {
-        icon: item.showIcon === false ? undefined : (item.icon || item.name),
-        text: item.caption || item.name,
-        type: item.type || 'normal',
-        stylingMode: item.stylingMode || (item.type && item.type !== 'normal' ? 'contained' : 'text'),
-        ...((item.bgColor || item.textColor || item.hoverColor)
-          ? {
-              elementAttr: {
-                class: [
-                  item.bgColor ? 'lc-btn-has-bg' : '',
-                  item.textColor ? 'lc-btn-has-text' : '',
-                  item.hoverColor ? 'lc-btn-has-hover' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' '),
-                style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
-              },
-            }
-          : {}),
-      },
-    }))
+    .map((item): any => {
+      if (item.itemType === 'dropdown') {
+        const childItems = (item.children || [])
+          .filter((c) => c.visible !== false)
+          .map((c) => ({
+            name: c.name,
+            text: c.caption || c.name,
+            icon: c.showIcon === false ? undefined : (c.icon || c.name),
+          }))
+        return {
+          widget: 'dxDropDownButton',
+          location: item.location || 'after',
+          options: {
+            text: item.caption || item.name,
+            icon: item.showIcon === false ? undefined : (item.icon || item.name),
+            type: (item.type === 'normal' || !item.type) ? 'default' : item.type,
+            stylingMode: (!item.stylingMode || (item.stylingMode === 'text' && !item.isCustom)) ? 'contained' : item.stylingMode,
+            items: childItems,
+            ...((item.bgColor || item.textColor || item.hoverColor)
+              ? {
+                  elementAttr: {
+                    class: [
+                      item.bgColor ? 'lc-btn-has-bg' : '',
+                      item.textColor ? 'lc-btn-has-text' : '',
+                      item.hoverColor ? 'lc-btn-has-hover' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' '),
+                    style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
+                  },
+                }
+              : {}),
+          },
+        }
+      }
+      return {
+        widget: 'dxButton',
+        location: item.location || 'before',
+        options: {
+          icon: item.showIcon === false ? undefined : (item.icon || item.name),
+          text: item.caption || item.name,
+          type: (item.type === 'normal' || !item.type) ? 'default' : item.type,
+          stylingMode: (!item.stylingMode || (item.stylingMode === 'text' && !item.isCustom)) ? 'contained' : item.stylingMode,
+          ...((item.bgColor || item.textColor || item.hoverColor)
+            ? {
+                elementAttr: {
+                  class: [
+                    item.bgColor ? 'lc-btn-has-bg' : '',
+                    item.textColor ? 'lc-btn-has-text' : '',
+                    item.hoverColor ? 'lc-btn-has-hover' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' '),
+                  style: `--lc-btn-bg:${item.bgColor || ''};--lc-btn-text:${item.textColor || ''};--lc-btn-hover:${item.hoverColor || ''};`,
+                },
+              }
+            : {}),
+        },
+      }
+    })
 })
+
+const toolbarRef = ref<HTMLElement>()
+const { overflowIndices } = useToolbarOverflow(toolbarRef)
+const beforeItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => (item.location || 'before') === 'before'))
+const centerItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => item.location === 'center'))
+const afterItems = computed(() => gridToolbarItems.value.map((item, idx) => ({ item, idx })).filter(({ item }) => (item.location || 'after') === 'after'))
+const overflowIndicesArray = computed(() => [...overflowIndices.value].sort((a, b) => a - b))
+const moreMenuVisible = ref(false)
+const moreMenuStyle = ref<Record<string, string>>({})
+const expandedMoreIdx = ref<number | null>(null)
+function toggleMoreMenu(event: MouseEvent) {
+  if (moreMenuVisible.value) {
+    moreMenuVisible.value = false
+    return
+  }
+  const btn = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  moreMenuStyle.value = {
+    position: 'fixed',
+    top: `${btn.bottom}px`,
+    right: `${window.innerWidth - btn.right}px`,
+    zIndex: '10000',
+  }
+  moreMenuVisible.value = true
+}
+function triggerOverflowItem(idx: number) {
+  const item = gridToolbarItems.value[idx]
+  if (item?.widget === 'dxDropDownButton') {
+    expandedMoreIdx.value = expandedMoreIdx.value === idx ? null : idx
+    return
+  }
+  moreMenuVisible.value = false
+  if (item?.options) (item.options as any)?.onClick?.({})
+}
 
 const isLayoutContainer = computed(() =>
   LAYOUT_CONTAINER_TYPES.has(props.node.type)
@@ -309,7 +386,7 @@ const boundProps = computed(() => {
   }
 
   // 设计器中强制 visible=true，避免用户设置 visible=false 后控件消失无法选中编辑
-  if (props.node.type.startsWith('dx-')) {
+  if (MATERIAL_TYPES.has(props.node.type)) {
     base.visible = true
   }
 
@@ -329,12 +406,12 @@ const boundProps = computed(() => {
   }
 
   // dx-data-grid：删除 toolbar 属性（使用独立 DxToolbar 组件渲染，不依赖表格自带工具栏）
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     if (base.toolbar) delete base.toolbar
   }
 
   // dx-data-grid 列处理：清理自定义属性，补全必要属性，保证 filterRow 等功能正常
-  if (props.node.type === 'dx-data-grid' && Array.isArray(base.columns)) {
+  if (props.node.type === 'data-grid' && Array.isArray(base.columns)) {
     base.columns = (base.columns as Record<string, unknown>[]).map((col) => {
       // 清理自定义属性，不传给 DevExtreme（避免未知属性导致内部异常）
       const {
@@ -935,13 +1012,13 @@ onMounted(() => {
   }
   // DataGrid：计算上方元素（toolbar + 高级查询）高度，动态调整表格高度
   if (
-    props.node.type === 'dx-data-grid' &&
+    props.node.type === 'data-grid' &&
     (showGridToolbar.value || showAdvancedSearch.value)
   ) {
     nextTick(() => updateGridHeightOffset())
   }
   // DataGrid：监听 wrapper 自身尺寸变化，用于 100% 高度等百分比值转换为像素
-  if (props.node.type === 'dx-data-grid' && wrapperRef.value) {
+  if (props.node.type === 'data-grid' && wrapperRef.value) {
     refreshMeasuredWrapperHeight()
     if (!wrapperResizeObserver) {
       wrapperResizeObserver = new ResizeObserver(() =>
@@ -954,7 +1031,7 @@ onMounted(() => {
 
 // DataGrid：监听工具栏/高级查询显示状态变化
 watch([showGridToolbar, showAdvancedSearch], () => {
-  if (props.node.type === 'dx-data-grid') {
+  if (props.node.type === 'data-grid') {
     nextTick(() => updateGridHeightOffset())
   }
 })
@@ -1087,7 +1164,7 @@ const wrapperClass = computed(() => {
     <!-- 普通控件：外包一层承载控件级 CSS 样式（排除 width/height，已由外层 wrapper 控制） -->
     <div v-if="!isContainer" class="node-body" :style="nodeBodyStyle">
       <!-- dx-data-grid：wrapper 包裹工具栏、高级查询和表格 -->
-      <template v-if="node.type === 'dx-data-grid'">
+      <template v-if="node.type === 'data-grid'">
         <div class="data-grid-wrapper" ref="wrapperRef">
           <AdvancedSearchPanel
             v-if="showAdvancedSearch"
@@ -1095,11 +1172,129 @@ const wrapperClass = computed(() => {
             :grid-id="node.id"
             @height-change="updateGridHeightOffset"
           />
-          <DxToolbar
-            v-if="showGridToolbar"
-            class="grid-toolbar"
-            :items="gridToolbarItems"
-          />
+          <div v-if="showGridToolbar" class="grid-toolbar" ref="toolbarRef">
+            <div class="toolbar-group toolbar-before">
+              <template v-for="({ item, idx }, ti) in beforeItems" :key="'b'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button
+                  v-else
+                  v-show="!overflowIndices.has(idx)"
+                  :data-toolbar-btn="idx"
+                  :type="(item.options?.type as any) || 'default'"
+                  :text="item.options?.stylingMode === 'text'"
+                  :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'"
+                  :class="item.options?.elementAttr?.class"
+                  :style="item.options?.elementAttr?.style"
+                >
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div class="toolbar-group toolbar-center">
+              <template v-for="({ item, idx }, ti) in centerItems" :key="'c'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button
+                  v-else
+                  v-show="!overflowIndices.has(idx)"
+                  :data-toolbar-btn="idx"
+                  :type="(item.options?.type as any) || 'default'"
+                  :text="item.options?.stylingMode === 'text'"
+                  :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'"
+                  :class="item.options?.elementAttr?.class"
+                  :style="item.options?.elementAttr?.style"
+                >
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div class="toolbar-group toolbar-after">
+              <template v-for="({ item, idx }, ti) in afterItems" :key="'a'+ti">
+                <el-dropdown v-if="item.widget === 'dxDropDownButton'" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                    <span style="margin-left: 2px">▾</span>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item v-for="c in ((item.options as any)?.items || [])" :key="c.name" :command="c.name">
+                        <ToolbarIcon v-if="c.icon" :name="c.icon" />
+                        <span>{{ c.text }}</span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-button
+                  v-else
+                  v-show="!overflowIndices.has(idx)"
+                  :data-toolbar-btn="idx"
+                  :type="(item.options?.type as any) || 'default'"
+                  :text="item.options?.stylingMode === 'text'"
+                  :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'"
+                  :class="item.options?.elementAttr?.class"
+                  :style="item.options?.elementAttr?.style"
+                >
+                  <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                  <span>{{ item.options?.text }}</span>
+                </el-button>
+              </template>
+            </div>
+            <div v-if="overflowIndicesArray.length" class="toolbar-more-wrap" data-more-btn>
+              <button class="more-btn-native" @click="toggleMoreMenu">更多 ▾</button>
+              <Teleport to="body">
+                <div v-if="moreMenuVisible" class="more-dropdown-overlay-fs" @click="moreMenuVisible = false"></div>
+                <div v-if="moreMenuVisible" class="more-dropdown-menu-fs" :style="moreMenuStyle">
+                  <template v-for="idx in overflowIndicesArray" :key="'more'+idx">
+                    <div class="more-dropdown-item-fs" @click="triggerOverflowItem(idx)">
+                      <ToolbarIcon v-if="gridToolbarItems[idx]?.options?.icon" :name="(gridToolbarItems[idx].options as any).icon" />
+                      <span>{{ gridToolbarItems[idx]?.options?.text }}</span>
+                      <span v-if="gridToolbarItems[idx]?.widget === 'dxDropDownButton'" class="more-arrow">{{ expandedMoreIdx === idx ? '▸' : '▾' }}</span>
+                    </div>
+                    <template v-if="expandedMoreIdx === idx">
+                      <div
+                        v-for="child in ((gridToolbarItems[idx] as any)?.options?.items || [])"
+                        :key="'more-child-'+child.name"
+                        class="more-dropdown-child-fs"
+                      >
+                        <ToolbarIcon v-if="child.icon" :name="child.icon" />
+                        <span>{{ child.text }}</span>
+                      </div>
+                    </template>
+                  </template>
+                </div>
+              </Teleport>
+            </div>
+          </div>
           <component
             :is="materialComponents[node.type]"
             v-bind="gridBoundProps"
@@ -1428,17 +1623,111 @@ const wrapperClass = computed(() => {
   height: 100%;
 }
 /* DataGrid 独立工具栏 + 表格 布局 */
-/* DataGrid wrapper 布局（不用 flex，避免影响 DataGrid 内部行筛选）
+/* DataGrid wrapper 布局：flex column 使工具栏/高级查询/表格纵向排列
  * overflow: hidden 兜底：万一 100% 高度转换链路失效时不让表格撑出容器 */
 .data-grid-wrapper {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .grid-toolbar {
-  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 40px;
+  padding: 4px 12px;
   border-bottom: 1px solid #e4e7ed;
   background-color: #ffffff;
+  box-sizing: border-box;
+  flex-shrink: 0;
+
+}
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  min-height: 32px;
+}
+.toolbar-before {
+}
+.toolbar-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+.toolbar-after {
+  margin-left: auto;
+}
+.grid-toolbar .el-button {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  margin-left: 0;
+}
+.grid-toolbar .el-button > * + * {
+  margin-left: 4px;
+}
+.toolbar-more-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.more-btn-native {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.more-btn-native:hover {
+  border-color: #c0c4cc;
+  color: #606266;
+}
+.more-dropdown-overlay-fs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+.more-dropdown-menu-fs {
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  padding: 4px 0;
+  min-width: 120px;
+}
+.more-dropdown-item-fs {
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.more-dropdown-item-fs:hover {
+  background: #f5f7fa;
+  color: #409eff;
+}
+.more-arrow { margin-left: auto; font-size: 10px; color: #909399; }
+.more-dropdown-child-fs {
+  padding: 6px 16px 6px 32px;
+  cursor: default;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: #606266;
 }
 .node-body-overlay {
   position: absolute;
