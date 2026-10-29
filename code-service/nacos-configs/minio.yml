@@ -1,0 +1,8 @@
+spring:
+  minio:
+    endpoint: http://172.29.241.134:9000
+    access-key: admin
+    secret-key: Wxwl1234
+    bucket-name: public-images
+    secure: false
+    ignore-ssl: false

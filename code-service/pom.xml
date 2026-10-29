@@ -9,11 +9,11 @@
     <packaging>pom</packaging>
     <version>1.0-1</version>
     <modules>
-        <module>bcd-wms-auth</module>
         <module>bcd-wms-db</module>
-        <module>bcd-wms-gateway</module>
+        <module>bcd-auth</module>
+        <module>bcd-system</module>
+        <module>bcd-gateway</module>
         <module>bcd-code</module>
-
     </modules>
 
     <properties>

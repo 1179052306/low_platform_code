@@ -62,6 +62,16 @@ public class BusinessTableSyncService {
 
   private static final String DEFAULT_COLUMN_TYPE = "VARCHAR(255)";
 
+  /** 表格列 dataType → 数据库字段类型映射（明细表用） */
+  private static final java.util.Map<String, String> COLUMN_TYPE_MAP = new java.util.HashMap<>();
+  static {
+    COLUMN_TYPE_MAP.put("string", "VARCHAR(255)");
+    COLUMN_TYPE_MAP.put("number", "NUMERIC(18,6)");
+    COLUMN_TYPE_MAP.put("date", "DATE");
+    COLUMN_TYPE_MAP.put("datetime", "TIMESTAMP");
+    COLUMN_TYPE_MAP.put("boolean", "BOOLEAN");
+  }
+
   /** 系统字段（非业务字段，不参与孤儿字段管理） */
   private static final Set<String> SYSTEM_COLUMNS = new HashSet<>(java.util.Arrays.asList(
       "id", "created_at", "updated_at", "created_by", "updated_by", "deleted"
@@ -138,6 +148,8 @@ public class BusinessTableSyncService {
         return "已创建表 " + tableName + "，字段数 " + fields.size();
       } else {
         int added = addMissingColumns(jdbc, tableName, fields, dialect);
+        // 确保系统字段 status 存在（启用/禁用功能用）
+        if (ensureStatusColumn(jdbc, tableName, dialect)) added++;
         if (added > 0) sqlFieldValidator.evictCache(DB_NAME, tableName);
         StringBuilder msg = new StringBuilder();
         if (added > 0) msg.append("已添加 ").append(added).append(" 个字段到表 ").append(tableName);
@@ -332,6 +344,7 @@ public class BusinessTableSyncService {
     sb.append(",\n  ").append(dialect.quoteIdentifier("created_by")).append(" VARCHAR(64)");
     sb.append(",\n  ").append(dialect.quoteIdentifier("updated_by")).append(" VARCHAR(64)");
     sb.append(",\n  ").append(dialect.quoteIdentifier("deleted")).append(" BOOLEAN DEFAULT FALSE");
+    sb.append(",\n  ").append(dialect.quoteIdentifier("status")).append(" INTEGER DEFAULT 1");
     for (FieldDef f : fields) {
       if (f.name.equalsIgnoreCase(primaryKeyField)) continue;
       sb.append(",\n  ").append(dialect.quoteIdentifier(f.name)).append(" ").append(f.type);
@@ -403,6 +416,22 @@ public class BusinessTableSyncService {
       }
     }
     return added;
+  }
+
+  /** 确保表有 status 字段（启用/禁用功能用），不存在则添加 INTEGER DEFAULT 1 */
+  private boolean ensureStatusColumn(JdbcTemplate jdbc, String tableName, SqlDialect dialect) {
+    Set<String> existingCols = getExistingColumns(jdbc, tableName, dialect);
+    if (existingCols.contains("status")) return false;
+    String qTable = dialect.quoteIdentifier(tableName);
+    String qCol = dialect.quoteIdentifier("status");
+    try {
+      jdbc.execute("ALTER TABLE " + qTable + " ADD COLUMN " + qCol + " INTEGER DEFAULT 1");
+      log.info("[TableSync] 自动添加 status 字段: {}.{} INTEGER DEFAULT 1", tableName, "status");
+      return true;
+    } catch (Exception e) {
+      log.warn("[TableSync] 添加 status 字段失败: {}.{}: {}", tableName, "status", e.getMessage());
+      return false;
+    }
   }
 
   /** 判断是否需要修改列类型 */
@@ -546,6 +575,305 @@ public class BusinessTableSyncService {
     } finally {
       MultiDataSourceHolder.clearDataSource();
     }
+  }
+
+  // ==================== 明细表同步 ====================
+
+  /**
+   * 同步明细表：根据页面 schema 中 data-grid 组件的配置建明细表。
+   * 仅在表单页面保存时调用。
+   *
+   * @param schema 页面 schema JSON
+   * @return 同步结果消息（null 表示无明细表配置）
+   */
+  public String syncDetailTables(JSONObject schema) {
+    List<DetailTableDef> detailTables = new ArrayList<>();
+    // root 兼容对象与数组两种形态（设计器实际存储为数组）
+    Object rootObj = schema.get("root");
+    if (rootObj instanceof JSONObject) {
+      collectDetailTables((JSONObject) rootObj, detailTables);
+    } else if (rootObj instanceof JSONArray) {
+      JSONArray rootArr = (JSONArray) rootObj;
+      for (int i = 0; i < rootArr.size(); i++) {
+        collectDetailTables(rootArr.getJSONObject(i), detailTables);
+      }
+    }
+    if (detailTables.isEmpty()) return null;
+
+    MultiDataSourceHolder.setDatasource(DB_NAME);
+    try {
+      JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+      SqlDialect dialect = dialect();
+
+      Set<String> builtTables = new HashSet<>();
+      String mainTableName = schema.getString("tableName");
+      if (mainTableName != null && !mainTableName.trim().isEmpty()) {
+        builtTables.add(mainTableName.trim().toLowerCase());
+      }
+
+      StringBuilder msg = new StringBuilder();
+      int maxIterations = detailTables.size() + 1;
+      for (int iter = 0; iter < maxIterations; iter++) {
+        boolean anyBuilt = false;
+        for (DetailTableDef dt : detailTables) {
+          if (dt.built) continue;
+
+          String parentTableName = resolveParentTableName(dt, schema, jdbc, dialect);
+          if (parentTableName == null) {
+            dt.error = "无法解析父表 (parentType=" + dt.parentType + ", parentRef=" + dt.parentRef + ")";
+            continue;
+          }
+          if (!builtTables.contains(parentTableName.toLowerCase())
+              && !tableExists(jdbc, parentTableName, dialect)) {
+            continue;
+          }
+
+          String parentPkField = resolveParentPkField(dt, schema, jdbc);
+          if (parentPkField == null || parentPkField.trim().isEmpty()) parentPkField = "id";
+
+          String parentPkType = resolveParentPkType(dt, schema, jdbc, dialect);
+          if (parentPkType == null) parentPkType = "VARCHAR(64)";
+
+          List<FieldDef> fields = new ArrayList<>();
+          if (!parentPkField.equalsIgnoreCase(dt.primaryKeyField)) {
+            fields.add(new FieldDef(parentPkField, parentPkType, "关联外键"));
+          }
+          String pagePkField = schema.getString("primaryKeyField");
+          if (pagePkField == null || pagePkField.trim().isEmpty()) pagePkField = "id";
+          String pageKeyStrategy = schema.getString("keyStrategy");
+          String pagePkType = ("SNOWFLAKE".equalsIgnoreCase(pageKeyStrategy)) ? "BIGINT" : "VARCHAR(64)";
+          boolean parentIsPage = dt.parentType == null || dt.parentType.trim().isEmpty() || "page".equals(dt.parentType);
+          if (!parentIsPage
+              && !pagePkField.equalsIgnoreCase(dt.primaryKeyField)
+              && !pagePkField.equalsIgnoreCase(parentPkField)) {
+            fields.add(new FieldDef(pagePkField, pagePkType, "页面主键关联"));
+          }
+          for (ColumnDef col : dt.columns) {
+            if (!col.dataField.equalsIgnoreCase(parentPkField)
+                && !col.dataField.equalsIgnoreCase(dt.primaryKeyField)
+                && isValidIdentifier(col.dataField)) {
+              String colType = COLUMN_TYPE_MAP.getOrDefault(col.dataType, DEFAULT_COLUMN_TYPE);
+              fields.add(new FieldDef(col.dataField, colType, col.caption));
+            }
+          }
+
+          if (!isValidIdentifier(dt.tableName)) {
+            dt.error = "表名不合法";
+            continue;
+          }
+
+          if (!tableExists(jdbc, dt.tableName, dialect)) {
+            createTable(jdbc, dt.tableName, fields, dialect, dt.primaryKeyField, false, dt.tableComment);
+            sqlFieldValidator.evictCache(DB_NAME, dt.tableName);
+            msg.append("已创建明细表 ").append(dt.tableName).append("，字段数 ").append(fields.size()).append("；");
+          } else {
+            int added = addMissingColumns(jdbc, dt.tableName, fields, dialect);
+            if (added > 0) sqlFieldValidator.evictCache(DB_NAME, dt.tableName);
+            msg.append("明细表 ").append(dt.tableName).append(added > 0 ? "已添加" + added + "个字段" : "已是最新").append("；");
+          }
+
+          dt.built = true;
+          builtTables.add(dt.tableName.toLowerCase());
+          anyBuilt = true;
+        }
+        if (!anyBuilt) break;
+      }
+
+      for (DetailTableDef dt : detailTables) {
+        if (!dt.built) {
+          msg.append("明细表 ").append(dt.tableName).append("建表失败：").append(dt.error != null ? dt.error : "父表未建").append("；");
+          log.warn("[TableSync] 明细表 {} 建表失败: {}", dt.tableName, dt.error);
+        }
+      }
+
+      return msg.length() > 0 ? msg.toString() : null;
+    } catch (Exception e) {
+      log.error("[TableSync] 同步明细表失败: {}", e.getMessage(), e);
+      return "明细表同步失败: " + e.getMessage();
+    } finally {
+      MultiDataSourceHolder.clearDataSource();
+    }
+  }
+
+  /** 递归收集 schema 节点树中所有 type=data-grid 且配置了 tableName 的组件 */
+  private void collectDetailTables(JSONObject node, List<DetailTableDef> result) {
+    if (node == null) return;
+    String type = node.getString("type");
+    if ("data-grid".equals(type)) {
+      JSONObject props = node.getJSONObject("props");
+      if (props != null) {
+        String tableName = props.getString("tableName");
+        if (tableName != null && !tableName.trim().isEmpty()) {
+          DetailTableDef dt = new DetailTableDef();
+          dt.tableName = tableName.trim();
+          dt.tableComment = props.getString("tableComment");
+          String pkField = props.getString("keyExpr");
+          dt.primaryKeyField = (pkField != null && !pkField.trim().isEmpty()) ? pkField.trim() : "id";
+          dt.parentType = props.getString("parentType");
+          dt.parentRef = props.getString("parentRef");
+
+          JSONArray columns = props.getJSONArray("columns");
+          if (columns != null) {
+            for (int i = 0; i < columns.size(); i++) {
+              JSONObject col = columns.getJSONObject(i);
+              String dataField = col.getString("dataField");
+              if (dataField != null && !dataField.trim().isEmpty()) {
+                ColumnDef cd = new ColumnDef();
+                cd.dataField = dataField.trim();
+                cd.caption = col.getString("caption");
+                cd.dataType = col.getString("dataType");
+                dt.columns.add(cd);
+              }
+            }
+          }
+          result.add(dt);
+          log.info("[TableSync] 发现明细表配置: {} pkField={} parentType={} parentRef={} 列数={}",
+              dt.tableName, dt.primaryKeyField, dt.parentType, dt.parentRef, dt.columns.size());
+        }
+      }
+    }
+    JSONArray children = node.getJSONArray("children");
+    if (children != null) {
+      for (int i = 0; i < children.size(); i++) {
+        collectDetailTables(children.getJSONObject(i), result);
+      }
+    }
+  }
+
+  /** 按 ID 递归查找 schema 节点 */
+  private JSONObject findNodeById(JSONObject node, String id) {
+    if (node == null || id == null) return null;
+    if (id.equals(node.getString("id"))) return node;
+    JSONArray children = node.getJSONArray("children");
+    if (children != null) {
+      for (int i = 0; i < children.size(); i++) {
+        JSONObject found = findNodeById(children.getJSONObject(i), id);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
+  /** 解析父表名 */
+  private String resolveParentTableName(DetailTableDef dt, JSONObject schema, JdbcTemplate jdbc, SqlDialect dialect) {
+    String parentType = dt.parentType;
+    String parentRef = dt.parentRef;
+    if (parentType == null || parentType.trim().isEmpty() || "page".equals(parentType)) {
+      if (parentRef == null || parentRef.trim().isEmpty()) {
+        return schema.getString("tableName");
+      }
+      try {
+        List<String> rows = jdbc.queryForList(
+            "SELECT schema_json FROM lowcode_page WHERE page_id = ?", String.class, parentRef.trim());
+        if (!rows.isEmpty()) {
+          JSONObject pageSchema = JSONObject.parseObject(rows.get(0));
+          return pageSchema.getString("tableName");
+        }
+      } catch (Exception e) {
+        log.warn("[TableSync] 查询父页面表名失败: parentRef={}", parentRef);
+      }
+      return null;
+    }
+    if ("table".equals(parentType) && parentRef != null && !parentRef.trim().isEmpty()) {
+      JSONObject root = schema.getJSONObject("root");
+      JSONObject node = findNodeById(root, parentRef.trim());
+      if (node != null) {
+        JSONObject props = node.getJSONObject("props");
+        if (props != null) return props.getString("tableName");
+      }
+    }
+    return null;
+  }
+
+  /** 解析父表主键字段名 */
+  private String resolveParentPkField(DetailTableDef dt, JSONObject schema, JdbcTemplate jdbc) {
+    String parentType = dt.parentType;
+    String parentRef = dt.parentRef;
+    if (parentType == null || parentType.trim().isEmpty() || "page".equals(parentType)) {
+      if (parentRef == null || parentRef.trim().isEmpty()) {
+        String pk = schema.getString("primaryKeyField");
+        return (pk != null && !pk.trim().isEmpty()) ? pk.trim() : "id";
+      }
+      try {
+        List<String> rows = jdbc.queryForList(
+            "SELECT schema_json FROM lowcode_page WHERE page_id = ?", String.class, parentRef.trim());
+        if (!rows.isEmpty()) {
+          JSONObject pageSchema = JSONObject.parseObject(rows.get(0));
+          String pk = pageSchema.getString("primaryKeyField");
+          return (pk != null && !pk.trim().isEmpty()) ? pk.trim() : "id";
+        }
+      } catch (Exception e) {
+        log.warn("[TableSync] 查询父页面主键字段失败: parentRef={}", parentRef);
+      }
+      return "id";
+    }
+    if ("table".equals(parentType) && parentRef != null && !parentRef.trim().isEmpty()) {
+      JSONObject root = schema.getJSONObject("root");
+      JSONObject node = findNodeById(root, parentRef.trim());
+      if (node != null) {
+        JSONObject props = node.getJSONObject("props");
+        if (props != null) {
+          String pk = props.getString("keyExpr");
+          return (pk != null && !pk.trim().isEmpty()) ? pk.trim() : "id";
+        }
+      }
+    }
+    return "id";
+  }
+
+  /** 解析父表主键类型 */
+  private String resolveParentPkType(DetailTableDef dt, JSONObject schema, JdbcTemplate jdbc, SqlDialect dialect) {
+    String parentTableName = resolveParentTableName(dt, schema, jdbc, dialect);
+    String parentPkField = resolveParentPkField(dt, schema, jdbc);
+    if (parentTableName == null || parentPkField == null) return "VARCHAR(64)";
+
+    String parentType = dt.parentType;
+    String parentRef = dt.parentRef;
+    if (parentType == null || parentType.trim().isEmpty() || "page".equals(parentType)) {
+      if (parentRef != null && !parentRef.trim().isEmpty()) {
+        try {
+          List<String> rows = jdbc.queryForList(
+              "SELECT schema_json FROM lowcode_page WHERE page_id = ?", String.class, parentRef.trim());
+          if (!rows.isEmpty()) {
+            JSONObject pageSchema = JSONObject.parseObject(rows.get(0));
+            String keyStrategy = pageSchema.getString("keyStrategy");
+            if ("SNOWFLAKE".equalsIgnoreCase(keyStrategy)) return "BIGINT";
+            if (keyStrategy != null && !keyStrategy.trim().isEmpty()) return "VARCHAR(64)";
+          }
+        } catch (Exception e) {
+          log.warn("[TableSync] 查询父页面主键类型失败: parentRef={}", parentRef);
+        }
+      } else {
+        String keyStrategy = schema.getString("keyStrategy");
+        if ("SNOWFLAKE".equalsIgnoreCase(keyStrategy)) return "BIGINT";
+        if (keyStrategy != null && !keyStrategy.trim().isEmpty()) return "VARCHAR(64)";
+      }
+    }
+
+    String dbColType = queryColumnDbType(jdbc, parentTableName.trim(), parentPkField.trim());
+    if (dbColType != null) {
+      return mapDbTypeToColumnType(dbColType);
+    }
+    return "VARCHAR(64)";
+  }
+
+  /** 明细表定义 */
+  private static class DetailTableDef {
+    String tableName;
+    String tableComment;
+    String primaryKeyField = "id";
+    String parentType;
+    String parentRef;
+    List<ColumnDef> columns = new ArrayList<>();
+    boolean built = false;
+    String error;
+  }
+
+  /** 列定义（明细表用） */
+  private static class ColumnDef {
+    String dataField;
+    String caption;
+    String dataType;
   }
 
   /** 字段定义 */

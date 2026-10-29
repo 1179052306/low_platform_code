@@ -366,6 +366,7 @@ watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
                 :model-value="seg.type"
                 size="small"
                 style="width: 140px"
+                popper-class="dialog-inner-popper"
                 @update:model-value="(v: NumberRuleSegmentType) => onTypeChange(idx, v)"
               >
                 <ElOption
@@ -408,6 +409,7 @@ watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
                   v-model="seg.dateFormat"
                   size="small"
                   style="width: 140px"
+                  popper-class="dialog-inner-popper"
                 >
                   <ElOption
                     v-for="opt in dateFormatOptions"
@@ -439,6 +441,7 @@ watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
                   v-model="seg.usageMode"
                   size="small"
                   style="width: 120px"
+                  popper-class="dialog-inner-popper"
                 >
                   <ElOption
                     v-for="opt in usageModeOptions"
@@ -507,6 +510,7 @@ watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
                   v-model="seg.seqScope"
                   size="small"
                   style="width: 90px"
+                  popper-class="dialog-inner-popper"
                 >
                   <ElOption
                     v-for="opt in seqScopeOptions"
@@ -538,6 +542,7 @@ watch(() => showFieldPicker.value, (v) => { if (!v) resetFieldPickerDrag() })
                 size="small"
                 filterable
                 style="width: 120px"
+                popper-class="dialog-inner-popper"
               >
                 <ElOption
                   v-for="opt in separatorOptions"

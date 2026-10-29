@@ -1,0 +1,48 @@
+server:
+  port: 7000
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 60s
+      routes:
+        - id: auth-route
+          uri: lb://bcd-auth
+          predicates:
+            - Path=/api/auth/**
+          metadata:
+            response-timeout: 10000
+        - id: oauth-route
+          uri: lb://bcd-auth
+          predicates:
+            - Path=/oauth/**
+          metadata:
+            response-timeout: 10000
+        - id: sys-route
+          uri: lb://bcd-system
+          predicates:
+            - Path=/api/sys/**
+        - id: lowcode-route
+          uri: lb://bcd-code
+          predicates:
+            - Path=/api/**
+        - id: attachment-upload-route
+          uri: lb://bcd-code
+          predicates:
+            - Path=/api/lowcode/attachment/**
+          metadata:
+            response-timeout: 300000
+auth:
+  jwt:
+    public-key: classpath:public.key
+  oauth:
+    check-token-url: http://localhost:7010/oauth/check_token
+  gw-sign:
+    secret: ${GW_SIGN_SECRET:bcd-lowcode-local-dev-gw-sign-secret!}
+  whitelist: /api/auth/login,/api/auth/refresh,/api/auth/captcha,/api/auth/third,/oauth/token,/oauth/check_token,/actuator/health
+logging:
+  file:
+    name: logs/bcd-gateway.log
+  level:
+    root: info

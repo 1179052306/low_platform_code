@@ -1,0 +1,18 @@
+server:
+  port: 7011
+auth:
+  oauth:
+    client-id: webapp
+  security:
+    local-debug: ${AUTH_LOCAL_DEBUG:true}
+  init:
+    admin-username: admin
+    admin-password: ${AUTH_ADMIN_PASSWORD:Admin@123}
+logging:
+  file:
+    name: logs/bcd-system.log
+  level:
+    root: info
+rocketmq:
+  producer:
+    group: wms-auth-producer-group

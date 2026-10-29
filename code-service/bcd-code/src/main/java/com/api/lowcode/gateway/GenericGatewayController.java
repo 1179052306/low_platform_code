@@ -1,5 +1,6 @@
 package com.api.lowcode.gateway;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.api.lowcode.common.BizException;
 import com.api.lowcode.engine.CrudExecutor;
@@ -11,6 +12,7 @@ import com.api.lowcode.meta.ActionMeta;
 import com.api.lowcode.meta.BizMeta;
 import com.api.lowcode.meta.MetaRegistry;
 import com.api.lowcode.plugin.PluginContainer;
+import com.api.lowcode.plugin.spi.HookPhase;
 import com.api.lowcode.monitor.GatewayMonitor;
 import com.api.lowcode.tx.ActionContext;
 import com.api.lowcode.tx.TransactionOrchestrator;
@@ -91,14 +93,28 @@ public class GenericGatewayController {
         ctx.setAction(action);
         ctx.setPayload(payload);
         ctx.setContext(context);
+
+        JSONArray pluginBindings = null;
+        if (meta.getPlugins() != null && !meta.getPlugins().isEmpty()) {
+            try {
+                pluginBindings = JSONArray.parse(meta.getPlugins());
+            } catch (Exception e) {
+                log.warn("[Gateway] plugins JSON 解析失败: {}", e.getMessage());
+            }
+        }
+
         long startTime = System.currentTimeMillis();
         boolean success = false;
         try {
             Object result = txOrchestrator.run(bizCode, action, ctx, ac -> {
-                pluginContainer.invokePreHooks(bizCode, action, ac);
+                if (pluginBindings != null) {
+                    pluginContainer.invokeBoundHooks(bizCode, action, ac, pluginBindings, HookPhase.PRE);
+                }
                 ActionMeta am = meta.getAction(action);
                 Object crudResult;
-                if (am != null && "EXTERNAL_API".equals(am.getStrategyType())) {
+                if (am != null && "PLUGIN".equals(am.getStrategyType())) {
+                    crudResult = new JSONObject();
+                } else if (am != null && "EXTERNAL_API".equals(am.getStrategyType())) {
                     crudResult = externalApiExecutor.execute(meta, action, ac);
                 } else {
                     crudResult = crudExecutor.execute(meta, action, ac);
@@ -108,7 +124,9 @@ public class GenericGatewayController {
                     eventBus.fireSync(event);
                     eventBus.fireAsync(event);
                 }
-                pluginContainer.invokePostHooks(bizCode, action, ac);
+                if (pluginBindings != null) {
+                    pluginContainer.invokeBoundHooks(bizCode, action, ac, pluginBindings, HookPhase.POST);
+                }
                 JSONObject combined = new JSONObject();
                 if (crudResult instanceof JSONObject) {
                     combined.putAll((JSONObject) crudResult);

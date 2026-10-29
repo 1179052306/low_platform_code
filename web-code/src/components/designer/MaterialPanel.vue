@@ -335,7 +335,7 @@ function isTreeExpanded(id: string): boolean {
               @click="onTreeNodeClick(node)"
             >
               <span
-                v-if="node.children.length"
+                v-if="node.children?.length"
                 class="tree-expand"
                 @click.stop="toggleTreeNode(node.id)"
                 >{{ isTreeExpanded(node.id) ? '▼' : '▶' }}</span
@@ -345,7 +345,7 @@ function isTreeExpanded(id: string): boolean {
             </div>
             <!-- 递归子节点（每个 child 紧跟其 grandchild 一起渲染） -->
             <template
-              v-if="node.children.length && isTreeExpanded(node.id)"
+              v-if="node.children?.length && isTreeExpanded(node.id)"
             >
               <template
                 v-for="child in node.children"
@@ -360,7 +360,7 @@ function isTreeExpanded(id: string): boolean {
                   @click="onTreeNodeClick(child)"
                 >
                   <span
-                    v-if="child.children.length"
+                    v-if="child.children?.length"
                     class="tree-expand"
                     @click.stop="toggleTreeNode(child.id)"
                     >{{ isTreeExpanded(child.id) ? '▼' : '▶' }}</span
@@ -370,7 +370,7 @@ function isTreeExpanded(id: string): boolean {
                 </div>
                 <!-- 三层嵌套：紧跟该 child 的子节点 -->
                 <template
-                  v-if="child.children.length && isTreeExpanded(child.id)"
+                  v-if="child.children?.length && isTreeExpanded(child.id)"
                 >
                   <div
                     v-for="grandchild in child.children"

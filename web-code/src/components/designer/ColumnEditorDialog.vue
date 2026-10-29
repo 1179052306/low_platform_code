@@ -60,6 +60,7 @@ interface ColumnConfig {
     valueField: string
     sourceField: string
     displayField?: string
+    codeField?: string
     writeBack?: { sourceField: string; targetField: string }[]
   }
 }
@@ -69,6 +70,7 @@ const props = defineProps<{
   visible: boolean
   title?: string
   editingMode?: string
+  remoteGrid?: boolean
   formFields?: { fieldName: string; dbField?: string; title: string; children?: { fieldName: string; dbField: string; title: string }[]; refPageId?: string; valueField?: string; displayField?: string; controlType?: string; selectItems?: { value: string; text: string }[] }[]
 }>()
 
@@ -155,10 +157,15 @@ const refPageSelectId = ref('')
 /** 显示字段选择弹窗 */
 const displayFieldSelectVisible = ref(false)
 const displayFieldSelectId = ref('')
+/** 编码字段选择弹窗（单选） */
+const codeFieldSelectVisible = ref(false)
+const codeFieldSelectId = ref('')
 
 /** 关联页面字段列表 */
 const refPageFields = ref<{ dbField: string; fieldName: string; displayText: string }[]>([])
 const refPagePrimaryKey = ref('')
+/** 被关联基础资料页面中启用编码规则（编号规则表达式）的字段，用作编码字段默认值 */
+const refPageCodeRuleField = ref('')
 /** 当前正在编辑基础资料配置的列索引 */
 const baseDataEditingIdx = ref<number>(-1)
 
@@ -167,6 +174,7 @@ async function loadRefPageFields(refPageId: string) {
   if (!refPageId) {
     refPageFields.value = []
     refPagePrimaryKey.value = ''
+    refPageCodeRuleField.value = ''
     return
   }
   try {
@@ -174,6 +182,7 @@ async function loadRefPageFields(refPageId: string) {
     if (!page) {
       refPageFields.value = []
       refPagePrimaryKey.value = ''
+      refPageCodeRuleField.value = ''
       return
     }
     refPagePrimaryKey.value = (page.primaryKeyField as string) || (page as any).primary_key_field || 'id'
@@ -198,9 +207,19 @@ async function loadRefPageFields(refPageId: string) {
             fields.push({ dbField: node.dbField, fieldName, displayText: label ? `${label} (${fieldName})` : fieldName })
           }
         }
+        // 检测启用编码规则（编号规则表达式）的字段，作为编码字段默认值
+        if (
+          node.dbField &&
+          !node.dbField.includes('.') &&
+          !refPageCodeRuleField.value &&
+          String((node.props as Record<string, unknown> | undefined)?.defaultValueExpr ?? '') !== ''
+        ) {
+          refPageCodeRuleField.value = node.dbField
+        }
         if (node.children?.length) collect(node.children)
       }
     }
+    refPageCodeRuleField.value = ''
     collect(page.root || [])
     if (page.bizSchemas?.form?.length) collect(page.bizSchemas.form)
     const pk = refPagePrimaryKey.value
@@ -232,6 +251,11 @@ function onRefPageSelectConfirm(pageId: string) {
   loadRefPageFields(pageId).then(() => {
     const pk = refPagePrimaryKey.value
     if (pk) col.baseDataRef!.valueField = pk
+    // 被关联页面存在启用编码规则的字段时，编码字段默认选中该字段
+    const codeRuleField = refPageCodeRuleField.value
+    if (codeRuleField && !col.baseDataRef!.codeField) {
+      col.baseDataRef!.codeField = codeRuleField
+    }
   })
 }
 
@@ -270,6 +294,32 @@ const displayFieldText = computed(() => {
   const parts = field.split(',').map((f) => f.trim()).filter(Boolean)
   const texts = parts.map((f) => refPageFields.value.find((p) => p.dbField === f)?.displayText || f)
   return texts.join(', ')
+})
+
+/** 打开编码字段选择弹窗 */
+function openCodeFieldSelectDialog() {
+  const idx = expandedIdx.value ?? -1
+  baseDataEditingIdx.value = idx
+  const col = columns.value[idx]
+  codeFieldSelectId.value = col?.baseDataRef?.codeField || ''
+  codeFieldSelectVisible.value = true
+}
+
+/** 编码字段选择确认（单选） */
+function onCodeFieldSelectConfirm(dbField: string) {
+  const idx = baseDataEditingIdx.value
+  const col = columns.value[idx]
+  if (!col?.baseDataRef) return
+  col.baseDataRef.codeField = dbField
+}
+
+/** 已选编码字段文本 */
+const codeFieldText = computed(() => {
+  const idx = expandedIdx.value ?? -1
+  const col = columns.value[idx]
+  const field = col?.baseDataRef?.codeField || ''
+  if (!field) return ''
+  return refPageFields.value.find((p) => p.dbField === field)?.displayText || field
 })
 
 
@@ -944,7 +994,7 @@ watch(mode, () => {
               {{ t('+ 添加列') }}
             </button>
             <button
-              v-if="props.formFields && props.formFields.length"
+              v-if="props.remoteGrid && props.formFields && props.formFields.length"
               class="action-btn-add"
               @click="openFormImport"
             >
@@ -1340,7 +1390,7 @@ watch(mode, () => {
                             v-if="col.baseDataRef.refPageId"
                             class="api-clear-btn"
                             type="button"
-                            @click="col.baseDataRef.refPageId = ''; col.baseDataRef.valueField = 'id'; col.baseDataRef.displayField = ''"
+                            @click="col.baseDataRef.refPageId = ''; col.baseDataRef.valueField = 'id'; col.baseDataRef.displayField = ''; col.baseDataRef.codeField = ''"
                           >
                             {{ t('清除') }}
                           </button>
@@ -1362,6 +1412,27 @@ watch(mode, () => {
                             class="api-clear-btn"
                             type="button"
                             @click="col.baseDataRef.displayField = ''"
+                          >
+                            {{ t('清除') }}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label class="form-label">{{ t('编码字段') }}</label>
+                        <div class="api-select-row">
+                          <button
+                            class="api-select-btn"
+                            type="button"
+                            :disabled="!col.baseDataRef.refPageId"
+                            @click="openCodeFieldSelectDialog"
+                          >
+                            {{ codeFieldText || t('选择编码字段') }}
+                          </button>
+                          <button
+                            v-if="col.baseDataRef.codeField"
+                            class="api-clear-btn"
+                            type="button"
+                            @click="col.baseDataRef.codeField = ''"
                           >
                             {{ t('清除') }}
                           </button>
@@ -1632,6 +1703,15 @@ watch(mode, () => {
       :multiple="true"
       :title="t('选择显示字段')"
       @select="(field: string) => onDisplayFieldSelectConfirm(field)"
+    />
+    <!-- 编码字段选择弹窗（单选） -->
+    <FieldSelectDialog
+      v-model:visible="codeFieldSelectVisible"
+      v-model:model-value="codeFieldSelectId"
+      :fields="refPageFields"
+      :multiple="false"
+      :title="t('选择编码字段')"
+      @select="(field: string) => onCodeFieldSelectConfirm(field)"
     />
 
     <Teleport to="body">

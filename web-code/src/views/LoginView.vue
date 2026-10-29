@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { login } from '@/store/auth'
 import { t, loadModule } from '@/store/lang'
 
+const REMEMBER_KEY = 'lowcode:rememberUsername'
+
 export default defineComponent({
   name: 'LoginView',
   setup() {
@@ -13,17 +15,28 @@ export default defineComponent({
     const password = ref('')
     const errorMessage = ref('')
     const loggingIn = ref(false)
+    const remember = ref(false)
 
-    onMounted(() => loadModule('login'))
+    onMounted(() => {
+      loadModule('login')
+      const saved = localStorage.getItem(REMEMBER_KEY)
+      if (saved) {
+        username.value = saved
+        remember.value = true
+      }
+    })
 
     async function onLogin(): Promise<void> {
       if (loggingIn.value) return
       errorMessage.value = ''
       loggingIn.value = true
-      // 模拟网络延迟，后台接口就绪后由真实请求取代
-      await new Promise((r) => setTimeout(r, 400))
       try {
-        login(username.value, password.value)
+        await login(username.value, password.value)
+        if (remember.value) {
+          localStorage.setItem(REMEMBER_KEY, username.value.trim())
+        } else {
+          localStorage.removeItem(REMEMBER_KEY)
+        }
         const redirect = (route.query.redirect as string) || '/home'
         router.push(redirect)
       } catch (err) {
@@ -33,7 +46,7 @@ export default defineComponent({
       }
     }
 
-    return { username, password, errorMessage, loggingIn, onLogin, t }
+    return { username, password, errorMessage, loggingIn, remember, onLogin, t }
   },
 })
 </script>
@@ -108,12 +121,17 @@ export default defineComponent({
           />
         </div>
 
+        <div class="form-field remember-row">
+          <label class="remember-label">
+            <input v-model="remember" type="checkbox" class="remember-check" />
+            {{ t('记住用户名') }}
+          </label>
+        </div>
+
         <button class="login-btn" :disabled="loggingIn" @click="onLogin">
           <span v-if="loggingIn" class="spinner"></span>
           {{ loggingIn ? t('登录中…') : t('登 录') }}
         </button>
-
-        <p class="login-hint">{{ t('演示账号：admin　密码：123456') }}</p>
       </div>
     </main>
   </div>
@@ -296,7 +314,7 @@ export default defineComponent({
   color: #4b5563;
   margin-bottom: 6px;
 }
-.form-field input {
+.form-field input:not([type='checkbox']) {
   width: 100%;
   height: 40px;
   border: 1px solid #d1d5db;
@@ -306,7 +324,7 @@ export default defineComponent({
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.form-field input:focus {
+.form-field input:not([type='checkbox']):focus {
   border-color: #1976d2;
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.14);
 }
@@ -356,6 +374,27 @@ export default defineComponent({
   text-align: center;
   font-size: 12px;
   color: #9ca3af;
+}
+.remember-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.remember-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+}
+.remember-check {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #2563eb;
+  cursor: pointer;
 }
 
 /* ================ 响应式 ================ */

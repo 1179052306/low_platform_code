@@ -2,7 +2,7 @@
  * DevExtreme 验证规则元数据
  */
 
-export type ValidationType = 'required' | 'email' | 'numeric' | 'pattern' | 'range' | 'stringLength' | 'compare' | 'custom'
+export type ValidationType = 'required' | 'email' | 'numeric' | 'pattern' | 'range' | 'stringLength' | 'compare' | 'custom' | 'unique'
 
 export interface ValidationRuleConfig {
   type: ValidationType
@@ -13,6 +13,8 @@ export interface ValidationRuleConfig {
   comparisonTarget?: string
   comparisonType?: string
   validationCallback?: string
+  /** 唯一性校验：联合字段 fieldName 列表（多字段组合唯一） */
+  combineFields?: string[]
 }
 
 export interface ValidationFieldMeta {
@@ -81,6 +83,10 @@ export const VALIDATION_RULES: ValidationRuleMeta[] = [
   {
     type: 'custom', label: '自定义', description: '自定义验证逻辑（参数 value，返回 true/false）',
     fields: [{ prop: 'validationCallback', label: '验证代码', inputType: 'text' }],
+  },
+  {
+    type: 'unique', label: '唯一性', description: '保存时查库校验值不重复（可联合多字段）',
+    fields: [],
   },
 ]
 

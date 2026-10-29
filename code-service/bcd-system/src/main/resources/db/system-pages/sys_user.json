@@ -1,0 +1,489 @@
+{
+  "version": "1.0.0",
+  "seedVersion": 7,
+  "pageId": "page_sys_user",
+  "pageName": "用户管理",
+  "tableName": "sys_user",
+  "primaryKeyField": "id",
+  "keyStrategy": "UUID",
+  "pageType": "basedata",
+  "lastBizMode": "table",
+  "root": [],
+  "bizSchemas": {
+    "form": [
+      {
+        "id": "n_b1scj",
+        "type": "el-row",
+        "props": {
+          "gutter": 16,
+          "rowGap": 8,
+          "justify": "start",
+          "align": "stretch",
+          "wrap": true
+        },
+        "children": [
+          {
+            "id": "n_2hevt",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_1a4me",
+                "type": "text-box",
+                "fieldName": "f_username",
+                "dbField": "username",
+                "children": [],
+                "props": {
+                  "label": "用户名",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入用户名",
+                  "mode": "text",
+                  "width": "100%",
+                  "required": true
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_4a7nu",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_3x4xq",
+                "type": "text-box",
+                "fieldName": "f_password",
+                "dbField": "password",
+                "children": [],
+                "props": {
+                  "label": "初始密码",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "密码长度至少 6 位",
+                  "mode": "password",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_6nhy2",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_5zqny",
+                "type": "text-box",
+                "fieldName": "f_real_name",
+                "dbField": "real_name",
+                "children": [],
+                "props": {
+                  "label": "姓名",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入姓名",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_8nm9f",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_7mtpl",
+                "type": "text-box",
+                "fieldName": "f_mobile",
+                "dbField": "mobile",
+                "children": [],
+                "props": {
+                  "label": "手机号",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入手机号",
+                  "mode": "tel",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_a5ipo",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_9vr24",
+                "type": "text-box",
+                "fieldName": "f_email",
+                "dbField": "email",
+                "children": [],
+                "props": {
+                  "label": "邮箱",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入邮箱",
+                  "mode": "email",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          }
+        ],
+        "css": {
+          "width": "100%",
+          "padding": "0 10px"
+        },
+        "heightAuto": true
+      }
+    ],
+    "table": [
+      {
+        "id": "grid_sys_user",
+        "type": "data-grid",
+        "children": [],
+        "width": 800,
+        "height": 400,
+        "props": {
+          "dataSourceType": "remote",
+          "advancedSearch": true,
+          "columns": [
+            {
+              "dataField": "username",
+              "caption": "用户名",
+              "dataType": "string",
+              "width": 130,
+              "allowSorting": true,
+              "editorType": "default",
+              "formFieldName": "field_username",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "real_name",
+              "caption": "姓名",
+              "dataType": "string",
+              "width": 110,
+              "editorType": "default",
+              "formFieldName": "field_real_name",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "email",
+              "caption": "邮箱",
+              "dataType": "string",
+              "width": 180,
+              "editorType": "default",
+              "formFieldName": "field_email",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "mobile",
+              "caption": "手机号",
+              "dataType": "string",
+              "width": 120,
+              "editorType": "default",
+              "formFieldName": "field_mobile",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "status",
+              "caption": "状态",
+              "dataType": "string",
+              "width": 90,
+              "format": "enabled:启用,disabled:禁用",
+              "editorType": "default",
+              "formFieldName": "field_status",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "last_login_at",
+              "caption": "最近登录",
+              "dataType": "string",
+              "width": 170,
+              "editorType": "default",
+              "formFieldName": "field_last_login_at",
+              "allowEditing": false,
+              "visible": true
+            }
+          ],
+          "height": "100%",
+          "showBorders": true,
+          "columnAutoWidth": true,
+          "showSeq": true,
+          "seqWidth": 60,
+          "stripe": true,
+          "paging": {
+            "pageSize": 15,
+            "enabled": true
+          },
+          "pager": {
+            "showPageSizeSelector": true,
+            "allowedPageSizes": [
+              15,
+              30,
+              50,
+              100
+            ],
+            "showInfo": true,
+            "showNavigationButtons": true
+          },
+          "filterRow": {
+            "visible": true
+          },
+          "headerFilter": {
+            "visible": false
+          },
+          "sorting": {
+            "mode": "single"
+          },
+          "selection": {
+            "mode": "multiple",
+            "showCheckBoxesMode": "onClick"
+          },
+          "toolbar": {
+            "visible": true,
+            "items": [
+              {
+                "name": "add",
+                "caption": "新增",
+                "icon": "plus",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:user:create",
+                "openPage": {
+                  "pageId": "page_sys_user",
+                  "bizMode": "form",
+                  "title": "新增用户",
+                  "width": "620px",
+                  "height": "480px"
+                }
+              },
+              {
+                "name": "edit",
+                "caption": "修改",
+                "icon": "edit",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:user:update",
+                "openPage": {
+                  "pageId": "page_sys_user",
+                  "bizMode": "form",
+                  "passSelectedRow": true,
+                  "title": "修改用户",
+                  "width": "620px",
+                  "height": "480px"
+                }
+              },
+              {
+                "name": "delete",
+                "caption": "删除",
+                "icon": "trash",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:user:delete"
+              },
+              {
+                "name": "assignRoles",
+                "caption": "分配角色",
+                "icon": "user",
+                "location": "before",
+                "visible": true,
+                "isCustom": true,
+                "type": "default",
+                "permCode": "system:user:assignRoles",
+                "onClick": "const sel = grid.getSelectedRowsData()\nif (!sel || sel.length !== 1) { api.showMessage('请勾选一行', 'warning'); return }\nconst picked = await api.openPage('page_sys_role', {}, { bizMode: 'table', title: '选择角色（可多选勾选）', width: 780, height: 520, selectMode: true })\nif (!picked) return\nconst roles = Array.isArray(picked) ? picked : [picked]\nconst r = await api.call('sysUserAssignRoles', { data: { id: sel[0].id, roleCodes: roles.map(x => x.code) } })\nif (r && r.ok) { api.showMessage('角色已分配（用户需重新登录生效）'); grid.refresh() }"
+              },
+              {
+                "name": "resetPwd",
+                "caption": "重置密码",
+                "icon": "key",
+                "location": "before",
+                "visible": true,
+                "isCustom": true,
+                "type": "warning",
+                "permCode": "system:user:resetPwd",
+                "onClick": "const sel = grid.getSelectedRowsData()\nif (!sel || sel.length !== 1) { api.showMessage('请勾选一行', 'warning'); return }\nif (!await api.confirm('确定重置用户「' + sel[0].username + '」的密码？')) return\nconst r = await api.call('sysUserResetPwd', { data: { id: sel[0].id } })\nif (r && r.ok) { api.showMessage('新初始密码：' + (r.data && r.data.data)); grid.refresh() }"
+              },
+              {
+                "name": "toggleStatus",
+                "caption": "启用/禁用",
+                "icon": "switch",
+                "location": "before",
+                "visible": true,
+                "isCustom": true,
+                "permCode": "system:user:status",
+                "onClick": "const sel = grid.getSelectedRowsData()\nif (!sel || !sel.length) { api.showMessage('请勾选要操作的行', 'warning'); return }\nfor (const row of sel) {\n  const next = row.status === 'enabled' ? 'disabled' : 'enabled'\n  await api.call('sysUserChangeStatus', { data: { id: row.id, status: next } })\n}\napi.showMessage('操作完成'); grid.refresh()"
+              }
+            ]
+          },
+          "modalConfig": {
+            "width": 620,
+            "height": 480,
+            "maximizable": true,
+            "draggable": true
+          },
+          "showColumnHeaders": true,
+          "showColumnLines": true,
+          "showRowLines": true,
+          "allowColumnReordering": true,
+          "allowColumnResizing": true,
+          "wordWrapEnabled": true,
+          "showOverflow": true,
+          "showHeaderOverflow": true,
+          "autoResize": true,
+          "size": "mini",
+          "round": false,
+          "showFooter": false,
+          "showFooterOverflow": true,
+          "keepSource": false,
+          "virtualScroll": false,
+          "virtualScrollThreshold": 60,
+          "columnPersistence": false,
+          "editShowStatus": true,
+          "keyExpr": "id",
+          "remoteMethod": "POST",
+          "dataSource": [],
+          "tableName": "",
+          "tableComment": "",
+          "parentType": "page",
+          "parentRef": ""
+        },
+        "css": {
+          "width": "100%",
+          "height": "100%",
+          "padding": "0",
+          "margin": "0"
+        },
+        "heightAuto": true
+      }
+    ],
+    "mobile": []
+  },
+  "queryConfig": {
+    "fields": [
+      {
+        "fieldName": "username",
+        "label": "用户名",
+        "operators": [
+          "contains",
+          "=",
+          "<>",
+          "startswith"
+        ]
+      },
+      {
+        "fieldName": "real_name",
+        "label": "姓名",
+        "operators": [
+          "contains",
+          "=",
+          "<>"
+        ]
+      },
+      {
+        "fieldName": "email",
+        "label": "邮箱",
+        "operators": [
+          "contains",
+          "="
+        ]
+      },
+      {
+        "fieldName": "status",
+        "label": "状态",
+        "operators": [
+          "=",
+          "<>"
+        ]
+      }
+    ],
+    "pageSize": 15
+  }
+}

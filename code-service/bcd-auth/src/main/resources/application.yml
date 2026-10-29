@@ -1,0 +1,26 @@
+server:
+  port: 7010
+auth:
+  oauth:
+    client-id: webapp
+    client-secret: webapp
+    access-token-validity-seconds: 7200
+    refresh-token-validity-seconds: 604800
+    keystore: jwt.jks
+    keystore-alias: jwt
+    keystore-password: bcdjwt2026
+  security:
+    local-debug: ${AUTH_LOCAL_DEBUG:true}
+  init:
+    admin-username: admin
+    admin-password: ${AUTH_ADMIN_PASSWORD:Admin@123}
+  fail:
+    seconds: 600
+logging:
+  file:
+    name: logs/bcd-auth.log
+  level:
+    root: info
+rocketmq:
+  producer:
+    group: wms-auth-producer-group

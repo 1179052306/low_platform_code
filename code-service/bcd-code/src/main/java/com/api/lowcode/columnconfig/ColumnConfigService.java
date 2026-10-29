@@ -53,7 +53,7 @@ public class ColumnConfigService {
         try {
             Path path = filePath(userId, pageId);
             if (Files.exists(path)) {
-                String content = Files.readString(path, StandardCharsets.UTF_8);
+                String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
                 JSONObject config = JSONObject.parseObject(content);
                 cache.put(key, new CacheEntry(config));
                 return config;
@@ -72,7 +72,7 @@ public class ColumnConfigService {
         try {
             Path path = filePath(userId, pageId);
             Files.createDirectories(path.getParent());
-            Files.writeString(path, config.toJSONString(), StandardCharsets.UTF_8);
+            Files.write(path, config.toJSONString().getBytes(StandardCharsets.UTF_8));
             cache.put(cacheKey(userId, pageId), new CacheEntry(config));
         } catch (IOException e) {
             log.error("保存列配置失败: userId={}, pageId={}", userId, pageId, e);

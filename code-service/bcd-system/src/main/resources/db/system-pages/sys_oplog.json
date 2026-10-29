@@ -1,0 +1,223 @@
+{
+  "version": "1.0.0",
+  "seedVersion": 7,
+  "pageId": "page_sys_oplog",
+  "pageName": "操作日志",
+  "tableName": "sys_oplog",
+  "primaryKeyField": "id",
+  "keyStrategy": "UUID",
+  "pageType": "basedata",
+  "lastBizMode": "table",
+  "root": [],
+  "bizSchemas": {
+    "form": [],
+    "table": [
+      {
+        "id": "grid_sys_oplog",
+        "type": "data-grid",
+        "children": [],
+        "width": 800,
+        "height": 400,
+        "props": {
+          "dataSourceType": "remote",
+          "advancedSearch": true,
+          "columns": [
+            {
+              "dataField": "operated_at",
+              "caption": "时间",
+              "dataType": "string",
+              "width": 180,
+              "allowSorting": true,
+              "editorType": "default",
+              "formFieldName": "field_operated_at",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "username",
+              "caption": "操作人",
+              "dataType": "string",
+              "width": 110,
+              "editorType": "default",
+              "formFieldName": "field_username",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "module",
+              "caption": "模块",
+              "dataType": "string",
+              "width": 90,
+              "editorType": "default",
+              "formFieldName": "field_module",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "action",
+              "caption": "动作",
+              "dataType": "string",
+              "width": 130,
+              "editorType": "default",
+              "formFieldName": "field_action",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "params_digest",
+              "caption": "参数摘要",
+              "dataType": "string",
+              "width": 200,
+              "editorType": "default",
+              "formFieldName": "field_params_digest",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "success",
+              "caption": "结果",
+              "dataType": "boolean",
+              "width": 80,
+              "format": "true:成功,false:失败",
+              "editorType": "default",
+              "formFieldName": "field_success",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "message",
+              "caption": "消息",
+              "dataType": "string",
+              "width": 150,
+              "editorType": "default",
+              "formFieldName": "field_message",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "ip",
+              "caption": "IP",
+              "dataType": "string",
+              "width": 120,
+              "editorType": "default",
+              "formFieldName": "field_ip",
+              "allowEditing": false,
+              "visible": true
+            }
+          ],
+          "height": "100%",
+          "showBorders": true,
+          "columnAutoWidth": true,
+          "showSeq": true,
+          "seqWidth": 60,
+          "stripe": true,
+          "paging": {
+            "pageSize": 15,
+            "enabled": true
+          },
+          "pager": {
+            "showPageSizeSelector": true,
+            "allowedPageSizes": [
+              15,
+              30,
+              50,
+              100
+            ],
+            "showInfo": true,
+            "showNavigationButtons": true
+          },
+          "filterRow": {
+            "visible": true
+          },
+          "sorting": {
+            "mode": "single"
+          },
+          "selection": {
+            "mode": "none"
+          },
+          "toolbar": {
+            "visible": true,
+            "items": [
+              {
+                "name": "refresh",
+                "caption": "刷新",
+                "icon": "refresh",
+                "location": "after",
+                "visible": true,
+                "isCustom": false
+              }
+            ]
+          },
+          "modalConfig": {
+            "width": 800,
+            "height": 560,
+            "maximizable": true,
+            "draggable": true
+          },
+          "showColumnHeaders": true,
+          "showColumnLines": true,
+          "showRowLines": true,
+          "allowColumnReordering": true,
+          "allowColumnResizing": true,
+          "wordWrapEnabled": true,
+          "showOverflow": true,
+          "showHeaderOverflow": true,
+          "autoResize": true,
+          "size": "mini",
+          "round": false,
+          "showFooter": false,
+          "showFooterOverflow": true,
+          "keepSource": false,
+          "virtualScroll": false,
+          "virtualScrollThreshold": 60,
+          "columnPersistence": false,
+          "editShowStatus": true,
+          "keyExpr": "id",
+          "remoteMethod": "POST",
+          "dataSource": [],
+          "tableName": "",
+          "tableComment": "",
+          "parentType": "page",
+          "parentRef": ""
+        },
+        "css": {
+          "width": "100%",
+          "height": "100%",
+          "padding": "0",
+          "margin": "0"
+        },
+        "heightAuto": true
+      }
+    ],
+    "mobile": []
+  },
+  "queryConfig": {
+    "fields": [
+      {
+        "fieldName": "username",
+        "label": "操作人",
+        "operators": [
+          "contains",
+          "="
+        ]
+      },
+      {
+        "fieldName": "module",
+        "label": "模块",
+        "operators": [
+          "=",
+          "contains"
+        ]
+      },
+      {
+        "fieldName": "action",
+        "label": "动作",
+        "operators": [
+          "contains",
+          "="
+        ]
+      }
+    ],
+    "pageSize": 15
+  }
+}

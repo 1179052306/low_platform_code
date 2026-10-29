@@ -17,6 +17,7 @@ import CanvasPanel from '@/components/designer/CanvasPanel.vue'
 import PropertyPanel from '@/components/designer/PropertyPanel.vue'
 import FieldEventRuleDialog from '@/components/designer/FieldEventRuleDialog.vue'
 import ComputeRuleDialog from '@/components/designer/ComputeRuleDialog.vue'
+import PageRuleDialog from '@/components/designer/PageRuleDialog.vue'
 import LayerDiffDialog from '@/components/designer/LayerDiffDialog.vue'
 import VersionHistoryPanel from '@/components/designer/VersionHistoryPanel.vue'
 import { LAYER_OPTIONS } from '@/composables/useLayer'
@@ -48,6 +49,7 @@ import {
   addNode,
   validateFormBeforeSave,
   setComputeRules,
+  setPageRules,
 } from '@/store/designer'
 import { getConfig } from '@/materials'
 import { savePage, loadLatestPage, loadPage } from '@/store/persistence'
@@ -93,6 +95,7 @@ watch(
           items: [
             { name: 'add', caption: '新增', icon: 'add', visible: true, location: 'after' },
             { name: 'edit', caption: '修改', icon: 'edit', visible: true, location: 'after' },
+            { name: 'copyRow', caption: '复制行', icon: 'copy', visible: false, location: 'after' },
             { name: 'delete', caption: '删除', icon: 'trash', visible: true, location: 'after' },
             { name: 'refresh', caption: '刷新', icon: 'refresh', visible: true, location: 'after' },
           ],
@@ -399,6 +402,7 @@ function onPreview(): void {
     pageId: designerStore.pageId,
     computeRules: designerStore.computeRules,
     fieldChangeEvents: designerStore.fieldChangeEvents,
+    pageRules: designerStore.pageRules,
     pageType: designerStore.pageType,
     bizSchemas: designerStore.bizSchemas,
     lastBizMode: designerStore.bizMode,
@@ -416,6 +420,8 @@ const showVueCode = ref(false)
 const showFieldEventRuleDialog = ref(false)
 /** 页面级计算规则弹窗显隐（FE-S10） */
 const showComputeRuleDialog = ref(false)
+/** 页面规则弹窗显隐 */
+const showPageRuleDialog = ref(false)
 /** 表单字段名列表（供计算规则选择触发字段和目标字段） */
 const formFieldNames = computed(() => {
   return collectAllNodes(designerStore.schema)
@@ -999,6 +1005,10 @@ function closeDialogs(): void {
 async function loadPageById(pageId: string): Promise<boolean> {
   const page = await loadPage(pageId)
   if (page) {
+    // 业务页面（单据/基础资料）自动进 biz 模式，否则表格/表单槽位不显示
+    if (page.pageType && page.pageType !== 'custom') {
+      setDesignerMode('biz')
+    }
     importSchema(page)
     return true
   }
@@ -1215,6 +1225,11 @@ watch(
               plain
               @click="showComputeRuleDialog = true"
             >{{ t('计算规则') }}</ElButton>
+            <ElButton
+              v-if="!isTableMode"
+              plain
+              @click="showPageRuleDialog = true"
+            >{{ t('页面规则') }}</ElButton>
           </div>
         </div>
         <CanvasPanel />
@@ -1226,6 +1241,12 @@ watch(
         :fields="formFieldNames"
         :rules="designerStore.computeRules ?? []"
         @confirm="(rules) => setComputeRules(rules)"
+      />
+      <PageRuleDialog
+        v-model="showPageRuleDialog"
+        :fields="formFieldNames"
+        :rules="designerStore.pageRules ?? []"
+        @confirm="(rules) => setPageRules(rules)"
       />
       <LayerDiffDialog v-model:visible="showLayerDiffDialog" />
       <VersionHistoryPanel v-model:visible="showVersionHistory" :meta-key="designerStore.pageName" :page-id="designerStore.pageId" />

@@ -29,6 +29,8 @@ public class MetaRegistry {
     @PostConstruct
     public void init() {
         ensurePrimaryKeyColumn();
+        ensureUniqueGroupColumn();
+        ensurePluginsColumn();
         reload();
     }
 
@@ -46,13 +48,27 @@ public class MetaRegistry {
         }
     }
 
+    /** 确保 lc_field_meta 表有 unique_group 列（组合唯一字段列表，兼容已建表的老数据库） */
+    private void ensureUniqueGroupColumn() {
+        try {
+            MultiDataSourceHolder.setDatasource("lowcode");
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            jdbc.execute("ALTER TABLE lc_field_meta ADD COLUMN unique_group VARCHAR(512)");
+            log.info("[MetaRegistry] lc_field_meta 已添加 unique_group 列");
+        } catch (Exception e) {
+            // 列已存在或语法不兼容，忽略
+        } finally {
+            MultiDataSourceHolder.clearDataSource();
+        }
+    }
+
     public void reload() {
         registry.clear();
         try {
             JSONArray bizRows;
             try {
                 String[] bizCols = { "id", "biz_code", "biz_name", "main_table", "main_table_alias",
-                        "status_field", "logic_delete_field", "primary_key_field", "key_strategy", "tenant_id", "version", "remark" };
+                        "status_field", "logic_delete_field", "primary_key_field", "key_strategy", "tenant_id", "version", "remark", "plugins" };
                 bizRows = helper.query("lc_biz_meta", bizCols, null, "biz_code", false);
             } catch (Exception colErr) {
                 log.warn("[MetaRegistry] key_strategy 列不存在，回退查询: {}", colErr.getMessage());
@@ -75,6 +91,7 @@ public class MetaRegistry {
                 meta.setTenantId(row.getString("TENANT_ID"));
                 meta.setVersion(row.getInteger("VERSION"));
                 meta.setRemark(row.getString("REMARK"));
+                meta.setPlugins(row.getString("PLUGINS"));
                 loadFields(meta);
                 loadActions(meta);
                 loadStateTransitions(meta);
@@ -89,8 +106,17 @@ public class MetaRegistry {
     private void loadFields(BizMeta meta) throws Exception {
         String[] cols = { "id", "biz_code", "field_name", "column_type", "data_type",
                 "is_required", "is_unique", "is_system_field", "permission_expr",
-                "default_value_expr", "validation_expr", "sort_no" };
-        JSONArray rows = helper.query("lc_field_meta", cols, helper.eq("biz_code", meta.getBizCode()), "sort_no", false);
+                "default_value_expr", "validation_expr", "sort_no", "unique_group" };
+        JSONArray rows;
+        try {
+            rows = helper.query("lc_field_meta", cols, helper.eq("biz_code", meta.getBizCode()), "sort_no", false);
+        } catch (Exception colErr) {
+            log.warn("[MetaRegistry] unique_group 列不存在，回退查询: {}", colErr.getMessage());
+            String[] colsFallback = { "id", "biz_code", "field_name", "column_type", "data_type",
+                    "is_required", "is_unique", "is_system_field", "permission_expr",
+                    "default_value_expr", "validation_expr", "sort_no" };
+            rows = helper.query("lc_field_meta", colsFallback, helper.eq("biz_code", meta.getBizCode()), "sort_no", false);
+        }
         for (int i = 0; i < rows.size(); i++) {
             JSONObject row = rows.getJSONObject(i);
             FieldMeta f = new FieldMeta();
@@ -101,6 +127,7 @@ public class MetaRegistry {
             f.setDataType(row.getString("DATA_TYPE"));
             f.setIsRequired(row.getBoolean("IS_REQUIRED"));
             f.setIsUnique(row.getBoolean("IS_UNIQUE"));
+            f.setUniqueGroup(row.getString("UNIQUE_GROUP"));
             f.setIsSystemField(row.getBoolean("IS_SYSTEM_FIELD"));
             f.setPermissionExpr(row.getString("PERMISSION_EXPR"));
             f.setDefaultValueExpr(row.getString("DEFAULT_VALUE_EXPR"));

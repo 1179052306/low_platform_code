@@ -3,17 +3,22 @@
  * 供 materials 组件（如 DxBaseData.vue）导入，避免 designer.ts ↔ materials/index.ts 循环依赖。
  */
 import { type InjectionKey } from 'vue'
-import type { ComponentSchema, ComputeRule } from '@/types/schema'
+import type { ComponentSchema, ComputeRule, PageRule } from '@/types/schema'
 
 /** 渲染 store 接口（子页面弹窗隔离渲染上下文） */
 export interface RenderStore {
   schema: ComponentSchema[]
   schemaRevision: number
   computeRules?: ComputeRule[]
+  pageRules?: PageRule[]
   primaryKeyField?: string
   tableName?: string
   selectMode?: boolean
   selectedRowData?: Record<string, unknown> | null
+  /** 选择模式下多选的行集合（多选弹窗确认时回传） */
+  selectedRowsList?: Record<string, unknown>[] | null
+  /** 页面查询配置（高级查询字段白名单；运行时容器/弹窗 provide 的 store 各自携带） */
+  queryConfig?: import('@/types/schema').QueryConfig
 }
 
 /** designer store 的 injection key，用于 provide/inject 隔离子页面渲染 */
@@ -25,7 +30,7 @@ export function collectAllNodes(list: ComponentSchema[]): ComponentSchema[] {
   const walk = (nodes: ComponentSchema[]) => {
     for (const node of nodes) {
       result.push(node)
-      if (node.children.length) walk(node.children)
+      if (node.children && node.children.length) walk(node.children)
     }
   }
   walk(list)

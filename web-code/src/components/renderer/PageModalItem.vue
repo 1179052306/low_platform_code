@@ -2,11 +2,11 @@
 import { provide, computed, ref, onBeforeUnmount } from 'vue'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import RendererNode from './RendererNode.vue'
-import { createRenderStore, DESIGNER_STORE_KEY, collectAllNodes } from '@/store/designer'
+import { createRenderStore, DESIGNER_STORE_KEY, collectAllNodes, findNodeByFieldNameIn } from '@/store/designer'
 import { pageModal, type PageModalInstance } from './pageModal'
 import { gatewayCall } from '@/api'
 import { t } from '@/store/lang'
-import { getValidator } from '@/materials/dx-validation'
+import { getValidator, type ValidationRuleConfig } from '@/materials/dx-validation'
 import type { ComponentSchema } from '@/types/schema'
 
 const props = defineProps<{
@@ -17,6 +17,7 @@ const props = defineProps<{
 const store = createRenderStore(props.modal.primaryKeyField, props.modal.tableName, props.modal.options.selectMode)
 store.schema = props.modal.schema
 store.computeRules = props.modal.computeRules
+store.pageRules = props.modal.pageRules
 provide(DESIGNER_STORE_KEY, store)
 
 const isDrawer = computed(() => props.modal.options.mode === 'drawer')
@@ -25,6 +26,8 @@ const saving = ref(false)
 
 const tableName = computed(() => (props.modal.params?.tableName as string) || '')
 const isEdit = computed(() => !!props.modal.params?.rowData)
+/** 复制行模式：带数据打开但保存走新增 */
+const isCopy = computed(() => props.modal.params?.asCopy === true)
 
 /** 逐条编辑：多行选中时依次编辑 */
 const rowDataList = props.modal.params?.rowDataList as Record<string, unknown>[] | undefined
@@ -150,6 +153,72 @@ async function close() {
   pageModal.closePage()
 }
 
+/** 收集表单中的唯一性校验规则节点 */
+function collectUniqueRules(): { node: ComponentSchema; rule: ValidationRuleConfig }[] {
+  const allNodes = collectAllNodes(store.schema).filter((n) => n.fieldName)
+  const result: { node: ComponentSchema; rule: ValidationRuleConfig }[] = []
+  for (const node of allNodes) {
+    const rules = node.props.validationRules as ValidationRuleConfig[] | undefined
+    if (!Array.isArray(rules)) continue
+    const rule = rules.find((r) => r.type === 'unique')
+    if (rule) result.push({ node, rule })
+  }
+  return result
+}
+
+/** 唯一性校验：保存前查库确认值不重复（编辑模式排除当前记录，支持联合字段组合唯一） */
+async function validateUnique(data: Record<string, unknown>): Promise<string[]> {
+  const errors: string[] = []
+  const uniqueRules = collectUniqueRules()
+  if (!uniqueRules.length) return errors
+
+  let pkCond: { Id: string; Symbol: string; Val: unknown } | undefined
+  if (isEdit.value && !isCopy.value) {
+    const currentRow = isMultiEdit.value ? rowDataList![editIndex.value] : rowData
+    const pk = store.primaryKeyField || 'id'
+    const pkVal = currentRow ? getField(currentRow, pk) : undefined
+    if (pkVal !== undefined && pkVal !== null) {
+      pkCond = { Id: pk, Symbol: '<>', Val: pkVal }
+    }
+  }
+
+  await Promise.all(
+    uniqueRules.map(async ({ node, rule }) => {
+      const mainDbField = node.dbField || node.fieldName!
+      const mainVal = data[mainDbField]
+      if (mainVal === undefined || mainVal === null || mainVal === '') return
+      const conditions: Record<string, unknown>[] = [
+        { Symbol: 'and' },
+        { Id: mainDbField, Symbol: '=', Val: mainVal },
+      ]
+      for (const cf of rule.combineFields || []) {
+        const cfNode = findNodeByFieldNameIn(store.schema, cf)
+        const cfDbField = cfNode?.dbField || cf
+        const cfVal = data[cfDbField]
+        if (cfVal === undefined || cfVal === null || cfVal === '') continue
+        conditions.push({ Id: cfDbField, Symbol: '=', Val: cfVal })
+      }
+      if (pkCond) conditions.push(pkCond)
+      try {
+        const res = await gatewayCall(tableName.value, 'query', {
+          filterData: JSON.stringify(conditions),
+          take: 1,
+        })
+        const totalCount = Number(
+          (res.payload as { totalCount?: number } | undefined)?.totalCount ?? 0
+        )
+        if (totalCount > 0) {
+          const label = (node.props.label as string) || node.fieldName
+          errors.push(rule.message || `「${label}」${String(mainVal)}${t('已存在')}`)
+        }
+      } catch (err) {
+        console.error('[唯一性校验查询失败]', err)
+      }
+    })
+  )
+  return errors
+}
+
 async function onSave() {
   if (!tableName.value) {
     ElMessage.warning(t('未配置数据表名'))
@@ -171,8 +240,26 @@ async function onSave() {
   }
   saving.value = true
   try {
-    const action = isEdit.value ? 'update' : 'create'
-    if (isEdit.value) {
+    const uniqueErrors = await validateUnique(data)
+    if (uniqueErrors.length) {
+      ElMessage.error(uniqueErrors.join('；'))
+      return
+    }
+    // 唯一性配置传后端：事务内 insert/update 前查重兜底（防并发窗口）
+    const uniqueChecks = collectUniqueRules().map(({ node, rule }) => {
+      const mainDbField = node.dbField || node.fieldName!
+      const fields = [mainDbField]
+      for (const cf of rule.combineFields || []) {
+        const cfNode = findNodeByFieldNameIn(store.schema, cf)
+        fields.push(cfNode?.dbField || cf)
+      }
+      return { field: mainDbField, fields, message: rule.message }
+    })
+    if (uniqueChecks.length) {
+      data.__uniqueChecks = uniqueChecks
+    }
+    const action = isEdit.value && !isCopy.value ? 'update' : 'create'
+    if (isEdit.value && !isCopy.value) {
       const currentRow = isMultiEdit.value ? rowDataList![editIndex.value] : rowData
       const pk = store.primaryKeyField || 'id'
       const pkVal = currentRow?.[pk] ?? currentRow?.[pk.toLowerCase()] ?? currentRow?.[pk.toUpperCase()]
@@ -193,11 +280,16 @@ async function onSave() {
 }
 
 function onConfirmSelect() {
-  if (!store.selectedRowData) {
+  const multi = (store.selectedRowsList && store.selectedRowsList.length > 0)
+    ? store.selectedRowsList
+    : (store.selectedRowData ? [store.selectedRowData] : [])
+  if (!multi.length) {
     ElMessage.warning(t('请先选择一行数据'))
     return
   }
-  pageModal.closePage(store.selectedRowData)
+  // 多选（勾选多行）回传数组；单选回传单行（兼容既有基础资料控件回填）
+  if (multi.length > 1) pageModal.closePage(multi)
+  else pageModal.closePage(store.selectedRowData)
 }
 
 // ==================== 弹窗拖动 + 最大化 ====================
@@ -266,55 +358,52 @@ const modalStyle = computed(() => {
 </script>
 
 <template>
-  <Teleport to="body">
+  <div
+    class="page-modal-overlay"
+    :class="{ 'is-drawer': isDrawer }"
+    :style="{ zIndex: overlayZIndex }"
+  >
     <div
-      class="page-modal-overlay"
-      :class="{ 'is-drawer': isDrawer }"
-      :style="{ zIndex: overlayZIndex }"
-
+      class="page-modal-content"
+      :class="{ 'is-drawer': isDrawer, 'is-maximized': isMaximized }"
+      :style="modalStyle"
     >
       <div
-        class="page-modal-content"
-        :class="{ 'is-drawer': isDrawer, 'is-maximized': isMaximized }"
-        :style="modalStyle"
+        class="page-modal-header"
+        :class="{ draggable: canDrag && !isMaximized }"
+        @mousedown="onHeaderMouseDown"
       >
-        <div
-          class="page-modal-header"
-          :class="{ draggable: canDrag && !isMaximized }"
-          @mousedown="onHeaderMouseDown"
-        >
-          <span class="page-modal-title">{{ modal.options.title }}</span>
-          <span v-if="isMultiEdit" class="multi-edit-nav">
-            <button class="nav-btn" :disabled="editIndex === 0" @click="prevRow">‹</button>
-            <span class="multi-edit-info">{{ editIndex + 1 }} / {{ rowDataList!.length }}</span>
-            <button class="nav-btn" :disabled="!rowDataList || editIndex >= rowDataList.length - 1" @click="nextRow">›</button>
-          </span>
-          <div class="page-modal-header-actions">
-            <button v-if="canMaximize" class="header-action-btn" @click="toggleMaximize">{{ isMaximized ? '❐' : '☐' }}</button>
-            <button class="page-modal-close" @click="close">✕</button>
-          </div>
-        </div>
-        <div class="page-modal-body">
-          <RendererNode
-            v-for="node in store.schema"
-            :key="node.id"
-            :node="node"
-            :positioned="true"
-          />
-        </div>
-        <div class="page-modal-footer">
-          <ElButton @click="close">{{ t('取消') }}</ElButton>
-          <ElButton v-if="isSelectMode" type="primary" :disabled="!store.selectedRowData" @click="onConfirmSelect">{{ t('确认选择') }}</ElButton>
-          <ElButton v-else type="primary" :loading="saving" @click="onSave">{{ t('保存') }}</ElButton>
+        <span class="page-modal-title">{{ modal.options.title }}</span>
+        <span v-if="isMultiEdit" class="multi-edit-nav">
+          <button class="nav-btn" :disabled="editIndex === 0" @click="prevRow">‹</button>
+          <span class="multi-edit-info">{{ editIndex + 1 }} / {{ rowDataList!.length }}</span>
+          <button class="nav-btn" :disabled="!rowDataList || editIndex >= rowDataList.length - 1" @click="nextRow">›</button>
+        </span>
+        <div class="page-modal-header-actions">
+          <button v-if="canMaximize" class="header-action-btn" @click="toggleMaximize">{{ isMaximized ? '❐' : '☐' }}</button>
+          <button class="page-modal-close" @click="close">✕</button>
         </div>
       </div>
+      <div class="page-modal-body">
+        <RendererNode
+          v-for="node in store.schema"
+          :key="node.id"
+          :node="node"
+          :positioned="true"
+        />
+      </div>
+      <div class="page-modal-footer">
+        <ElButton @click="close">{{ t('取消') }}</ElButton>
+        <ElButton v-if="isSelectMode" type="primary" :disabled="!store.selectedRowData" @click="onConfirmSelect">{{ t('确认选择') }}</ElButton>
+        <ElButton v-else type="primary" :loading="saving" @click="onSave">{{ t('保存') }}</ElButton>
+      </div>
     </div>
-  </Teleport>
+  </div>
 </template>
 
 <style scoped>
 .page-modal-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
@@ -331,18 +420,18 @@ const modalStyle = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-width: 95vw;
-  max-height: 95vh;
+  max-width: 95%;
+  max-height: 95%;
 }
 .page-modal-content.is-drawer {
   border-radius: 8px 0 0 8px;
   height: 100%;
   max-height: 100%;
-  max-width: 95vw;
+  max-width: 95%;
 }
 .page-modal-content.is-maximized {
-  max-width: 100vw;
-  max-height: 100vh;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 0;
 }
 .page-modal-header {

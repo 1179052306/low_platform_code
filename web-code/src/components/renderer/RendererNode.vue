@@ -32,13 +32,17 @@ import {
   getValidator,
 } from '@/materials/dx-validation'
 import LcTable from '@/materials/components/LcTable.vue'
+import DictSelectBox from '@/materials/components/DictSelectBox.vue'
 import AdvancedSearchPanel from './AdvancedSearchPanel.vue'
 import type { SearchCondition } from './AdvancedSearchPanel.vue'
 import { pageModal } from './pageModal'
+import { importDialog } from '@/components/import/importDialog'
 import { httpRequest, extractPayload, extractList } from '@/utils/request'
 import { apiCall, resolveApi, type ApiCallResult } from '@/api'
 import { isFieldHidden, isFieldReadonly, isFrozen, isActionFrozen } from '@/utils/permission'
+import { hasPerm } from '@/store/auth'
 import { evaluateExpr, pickFields } from '@/utils/compute-expr'
+import { executeActions, evalConditions } from '@/utils/page-rule-exec'
 import { ElMessage, ElMessageBox, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import { createSandboxedFunction } from '@/utils/sandbox'
 import { gatewayCall } from '@/api'
@@ -71,6 +75,13 @@ const nodeFieldReadonly = computed(() => {
   return false
 })
 
+/** 按钮权限：当前节点是否因权限码隐藏（permCode 未配置时放行） */
+const nodeButtonHidden = computed(() => {
+  const permCode = props.node.props.permCode as string | undefined
+  if (!permCode) return false
+  return !hasPerm(permCode)
+})
+
 /** 表单控件类型集合（需要渲染独立 label） */
 const FORM_CONTROL_TYPES = new Set([
   'text-box',
@@ -99,6 +110,10 @@ const FORM_CONTROL_TYPES = new Set([
 /** 计算规则运行时深度计数器（模块级，防止规则链无限循环） */
 let computeRuleDepth = 0
 const COMPUTE_RULE_MAX_DEPTH = 10
+
+/** 页面规则运行时深度计数器（模块级，防止规则链无限循环） */
+let pageRuleDepth = 0
+const PAGE_RULE_MAX_DEPTH = 10
 
 /** 当前渲染上下文的 store（通过 inject 获取，子页面弹窗使用独立实例） */
 const store = inject(DESIGNER_STORE_KEY, designerStore) as RenderStore
@@ -318,7 +333,9 @@ const gridColumns = computed(() => {
   return cols
     .filter((c) => {
       const df = c.dataField
-      return typeof df === 'string' && df && !df.includes('.')
+      if (typeof df !== 'string' || !df || df.includes('.')) return false
+      if (isFieldHidden(designerStore.pageName, df)) return false
+      return true
     })
     .map((c) => {
       const dataField = c.dataField as string
@@ -381,14 +398,15 @@ const gridColumns = computed(() => {
 /** 高级查询触发搜索 */
 function onAdvSearch(conditions: SearchCondition[]) {
   advSearchConditions.value = conditions
-  // 通过 schemaRevision 触发 boundProps 重新计算，DataGrid 自动重新加载
   store.schemaRevision += 1
+  nextTick(() => reloadGrid())
 }
 
 /** 高级查询重置 */
 function onAdvSearchReset() {
   advSearchConditions.value = []
   store.schemaRevision += 1
+  nextTick(() => reloadGrid())
 }
 
 /** DataGrid 高度偏移量（toolbar + 高级查询占用的高度） */
@@ -427,11 +445,20 @@ const _stableToolbar = { visible: false }
 const _stableMasterDetail = { enabled: true }
 const _stableSelection = { mode: 'single', showCheckBoxesMode: 'none' }
 
+const isGridRemote = computed(() => {
+  if (props.node.type !== 'data-grid') return false
+  const ro = gridBoundProps.value.remoteOperations
+  if (typeof ro === 'boolean') return ro
+  const ds = gridBoundProps.value.dataSource
+  return !!ds && typeof (ds as any).load === 'function'
+})
+
 const gridBoundProps = computed<Record<string, unknown>>(() => {
   const base: Record<string, unknown> = { ...boundProps.value }
   base.toolbar = _stableToolbar
   base.onSelectionChanged = onGridSelectionChanged
   base.pageId = designerStore.pageId
+  base.bizCode = store.tableName || designerStore.tableName
 
   if (props.node.type === 'data-grid') {
     base.masterDetail = hasMasterDetail.value ? _stableMasterDetail : undefined
@@ -493,7 +520,12 @@ const gridToolbarItems = computed(() => {
   if (!Array.isArray(items)) return []
 
   return items
-    .filter((item) => item.visible !== false)
+    .filter((item) => {
+      if (item.visible === false) return false
+      const permCode = (item as Record<string, unknown>).permCode as string | undefined
+      if (permCode && !hasPerm(permCode)) return false
+      return true
+    })
     .map((item) => {
       // 构建点击事件
       let onClick: (e: unknown) => void
@@ -527,6 +559,52 @@ const gridToolbarItems = computed(() => {
           const grid = getGridInstance()
           if (!grid) return
           switch (item.name) {
+            case 'addRow': {
+              if (typeof grid.addRow === 'function') grid.addRow()
+              break
+            }
+            case 'deleteRows': {
+              if (typeof grid.deleteSelectedRows === 'function') grid.deleteSelectedRows()
+              break
+            }
+            case 'sortAsc': {
+              if (typeof grid.sortAsc === 'function') grid.sortAsc()
+              break
+            }
+            case 'sortDesc': {
+              if (typeof grid.sortDesc === 'function') grid.sortDesc()
+              break
+            }
+            case 'copyRow': {
+              if (typeof grid.getSelectedRowsData !== 'function') break
+              const sel = grid.getSelectedRowsData()
+              if (!sel || !sel.length) { ElMessage.warning(t('请先选择要复制的记录')); break }
+              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+              const openCfg = item.openPage
+              const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
+              const copied = { ...(sel[0] as Record<string, unknown>) }
+              if (keyExpr && keyExpr in copied) delete copied[keyExpr]
+              if (designerStore.previewMode) {
+                const targetPageId = openCfg?.pageId && openCfg.pageId !== '__current__' ? openCfg.pageId : designerStore.pageId
+                if (targetPageId) {
+                  const copyParams: Record<string, unknown> = { tableName: designerStore.tableName, ...(openCfg?.params || {}), rowData: copied, asCopy: true }
+                  pageModal.openPage(
+                    targetPageId,
+                    copyParams,
+                    {
+                      bizMode: openCfg?.bizMode || 'form',
+                      title: openCfg?.title || t('复制行'),
+                      mode: (openCfg?.mode as 'popup' | 'drawer') || 'popup',
+                      width: openCfg?.width ?? mc?.width ?? 900, height: openCfg?.height ?? mc?.height ?? 600,
+                      maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true,
+                    },
+                  ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+                }
+              } else if (typeof grid.addRow === 'function') {
+                grid.addRow()
+              }
+              break
+            }
             case 'add': {
               const openCfg = item.openPage
               const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
@@ -633,8 +711,31 @@ const gridToolbarItems = computed(() => {
             case 'export':
               if (typeof grid.exportToExcel === 'function') grid.exportToExcel()
               break
+            case 'import': {
+              // 仅远程数据源表格支持导入；明细表/静态表格提示不可用
+              const dsType = (props.node.props as { dataSourceType?: string }).dataSourceType
+              const bizCode4Import = designerStore.tableName
+              if (dsType && dsType !== 'remote') {
+                ElMessage.warning(t('静态数据表格不支持导入，请使用远程数据源'))
+                break
+              }
+              if (!bizCode4Import) {
+                ElMessage.warning(t('未配置业务表，无法导入'))
+                break
+              }
+              importDialog.open({
+                bizCode: bizCode4Import,
+                pageTitle: designerStore.pageName,
+                onFinished: () => { if (typeof grid.refresh === 'function') grid.refresh() },
+              })
+              break
+            }
             case 'refresh':
               if (typeof grid.refresh === 'function') grid.refresh()
+              break
+            case 'enable':
+            case 'disable':
+              handleStatusToggleAction(item.name, grid)
               break
             case 'columnConfig':
               if (typeof grid.openColumnConfig === 'function') grid.openColumnConfig()
@@ -673,7 +774,12 @@ const gridToolbarItems = computed(() => {
       // 下拉按钮类型：渲染为 dxDropDownButton
       if (item.itemType === 'dropdown') {
         const childItems = (item.children || [])
-          .filter((c) => c.visible !== false)
+          .filter((c) => {
+            if (c.visible === false) return false
+            const cPermCode = (c as Record<string, unknown>).permCode as string | undefined
+            if (cPermCode && !hasPerm(cPermCode)) return false
+            return true
+          })
           .map((c) => ({
             name: c.name,
             text: c.caption || c.name,
@@ -692,7 +798,11 @@ const gridToolbarItems = computed(() => {
               const grid = getGridInstance()
               if (!grid) return
               const childName = e.itemData?.name || ''
-              handleExportAction(childName, grid)
+              if (item.name === 'statusToggle') {
+                handleStatusToggleAction(childName, grid)
+              } else {
+                handleExportAction(childName, grid)
+              }
             },
             ...((item.bgColor || item.textColor || item.hoverColor)
               ? {
@@ -796,6 +906,34 @@ function handleExportAction(actionName: string, grid: any): void {
     default:
       break
   }
+}
+
+/** 处理启用/禁用子按钮动作 */
+function handleStatusToggleAction(actionName: string, grid: any): void {
+  if (actionName !== 'enable' && actionName !== 'disable') return
+  if (typeof grid.getSelectedRowsData !== 'function') return
+  const sel = grid.getSelectedRowsData()
+  if (!sel || !sel.length) { ElMessage.warning(t('请先选择要操作的记录')); return }
+  const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+  const bizCode = designerStore.tableName
+  if (!bizCode) { ElMessage.warning(t('未配置业务表')); return }
+  const ids = sel.map((r: Record<string, unknown>) => r[keyExpr])
+  const tipMsg = actionName === 'enable' ? t('确认启用选中的记录？') : t('确认禁用选中的记录？')
+  const okMsg = actionName === 'enable' ? t('启用成功') : t('禁用成功')
+  void (async () => {
+    try {
+      await ElMessageBox.confirm(tipMsg, t('提示'), { type: 'warning' })
+    } catch {
+      return
+    }
+    try {
+      await gatewayCall(bizCode, actionName, { ids })
+      ElMessage.success(okMsg)
+      if (typeof grid.refresh === 'function') grid.refresh()
+    } catch (err) {
+      ElMessage.error(err instanceof Error ? err.message : String(err))
+    }
+  })()
 }
 
 /** 创建运行时 API 对象，供事件和工具栏按钮使用 */
@@ -1103,11 +1241,16 @@ function createRuntimeApi() {
     },
 
     // ---- 消息 ----
-    showMessage: (text: string) => {
-      alert(t(text))
+    showMessage: (text: string, type?: 'success' | 'warning' | 'error' | 'info') => {
+      ElMessage({ message: t(text), type: type || 'success', duration: 2500 })
     },
-    confirm: (text: string) => {
-      return confirm(t(text))
+    confirm: async (text: string) => {
+      try {
+        await ElMessageBox.confirm(t(text), t('确认'), { type: 'warning', customClass: 'lc-modal-confirm' })
+        return true
+      } catch {
+        return false
+      }
     },
 
     // ---- 翻译 ----
@@ -1231,6 +1374,8 @@ function createRuntimeApi() {
         bizMode?: 'form' | 'table' | 'mobile'
         maximizable?: boolean
         draggable?: boolean
+        /** 选择模式：子页面确认选择后 closePage 回传选中行（表格模式多选回传数组） */
+        selectMode?: boolean
       }
     ) => {
       return pageModal.openPage(pageId, params || {}, options || {})
@@ -1254,6 +1399,11 @@ function createRuntimeApi() {
 /** 高级查询条件 */
 const advSearchConditions = ref<SearchCondition[]>([])
 const isContainer = !!cfg?.isContainer
+
+/** 远程数据源缓存：避免 schemaRevision 变化时重建 dataSource 对象导致重复请求 */
+let _dsCacheSig = ''
+let _cachedRemoteDataSource: Record<string, unknown> | null = null
+let _dsFirstLoadDone = false
 
 /** 刷新 DataGrid 数据源 */
 function reloadGrid() {
@@ -1312,6 +1462,11 @@ const boundProps = computed<Record<string, unknown>>(() => {
     delete base.requiredPosition
     delete base.tooltipEnabled
     delete base.tooltipText
+    // 启用编码规则的文本框：占位文字固定为"空自动生成"，输入禁止空白/特殊字符
+    if (props.node.type === 'text-box' && props.node.props.defaultValueExpr) {
+      base.codeRuleEnabled = true
+      base.placeholder = '空自动生成'
+    }
   }
   // 为 el-splitter-panel 添加拖拽手柄所需的 props
   if (props.node.type === 'el-splitter-panel' && props.parentId) {
@@ -1453,8 +1608,13 @@ const boundProps = computed<Record<string, unknown>>(() => {
       const useGateway = !url && !!gwTableName
       const gatewayBizCode = gwTableName
 
-      // 首次加载标记：firstLoad=true 时第一次 load 返回空数据
-      let _firstLoadDone = false
+      // 缓存签名：只在数据源配置变化时重建 dataSource，避免 schemaRevision 变化导致重复请求
+      const dsSig = JSON.stringify({ serviceId, url, method, remoteBody, firstLoad, gwTableName })
+      if (_dsCacheSig === dsSig && _cachedRemoteDataSource) {
+        base.dataSource = _cachedRemoteDataSource
+      } else {
+        _dsCacheSig = dsSig
+        _dsFirstLoadDone = false
 
       // 从事件配置中获取 storeUpdate/storeInsert/storeRemove 用户自定义函数
       const events = props.node.events || {}
@@ -1701,8 +1861,44 @@ const boundProps = computed<Record<string, unknown>>(() => {
           Val?: unknown
           TableAlias?: string
         }[] = []
+        // fixedFilters：静态固定过滤条件（始终生效，不可被用户清除）
+        const fixedFiltersCfg = props.node.props.fixedFilters as
+          | { field: string; operator: string; value: unknown }[]
+          | undefined
+        if (Array.isArray(fixedFiltersCfg) && fixedFiltersCfg.length > 0) {
+          for (const ff of fixedFiltersCfg) {
+            if (ff.value !== undefined && ff.value !== null && ff.value !== '') {
+              allFilterData.push({ Symbol: 'and' })
+              allFilterData.push({
+                Id: ff.field,
+                Symbol: mapOperator(ff.operator || '='),
+                Val: ff.value,
+                TableAlias: getColumnTableAlias(ff.field),
+              })
+            }
+          }
+        }
+        // paramFilters：从弹窗参数注入固定过滤条件（父页面通过 api.openPage 传参）
+        const paramFiltersCfg = props.node.props.paramFilters as
+          | { param: string; field: string; operator?: string }[]
+          | undefined
+        if (Array.isArray(paramFiltersCfg) && paramFiltersCfg.length > 0) {
+          const modalParams = pageModal.getParams()
+          for (const pf of paramFiltersCfg) {
+            const val = modalParams?.[pf.param]
+            if (val !== undefined && val !== null && val !== '') {
+              allFilterData.push({ Symbol: 'and' })
+              allFilterData.push({
+                Id: pf.field,
+                Symbol: mapOperator(pf.operator || '='),
+                Val: val,
+                TableAlias: getColumnTableAlias(pf.field),
+              })
+            }
+          }
+        }
         if (loadOptions.filter) {
-          allFilterData = convertFilter(loadOptions.filter)
+          allFilterData = allFilterData.concat(convertFilter(loadOptions.filter))
         }
         // 合并高级查询条件（所有条件之间默认并且，第一个条件前也加 Symbol:and）
         if (advSearchConditions.value.length > 0) {
@@ -1775,8 +1971,8 @@ const boundProps = computed<Record<string, unknown>>(() => {
           groupSummary?: unknown
         }) => {
           // 首次不加载逻辑：firstLoad=true 时第一次 load 返回空数据
-          if (firstLoad && !_firstLoadDone) {
-            _firstLoadDone = true
+          if (firstLoad && !_dsFirstLoadDone) {
+            _dsFirstLoadDone = true
             return { data: [], totalCount: 0 }
           }
 
@@ -1891,6 +2087,8 @@ const boundProps = computed<Record<string, unknown>>(() => {
         remove: async (key: unknown) => {
           if (storeRemoveFn) return await storeRemoveFn(key)
         },
+      }
+      _cachedRemoteDataSource = base.dataSource as Record<string, unknown>
       }
       // 开启远程操作：筛选、排序、分页都走后端
       if (base.remoteOperations === undefined) {
@@ -2257,6 +2455,9 @@ const isValidatable = computed(() => VALIDATABLE_TYPES.has(props.node.type))
 /** 是否为表单控件（需要渲染 label） */
 const isFormField = computed(() => FORM_CONTROL_TYPES.has(props.node.type))
 
+/** 是否引用了字典（运行时用弹框表格选择字典项） */
+const hasDictCode = computed(() => isFormField.value && !!(props.node.props.dictCode as string))
+
 /** label 配置 */
 const labelConfig = computed(() => {
   const p = props.node.props
@@ -2264,9 +2465,9 @@ const labelConfig = computed(() => {
     label: (p.label as string) ?? cfg?.title ?? '',
     labelVisible: p.labelVisible !== false,
     labelPosition: (p.labelPosition as string) || 'top',
-    required: p.required === true ||
+    required: !p.defaultValueExpr && (p.required === true ||
       (Array.isArray(p.validationRules) &&
-        (p.validationRules as ValidationRuleConfig[]).some(r => r.type === 'required')),
+        (p.validationRules as ValidationRuleConfig[]).some(r => r.type === 'required'))),
     requiredPosition: (p.requiredPosition as string) || 'after',
     tooltipEnabled: p.tooltipEnabled === true,
     tooltipText: (p.tooltipText as string) || '',
@@ -2359,6 +2560,8 @@ function validateSelf(): boolean {
         }
         break
       }
+      case 'unique':
+        break
     }
     if (!valid) {
       errorMsg = rule.message || `${rule.type} 验证失败`
@@ -2387,8 +2590,12 @@ function onFieldValueChanged() {
 /** 转换为 DevExtreme DxValidator 可用的规则格式 */
 const dxValidationRules = computed<unknown[] | null>(() => {
   const rawRules = Array.isArray(props.node.props.validationRules) ? props.node.props.validationRules : []
-  const rules = [...rawRules]
-  if (props.node.props.required === true && !rules.some((r: any) => r.type === 'required')) {
+  // 启用编码规则的控件：必填不生效（空值按规则自动生成），过滤 required 规则
+  const codeRuleActive = !!props.node.props.defaultValueExpr
+  const rules = codeRuleActive
+    ? rawRules.filter((r: any) => r.type !== 'required')
+    : [...rawRules]
+  if (!codeRuleActive && props.node.props.required === true && !rules.some((r: any) => r.type === 'required')) {
     rules.push({ type: 'required', message: '此字段为必填项' })
   }
   if (!rules.length) return null
@@ -2498,6 +2705,69 @@ if (props.node.fieldName && store.computeRules) {
   }
 }
 
+// ================ 页面规则 watch（可视化配置替代事件代码） ================
+// 当 store.pageRules 中有规则的触发条件字段包含当前节点 fieldName 时，
+// watch 该规则所有条件字段的值，变化时检查条件并执行动作列表。
+// 为避免重复执行，只在当前节点是条件字段列表中第一个字段时挂载该规则的 watch。
+// 响应式监听 store.pageRules，变化时重新挂载规则 watch（解决 pageRules 异步加载/动态修改后不生效问题）。
+const pageRuleWatchStoppers: (() => void)[] = []
+function setupPageRuleWatches(): void {
+  for (const stop of pageRuleWatchStoppers) stop()
+  pageRuleWatchStoppers.length = 0
+  if (!props.node.fieldName || !store.pageRules) return
+  for (const rule of store.pageRules) {
+    if (!rule.enabled) continue
+    const ruleConditions = rule.conditions ?? []
+    const condFields = ruleConditions.map((c) => c.field).filter(Boolean)
+    if (!condFields.length) continue
+    if (props.node.fieldName !== condFields[0]) continue
+    const ruleActions = rule.actions
+    const ruleElseActions = rule.elseActions ?? []
+    const stop = watch(
+      () => {
+        const root = store.schema
+        const ctx: Record<string, unknown> = {}
+        for (const fn of condFields) {
+          const depNode = findNodeByFieldNameIn(root, fn)
+          ctx[fn] = depNode?.props.value ?? null
+        }
+        return ctx
+      },
+      (ctx) => {
+        if (pageRuleDepth >= PAGE_RULE_MAX_DEPTH) {
+          console.warn(`[页面规则] 超过最大深度 ${PAGE_RULE_MAX_DEPTH}，可能存在循环依赖，中断执行`)
+          return
+        }
+        pageRuleDepth++
+        try {
+          const matched = evalConditions(ruleConditions, ctx)
+          const api = createRuntimeApi()
+          const actions = matched ? ruleActions : ruleElseActions
+          if (actions.length) {
+            executeActions(actions, api, ctx).catch((err) =>
+              console.error(`[页面规则] ${rule.name} 异步执行错误:`, err),
+            )
+          }
+        } finally {
+          pageRuleDepth--
+        }
+      },
+      { deep: true, immediate: true },
+    )
+    pageRuleWatchStoppers.push(stop)
+  }
+}
+watch(
+  () => store.pageRules,
+  () => setupPageRuleWatches(),
+  { immediate: true, deep: true },
+)
+onBeforeUnmount(() => {
+  for (const stop of pageRuleWatchStoppers) stop()
+  pageRuleWatchStoppers.length = 0
+})
+
+
 // ================ FE-S10 P1: 批量操作 ================
 const batchSelectedRows = ref<Record<string, unknown>[]>([])
 const showBatchDialog = ref(false)
@@ -2514,6 +2784,7 @@ function onGridSelectionChanged(e: { selectedRowsData: Record<string, unknown>[]
   batchSelectedRows.value = e.selectedRowsData ?? []
   if (store.selectMode) {
     store.selectedRowData = (e.selectedRowsData && e.selectedRowsData.length > 0) ? e.selectedRowsData[0] : null
+    store.selectedRowsList = e.selectedRowsData ?? []
   }
 }
 
@@ -2795,13 +3066,26 @@ const wrapperStyle = computed(() => {
     style.height = 'auto'
   }
 
+  // 栅格列自动隐藏：当 el-col 有子节点且所有子节点都隐藏时，el-col 自身也隐藏，不留空白
+  if (nodeType === 'el-col' && props.node.children && props.node.children.length) {
+    const allChildrenHidden = props.node.children.every((child) => {
+      if (child.css?.display === 'none') return true
+      if (child.props.visible === false) return true
+      if (child.fieldName && isFieldHidden(designerStore.pageName, child.fieldName)) return true
+      return false
+    })
+    if (allChildrenHidden) {
+      style.display = 'none'
+    }
+  }
+
   return style
 })
 </script>
 
 <template>
   <div
-    v-if="!nodeFieldHidden"
+    v-if="!nodeFieldHidden && !nodeButtonHidden"
     :id="`renderer-node-${node.id}`"
     class="renderer-node"
     :style="wrapperStyle"
@@ -2815,7 +3099,7 @@ const wrapperStyle = computed(() => {
             v-if="showAdvancedSearch"
             :columns="gridColumns"
             :grid-id="node.id"
-            :query-config="designerStore.queryConfig"
+            :query-config="store.queryConfig"
             @search="onAdvSearch"
             @reset="onAdvSearchReset"
             @height-change="updateGridHeightOffset"
@@ -2918,7 +3202,7 @@ const wrapperStyle = computed(() => {
             </div>
           </div>
           <!-- FE-S10: 批量操作按钮（表格页选中行后显示） -->
-          <div v-if="showGridToolbar && batchSelectedRows.length > 1" class="batch-action-bar">
+          <div v-if="showGridToolbar && isGridRemote && batchSelectedRows.length > 1" class="batch-action-bar">
             <span class="batch-count">{{ t('已选') }} {{ batchSelectedRows.length }} {{ t('条') }}</span>
             <button
               v-for="ba in batchActions"
@@ -2989,12 +3273,33 @@ const wrapperStyle = computed(() => {
             >
           </label>
           <div class="form-field-control" :class="{ 'has-error': validationError }">
-            <component :is="materialComponents[node.type]" v-bind="boundProps" @focus-out="onFieldBlur" @value-changed="onFieldValueChanged" />
+            <DictSelectBox
+              v-if="hasDictCode"
+              :dict-code="node.props.dictCode as string"
+              :model-value="boundProps.modelValue ?? boundProps.value"
+              :disabled="!!boundProps.disabled"
+              :read-only="!!boundProps.readOnly"
+              :placeholder="boundProps.placeholder as string"
+              @update:model-value="(v: any) => { node.props.value = v; onFieldValueChanged(); store.schemaRevision += 1 }"
+              @focus-out="onFieldBlur"
+            />
+            <component v-else :is="materialComponents[node.type]" v-bind="boundProps" @focus-out="onFieldBlur" @value-changed="onFieldValueChanged" />
             <div v-if="validationError" class="field-error-msg">{{ validationError }}</div>
           </div>
         </div>
         <div v-else class="form-field-control" :class="{ 'has-error': validationError }">
+          <DictSelectBox
+            v-if="hasDictCode"
+            :dict-code="node.props.dictCode as string"
+            :model-value="boundProps.modelValue ?? boundProps.value"
+            :disabled="!!boundProps.disabled"
+            :read-only="!!boundProps.readOnly"
+            :placeholder="boundProps.placeholder as string"
+            @update:model-value="(v: any) => { node.props.value = v; onFieldValueChanged(); store.schemaRevision += 1 }"
+            @focus-out="onFieldBlur"
+            />
           <component
+            v-else
             :is="materialComponents[node.type]"
             v-bind="boundProps"
             @focus-out="onFieldBlur"

@@ -97,6 +97,28 @@ public class SqlEngineJson {
         return facade.insert(req, DB_NAME);
     }
 
+    /** 批量新增：data 为 JSONArray，每个元素一行（JDBC batch，走 SqlExecutor 统一事务绑定） */
+    public ResMsg batchInsert(String table, JSONArray rows) {
+        JSONObject req = new JSONObject();
+        req.put("tableName", table);
+        req.put("data", rows);
+        return facade.batchInsert(req, DB_NAME);
+    }
+
+    /** 构造 IN 条件：AND column IN (values...)，values 为值集合 */
+    public JSONArray in(String column, java.util.List<?> values) {
+        JSONArray conditions = new JSONArray();
+        JSONObject connector = new JSONObject();
+        connector.put("Symbol", "and");
+        conditions.add(connector);
+        JSONObject cond = new JSONObject();
+        cond.put("Id", column);
+        cond.put("Symbol", "in");
+        cond.put("Val", values);
+        conditions.add(cond);
+        return conditions;
+    }
+
     public ResMsg update(String table, JSONObject data, JSONArray conditions) {
         JSONObject req = new JSONObject();
         req.put("tableName", table);

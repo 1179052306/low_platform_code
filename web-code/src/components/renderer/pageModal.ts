@@ -4,7 +4,7 @@
  * 每个弹窗拥有独立的渲染 store，互不干扰。
  */
 import { ref } from 'vue'
-import type { ComponentSchema, ComputeRule } from '@/types/schema'
+import type { ComponentSchema, ComputeRule, PageRule } from '@/types/schema'
 import { loadPage } from '@/store/persistence'
 
 export interface PageModalOptions {
@@ -32,6 +32,7 @@ export interface PageModalInstance {
   pageName: string
   schema: ComponentSchema[]
   computeRules?: ComputeRule[]
+  pageRules?: PageRule[]
   primaryKeyField?: string
   tableName?: string
   params: Record<string, unknown>
@@ -82,6 +83,7 @@ export const pageModal = {
 
     const schema = JSON.parse(JSON.stringify(formSchema && formSchema.length ? formSchema : page.root))
     const computeRules = page.computeRules
+    const pageRules = page.pageRules
     return new Promise<unknown>((resolve, reject) => {
       modalStack.value.push({
         id: genModalId(),
@@ -89,6 +91,7 @@ export const pageModal = {
         pageName: page.pageName ?? pageId,
         schema,
         computeRules,
+        pageRules,
         primaryKeyField: page.primaryKeyField || 'id',
         tableName: page.tableName || '',
         params,

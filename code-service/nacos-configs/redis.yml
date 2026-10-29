@@ -1,0 +1,14 @@
+spring:
+  redis:
+    host: localhost
+    port: 8002
+    timeout: 60s
+    password: Ahbcd0306
+    database: 1
+    lettuce:
+      shutdown-timeout: 100ms
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 2
+        max-wait: 3000ms

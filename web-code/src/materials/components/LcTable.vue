@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import { getSession } from '@/store/auth'
 import { loadColumnConfig, saveColumnConfig, type ColumnConfigData } from '@/store/persistence'
+import { gatewayCall } from '@/api'
 
 const DxBaseDataAsync = defineAsyncComponent(() => import('./DxBaseData.vue'))
 
@@ -266,6 +267,7 @@ _regFilter('FilterBaseDataWithOp', {
           value: val || null,
           initialDisplayValue: dispVal,
           placeholder: '请选择',
+          lazy: true,
           dropdownWidthOffset: 300,
           style: 'width:100%;padding-left:74px',
           onValueChanged: (v: any, display?: string) => {
@@ -497,6 +499,7 @@ const props = defineProps<{
   emptyRender?: any
   showSeq?: boolean
   seqWidth?: number
+  bizCode?: string
 }>()
 
 const emit = defineEmits<{
@@ -726,7 +729,20 @@ const sortState = ref<{ field: string; order: 'asc' | 'desc' }[]>([])
 
 
 function handleSelectionChange(e: any) {
-  const records = e.$table ? e.$table.getCheckboxRecords() : (e.records || [])
+  let records: any[] = []
+  const candidates: { label: string; fn?: () => any[] }[] = [
+    { label: 'e.$table', fn: () => e?.$table?.getCheckboxRecords?.() },
+    { label: 'e.records', fn: () => (Array.isArray(e?.records) ? e.records : []) },
+    { label: 'getTableRef', fn: () => gridRef.value?.getTableRef?.()?.getCheckboxRecords?.() },
+    { label: 'gridRef', fn: () => gridRef.value?.getCheckboxRecords?.() },
+  ]
+  for (const c of candidates) {
+    try {
+      const r = c.fn?.() ?? []
+      if (Array.isArray(r) && r.length) { records = r; break }
+    } catch { /* ignore */ }
+  }
+
   selectedRowsData.value = records
   selectedKeys.value = records.map((r: any) => r[keyField.value])
   const event = { selectedRowsData: records, selectedRowKeys: selectedKeys.value }
@@ -741,8 +757,33 @@ function handleRowDblClick(e: any) {
   emit('row-dbl-click', event)
 }
 
+const activedField = ref<string | null>(null)
+function onEditActived(e: any) {
+  activedField.value = e.column?.field || null
+}
+function onEditClosed(e: any) {
+  if (editingMode.value === 'row') {
+    console.warn('[LcTable] edit-closed in row mode', e?.column?.field, e?.row)
+  }
+}
+
+function handleEditMousedown(ev: MouseEvent) {
+  const gridEl = gridRef.value?.$el as HTMLElement
+  if (!gridEl) return
+  const target = ev.target as HTMLElement
+  if (!target?.closest) return
+  if (target.closest('.col--active')) return
+  if (target.closest('.base-data-dropdown')) return
+  if (target.closest('.el-picker-panel')) return
+  if (target.closest('.el-select-dropdown')) return
+  if (target.closest('.el-popper')) return
+  const $table = gridRef.value?.getTableRef?.() || gridRef.value as any
+  $table?.clearEdit?.()
+}
+
+
 function handleRowClick(e: any) {
-  if (selectionMode.value === 'single' && !showCheckBoxes.value) {
+  if (!showCheckBoxes.value && selectionMode.value !== 'multiple') {
     const row = e.row
     if (!row) return
     selectedRowsData.value = [row]
@@ -855,9 +896,101 @@ function addRow() {
   } else {
     const newRow: any = {}
     visibleColumns.value.forEach(c => { newRow[c.dataField as string] = null })
-    tableData.value.unshift(newRow)
-    startEditRow(newRow)
+    tableData.value = [newRow, ...tableData.value]
+    totalCount.value = tableData.value.length
   }
+}
+
+async function deleteSelectedRows() {
+  if (selectedRowsData.value.length === 0) {
+    ElMessage.warning('请先选择要删除的行')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedRowsData.value.length} 行？`, '提示', { type: 'warning' })
+  } catch { return }
+  const keys = selectedRowsData.value.map(r => r[keyField.value])
+  tableData.value = tableData.value.filter(r => !keys.includes(r[keyField.value]))
+  totalCount.value = tableData.value.length
+  selectedRowsData.value = []
+  selectedKeys.value = []
+}
+
+
+function sortAsc() {
+  const rows = selectedRowsData.value
+  if (!rows.length) { ElMessage.warning('请先选择要移动的行'); return }
+  const data = [...tableData.value]
+  const keyFld = keyField.value
+  const indices = rows.map(r => data.findIndex(d => d[keyFld] === r[keyFld])).filter(i => i >= 0).sort((a, b) => a - b)
+  for (const idx of indices) {
+    if (idx <= 0) continue
+    ;[data[idx - 1], data[idx]] = [data[idx], data[idx - 1]]
+  }
+  tableData.value = data
+}
+
+function sortDesc() {
+  const rows = selectedRowsData.value
+  if (!rows.length) { ElMessage.warning('请先选择要移动的行'); return }
+  const data = [...tableData.value]
+  const keyFld = keyField.value
+  const indices = rows.map(r => data.findIndex(d => d[keyFld] === r[keyFld])).filter(i => i >= 0).sort((a, b) => b - a)
+  for (const idx of indices) {
+    if (idx >= data.length - 1) continue
+    ;[data[idx + 1], data[idx]] = [data[idx], data[idx + 1]]
+  }
+  tableData.value = data
+}
+
+async function copyRow() {
+  const rows = selectedRowsData.value
+  if (!rows.length) { ElMessage.warning('请先选择要复制的行'); return }
+  const keyFld = keyField.value
+  if (isRemote.value && (props.dataSource as any)?.insert) {
+    try {
+      for (const row of rows) {
+        const newData = { ...row }
+        delete newData[keyFld]
+        await (props.dataSource as LcDataSource).insert?.(newData)
+      }
+      ElMessage.success('复制成功')
+      loadData()
+    } catch (e) { ElMessage.error('复制失败'); return }
+  } else {
+    const newRows = rows.map(row => {
+      const newRow = { ...row }
+      delete newRow[keyFld]
+      return newRow
+    })
+    tableData.value = [...newRows, ...tableData.value]
+    totalCount.value = tableData.value.length
+  }
+}
+
+async function addMultipleRows() {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入要新增的行数', '新增多行', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /^[1-9]\d*$/,
+      inputErrorMessage: '请输入正整数',
+    })
+    const count = parseInt(value, 10)
+    const newRows: any[] = []
+    for (let i = 0; i < count; i++) {
+      const newRow: any = {}
+      visibleColumns.value.forEach(c => { newRow[c.dataField as string] = null })
+      newRows.push(newRow)
+    }
+    tableData.value = [...newRows, ...tableData.value]
+    totalCount.value = tableData.value.length
+  } catch { /* cancelled */ }
+}
+
+function deleteContextMenuRow() {
+  closeContextMenu()
+  deleteSelectedRows()
 }
 
 function onContextMenu(e: MouseEvent, row: any, col: any) {
@@ -889,6 +1022,9 @@ function onGridContextMenu(e: MouseEvent) {
     onHeaderContextMenu(e)
   } else if (target.closest('.vxe-body--column')) {
     onCellContextMenu(e)
+  } else if (!isRemote.value) {
+    e.preventDefault()
+    contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, row: null, col: null }
   }
 }
 
@@ -928,6 +1064,62 @@ function copyRowJsonData() {
   closeContextMenu()
 }
 
+const auditHistoryVisible = ref(false)
+const auditHistoryLoading = ref(false)
+const auditHistoryData = ref<any[]>([])
+const auditHistoryRow = ref<any>(null)
+const auditHistoryExpanded = ref<Record<string, boolean>>({})
+
+async function viewAuditHistory() {
+  const row = contextMenu.value.row
+  closeContextMenu()
+  if (!row || !props.bizCode) return
+  const keyFld = props.keyExpr || 'id'
+  let id = row[keyFld]
+  if (id == null || /^row_\d+$/.test(String(id))) {
+    id = row[keyFld.toLowerCase()] ?? row[keyFld.toUpperCase()] ?? null
+  }
+  if (id == null || /^row_\d+$/.test(String(id))) {
+    const candidates = Object.keys(row).filter(k =>
+      !k.startsWith('_X_') && !k.startsWith('_') &&
+      !['op', 'opType', 'mode'].includes(k) &&
+      row[k] != null && !/^row_\d+$/.test(String(row[k]))
+    )
+    const pkLike = candidates.find(k => /key|id|code/i.test(k) && k !== 'id')
+    id = pkLike ? row[pkLike] : (candidates.length ? row[candidates[0]] : null)
+  }
+  console.log('[audit] keyExpr=', keyFld, 'rowKeys=', Object.keys(row), 'id=', id)
+  if (id == null) return
+  auditHistoryVisible.value = true
+  auditHistoryLoading.value = true
+  auditHistoryData.value = []
+  auditHistoryRow.value = row
+  try {
+    const result = await gatewayCall(props.bizCode, 'auditHistory', { recordId: id })
+    const resData = result.data as any
+    const payload = resData?.data?.data ?? resData?.data ?? resData
+    auditHistoryData.value = payload?.history ?? []
+  } catch (e: any) {
+    ElMessage.error(e?.message || '查询修改历史失败')
+  } finally {
+    auditHistoryLoading.value = false
+  }
+}
+
+function toggleAuditExpand(id: string) {
+  auditHistoryExpanded.value[id] = !auditHistoryExpanded.value[id]
+}
+
+function formatAuditTime(t: string) {
+  if (!t) return ''
+  try { return new Date(t).toLocaleString('zh-CN') } catch { return t }
+}
+
+function parseAuditJson(json: string): Record<string, any> {
+  if (!json) return {}
+  try { return JSON.parse(json) } catch { return {} }
+}
+
 function onHeaderContextMenu(e: MouseEvent) {
   const target = e.target as HTMLElement
   const th = target.closest('.vxe-header--column')
@@ -947,18 +1139,6 @@ function onHeaderContextMenu(e: MouseEvent) {
 
 function closeHeaderContextMenu() { headerContextMenu.value.visible = false }
 
-function closeEditOnOutsideMousedown(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (!target) return
-  if (target.closest('.el-popper') || target.closest('.el-overlay') || target.closest('.el-select-dropdown') || target.closest('.el-date-editor') || target.closest('.base-data-dropdown')) return
-  if (target.closest('input, select, textarea, button, .el-input, .el-select, .el-select-v2, .dx-base-data-control, .vxe-cell--edit-wrapper, .vxe-cell--edit')) return
-  const $table = gridRef.value?.getTableRef?.() || gridRef.value
-  if ($table?.clearEdit && $table?.getEditCell) {
-    if ($table.getEditCell()) {
-      $table.clearEdit()
-    }
-  }
-}
 
 function headerSortAsc() {
   const field = headerContextMenu.value.field
@@ -1127,6 +1307,30 @@ function handleExportCommand(cmd: string) {
   else if (cmd === 'export_selected') exportSelected()
   else if (cmd === 'export_query') exportQuery()
 }
+
+async function handleStatusToggleCommand(cmd: string) {
+  if (cmd !== 'enable' && cmd !== 'disable') return
+  if (!selectedRowsData.value.length) { ElMessage.warning('请先选择要操作的记录'); return }
+  const tipMsg = cmd === 'enable' ? `确认启用选中的 ${selectedRowsData.value.length} 条记录？` : `确认禁用选中的 ${selectedRowsData.value.length} 条记录？`
+  try {
+    await ElMessageBox.confirm(tipMsg, '提示', { type: 'warning' })
+  } catch { return }
+  const keyFld = keyField.value
+  const statusFld = 'status'
+  const statusVal = cmd === 'enable' ? 1 : 0
+  if (isRemote.value && (props.dataSource as any)?.update) {
+    try {
+      for (const row of selectedRowsData.value) {
+        await (props.dataSource as LcDataSource).update?.(row[keyFld], { [statusFld]: statusVal })
+      }
+      ElMessage.success(cmd === 'enable' ? '启用成功' : '禁用成功')
+      loadData()
+    } catch (e) { ElMessage.error(cmd === 'enable' ? '启用失败' : '禁用失败'); return }
+  } else {
+    selectedRowsData.value.forEach(row => { row[statusFld] = statusVal })
+    ElMessage.success(cmd === 'enable' ? '启用成功' : '禁用成功')
+  }
+}
 function doExport(data: any[]) {
   const cols = visibleColumns.value
   const headerRow = cols.map(c => c.caption || c.dataField || '')
@@ -1273,11 +1477,14 @@ function computeGridColumns(): any[] {
       vxeCol.slots.edit = (params: any) => {
         const { row, $table } = params
         const field = editCol.dataField as string
+
         const finishEdit = () => { if ($table?.clearEdit) $table.clearEdit() }
+
         const focusInput = (vnode: any) => {
+          if (field !== activedField.value) return
           nextTick(() => {
             const el = vnode?.el as HTMLElement
-            if (!el) return
+            if (!el || typeof el.querySelector !== 'function') return
             const input = el.querySelector('input, textarea') as HTMLElement | null
             if (input) input.focus()
           })
@@ -1291,8 +1498,9 @@ function computeGridColumns(): any[] {
             valueField: bdRef.valueField || 'id',
             value: row[field] ?? null,
             size: 'small',
-            autoFocus: true,
             style: 'width: 100%',
+
+            onVnodeMounted: focusInput,
             onSelectionChanged: (selectedRow: any) => {
               if (selectedRow) {
                 const vf = (bdRef.valueField || 'id').toUpperCase()
@@ -1319,6 +1527,7 @@ function computeGridColumns(): any[] {
             onChange: () => finishEdit(),
             size: 'small',
             style: 'width: 100%',
+
             onVnodeMounted: focusInput,
           }, () => ds.map(opt => h(ElOption, {
             key: opt[editCol.lookup!.valueExpr],
@@ -1345,7 +1554,7 @@ function computeGridColumns(): any[] {
           style: 'width: 100%',
           onVnodeMounted: focusInput,
           onKeydown: (e: any) => { if (e.key === 'Enter') finishEdit() },
-          onBlur: () => finishEdit(),
+
         })
       }
     }
@@ -1526,6 +1735,7 @@ const editConfig = computed(() => {
   }
   if (props.editAutoClear !== undefined) cfg.autoClear = props.editAutoClear
   else cfg.autoClear = true
+
   return cfg
 })
 
@@ -1597,7 +1807,11 @@ const toolbarConfig = computed(() => {
 })
 
 function handleToolbarClick({ code }: any) {
-  if (code === 'add') addRow()
+  if (code === 'add' || code === 'addRow') addRow()
+  else if (code === 'deleteRows') deleteSelectedRows()
+  else if (code === 'sortAsc') sortAsc()
+  else if (code === 'sortDesc') sortDesc()
+  else if (code === 'copyRow') copyRow()
   else if (code === 'edit') {
     const row = selectedRowsData.value[0]
     if (row) startEditRow(row)
@@ -1611,6 +1825,9 @@ function handleToolbarClick({ code }: any) {
   else if (code === 'refresh') {
     loadData()
   }
+  else if (code === 'enable' || code === 'disable') {
+    handleStatusToggleCommand(code)
+  }
   else {
     const item = props.toolbar?.items?.find((i: any) => i.name === code)
     if (item?.onClick) {
@@ -1623,13 +1840,19 @@ function handleToolbarClick({ code }: any) {
   }
 }
 
-const showToolbar = computed(() => props.toolbar?.visible !== false && (allowAdding.value || allowDeleting.value || allowUpdating.value || (props.toolbar?.items?.length || 0) > 0))
+
+const showToolbar = computed(() => {
+  if (props.toolbar?.visible === false) return false
+  if (!isRemote.value) return true
+  return allowAdding.value || allowDeleting.value || allowUpdating.value || (props.toolbar?.items?.length || 0) > 0
+})
+
 
 const instance = {
   refresh, loadData, getSelectedRowsData, getSelectedRowKeys,
   exportToExcel, exportPageData, exportSelected, exportQuery,
   openColumnConfig,
-  addRow, deleteRow, startEditRow, saveEdit, cancelEdit,
+  addRow, deleteRow, deleteSelectedRows, sortAsc, sortDesc, copyRow, startEditRow, saveEdit, cancelEdit,
   get option() { return (name: string, value?: any) => { if (value !== undefined) (this as any)[name] = value; return (this as any)[name] } },
   cellValue: (rowIndex: number, field: string, value?: any) => {
     const row = displayData.value[rowIndex]
@@ -1731,7 +1954,8 @@ onMounted(() => {
   emit('initialized', { component: instance })
   document.addEventListener('click', closeContextMenu)
   document.addEventListener('click', closeHeaderContextMenu)
-  document.addEventListener('mousedown', closeEditOnOutsideMousedown)
+  document.addEventListener('mousedown', handleEditMousedown, true)
+
   styleInterval = window.setInterval(() => { setupDragScroll() }, 500)
   nextTick(() => setupDragScroll())
 
@@ -1740,7 +1964,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeContextMenu)
   document.removeEventListener('click', closeHeaderContextMenu)
-  document.removeEventListener('mousedown', closeEditOnOutsideMousedown)
+  document.removeEventListener('mousedown', handleEditMousedown, true)
+
   if (styleInterval) window.clearInterval(styleInterval)
   document.removeEventListener('mousemove', onDragMouseMove)
   document.removeEventListener('mouseup', onDragMouseUp)
@@ -1753,6 +1978,7 @@ onBeforeUnmount(() => {
 })
 
 watch(() => props.dataSource, () => loadData(), { deep: true })
+
 watch(() => props.columns, (cols) => {
   if (!cols) return
   const newOrder = cols.map(c => c.dataField as string)
@@ -1770,11 +1996,11 @@ defineExpose(instance)
 <template>
   <div class="lc-table-wrapper">
     <div v-if="showToolbar" class="lc-table-toolbar">
-      <el-button v-if="allowAdding" @click="addRow">新增</el-button>
-      <el-button v-if="allowUpdating" @click="() => { const r = selectedRowsData[0]; if (r) startEditRow(r) }">修改</el-button>
-      <el-button v-if="allowDeleting" @click="() => selectedRowsData.forEach(r => deleteRow(r))">删除</el-button>
-      <el-button v-for="item in (props.toolbar?.items || []).filter((i: any) => i.visible !== false && !['add','edit','delete','export','refresh','columnConfig','columnChooser'].includes(i.name))" :key="item.name" :type="(item.type as any) || 'default'" @click="handleToolbarClick({ code: item.name })">{{ item.caption || item.name }}</el-button>
-      <el-dropdown v-if="(props.toolbar?.items || []).some((i: any) => i.name === 'export' && i.visible !== false)" @command="(cmd: string) => handleExportCommand(cmd)">
+      <el-button v-if="isRemote && allowAdding" @click="addRow">新增</el-button>
+      <el-button v-if="isRemote && allowUpdating" @click="() => { const r = selectedRowsData[0]; if (r) startEditRow(r) }">修改</el-button>
+      <el-button v-if="isRemote && allowDeleting" @click="() => selectedRowsData.forEach(r => deleteRow(r))">删除</el-button>
+      <el-button v-for="item in (props.toolbar?.items || []).filter((i: any) => i.visible !== false && !['add','edit','delete','export','refresh','columnConfig','columnChooser','statusToggle'].includes(i.name))" :key="item.name" :type="(item.type as any) || 'default'" @click="handleToolbarClick({ code: item.name })">{{ item.caption || item.name }}</el-button>
+      <el-dropdown v-if="isRemote && (props.toolbar?.items || []).some((i: any) => i.name === 'export' && i.visible !== false)" @command="(cmd: string) => handleExportCommand(cmd)">
         <el-button type="default">导出 ▾</el-button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -1784,7 +2010,16 @@ defineExpose(instance)
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <el-button v-if="(props.toolbar?.items || []).some((i: any) => i.name === 'refresh' && i.visible !== false)" @click="loadData">刷新</el-button>
+      <el-dropdown v-if="isRemote && (props.toolbar?.items || []).some((i: any) => i.name === 'statusToggle' && i.visible !== false)" @command="(cmd: string) => handleStatusToggleCommand(cmd)">
+        <el-button type="default">启用/禁用 ▾</el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="enable">启用</el-dropdown-item>
+            <el-dropdown-item command="disable">禁用</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-button v-if="isRemote && (props.toolbar?.items || []).some((i: any) => i.name === 'refresh' && i.visible !== false)" @click="loadData">刷新</el-button>
       <el-button v-if="(props.toolbar?.items || []).some((i: any) => i.name === 'columnConfig' && i.visible !== false)" @click="openColumnConfig">列配置</el-button>
     </div>
 
@@ -1855,13 +2090,18 @@ defineExpose(instance)
       :aggregate-config="aggregateConfig"
       :empty-render="emptyRender"
       @checkbox-change="handleSelectionChange"
+      @checkbox-all="handleSelectionChange"
       @page-change="handlePageChange"
       @sort-change="handleSortChange"
       @filter-change="handleFilterChange"
       @cell-dblclick="handleRowDblClick"
       @cell-click="handleRowClick"
+
       @contextmenu="onGridContextMenu"
       @column-resize="handleColumnResize"
+      @edit-actived="onEditActived"
+      @edit-closed="onEditClosed"
+
 
     >
       <template #expandContent="{ row }">
@@ -1941,8 +2181,8 @@ defineExpose(instance)
         :page-sizes="props.pager?.allowedPageSizes || [15, 30, 50, 100]"
         :total="totalForPager"
         layout="total, sizes, prev, pager, next, jumper"
-        @current-change="(v: number) => { currentPage = v; loadData() }"
-        @size-change="(v: number) => { pageSize = v; currentPage = 1; loadData() }"
+        @current-change="(v: number) => { currentPage = v; if (isRemote) loadData() }"
+        @size-change="(v: number) => { pageSize = v; currentPage = 1; if (isRemote) loadData() }"
       />
     </div>
 
@@ -2008,12 +2248,65 @@ defineExpose(instance)
     </el-dialog>
 
     <div v-if="contextMenu.visible" class="lc-context-menu" :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }" @click.stop>
-      <div class="lc-context-menu-item" @click="copyCellValue">复制单元格</div>
-      <div class="lc-context-menu-item" @click="copyRowData">复制行数据</div>
-      <div class="lc-context-menu-item" @click="copyRowJsonData">复制行原数据</div>
+      <template v-if="contextMenu.row">
+        <div class="lc-context-menu-item" @click="copyCellValue">复制单元格</div>
+        <div class="lc-context-menu-item" @click="copyRowData">复制行数据</div>
+        <div class="lc-context-menu-item" @click="copyRowJsonData">复制行原数据</div>
+        <template v-if="bizCode">
+          <div class="lc-context-menu-divider"></div>
+          <div class="lc-context-menu-item" @click="viewAuditHistory">查看修改历史</div>
+        </template>
+      </template>
+      <template v-if="!isRemote">
+        <div v-if="contextMenu.row" class="lc-context-menu-divider"></div>
+        <div class="lc-context-menu-item" @click="addRow(); closeContextMenu()">新增行</div>
+        <div class="lc-context-menu-item" @click="addMultipleRows(); closeContextMenu()">新增多行</div>
+        <div v-if="contextMenu.row" class="lc-context-menu-item" @click="deleteContextMenuRow">删除行</div>
+      </template>
       <div class="lc-context-menu-divider"></div>
       <div class="lc-context-menu-item" @click="closeContextMenu">取消</div>
     </div>
+
+    <el-dialog v-model="auditHistoryVisible" title="修改历史" width="700px" append-to-body>
+      <div v-if="auditHistoryLoading" style="text-align:center;padding:40px;color:#999">加载中...</div>
+      <div v-else-if="auditHistoryData.length === 0" style="text-align:center;padding:40px;color:#999">暂无修改历史</div>
+      <table v-else class="audit-history-table">
+        <thead>
+          <tr>
+            <th style="width:160px">时间</th>
+            <th style="width:80px">操作人</th>
+            <th style="width:60px">操作</th>
+            <th style="width:120px">变更字段</th>
+            <th>变更详情</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="record in auditHistoryData" :key="record.id">
+            <tr @click="toggleAuditExpand(record.id)" style="cursor:pointer">
+              <td>{{ formatAuditTime(record.operatedAt) }}</td>
+              <td>{{ record.operator }}</td>
+              <td>{{ record.action === 'update' ? '修改' : record.action }}</td>
+              <td>{{ record.changedFields }}</td>
+              <td style="color:#409eff">{{ auditHistoryExpanded[record.id] ? '收起' : '展开' }}</td>
+            </tr>
+            <tr v-if="auditHistoryExpanded[record.id]">
+              <td colspan="5" style="background:#f5f7fa;padding:8px 12px">
+                <div style="display:flex;gap:20px">
+                  <div style="flex:1">
+                    <div style="font-weight:bold;margin-bottom:4px">改前</div>
+                    <pre style="margin:0;font-size:12px;white-space:pre-wrap">{{ JSON.stringify(parseAuditJson(record.beforeData), null, 2) }}</pre>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-weight:bold;margin-bottom:4px">改后</div>
+                    <pre style="margin:0;font-size:12px;white-space:pre-wrap">{{ JSON.stringify(parseAuditJson(record.afterData), null, 2) }}</pre>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </el-dialog>
 
     <div v-if="headerContextMenu.visible" class="lc-context-menu" :style="{ left: headerContextMenu.x + 'px', top: headerContextMenu.y + 'px' }" @click.stop>
       <template v-if="headerCtxCanSort">
@@ -2051,7 +2344,7 @@ defineExpose(instance)
 .lc-table-wrapper :deep(.is--floating-filters .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
 .lc-table-wrapper :deep(.is--floating-filters .el-input) { padding-right: 5px !important; }
 .lc-table-wrapper :deep(.is--floating-filters .el-date-editor .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
-.lc-table-toolbar { display: flex; gap: 8px; align-items: center; padding: 8px 0; flex-wrap: wrap; flex-shrink: 0; }
+.lc-table-toolbar { display: flex; gap: 8px; align-items: center; padding: 4px 0 0 0; flex-wrap: wrap; flex-shrink: 0; }
 .lc-grid-container { flex: 1; min-height: 0; overflow: hidden; position: relative; }
 .lc-table-search { padding: 0 0 8px 0; flex-shrink: 0; }
 .lc-table-empty { text-align: center; padding: 32px 0; color: #909399; font-size: 14px; }
@@ -2122,4 +2415,9 @@ defineExpose(instance)
 .lc-table-wrapper .vxe-footer--column .vxe-cell { color: rgb(255, 0, 0) !important; }
 .lc-table-wrapper .vxe-footer--column .vxe-footer-cell--wrapper { color: rgb(255, 0, 0) !important; }
 .lc-table-wrapper .vxe-footer--column .vxe-cell--wrapper { color: rgb(255, 0, 0) !important; }
+
+.audit-history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.audit-history-table th { background: #f5f7fa; padding: 8px 6px; text-align: left; border-bottom: 1px solid #ebeef5; font-weight: 600; }
+.audit-history-table td { padding: 8px 6px; border-bottom: 1px solid #ebeef5; }
+.audit-history-table tr:hover td { background: #f5f7fa; }
 </style>

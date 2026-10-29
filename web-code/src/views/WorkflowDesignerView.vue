@@ -290,11 +290,11 @@ function onRightSplitMouseDown(e: MouseEvent): void {
   document.addEventListener('mouseup', onUp)
 }
 
-const workflowTypes: { value: WorkflowType; label: string }[] = [
-  { value: 'bizFlow', label: '业务流' },
-  { value: 'approvalFlow', label: '审批流' },
-  { value: 'dataFlow', label: '数据流' },
-]
+const workflowTypes = computed<{ value: WorkflowType; label: string }[]>(() =>
+  isBizFlowMode.value
+    ? [{ value: 'bizFlow', label: '业务流' }]
+    : [{ value: 'approvalFlow', label: '审批流' }]
+)
 </script>
 
 <template>

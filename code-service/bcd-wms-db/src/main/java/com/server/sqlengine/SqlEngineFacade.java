@@ -228,8 +228,9 @@ public class SqlEngineFacade {
         }
 
         // 3. 统一走模板引擎：Rpc 占位符替换 → Rps 独立追加 → 其余条件追加
+        String tableName = req.getString("tableName");
         com.server.sqlengine.template.SqlTemplateEngine.TemplateResult result = templateEngine.render(baseSql,
-                conditions, rpsMap, defaultAlias);
+                conditions, rpsMap, defaultAlias, dbName, tableName);
         CompiledSql compiled = new CompiledSql(result.sql(), result.params());
 
         // 4. 追加 groupBy / orderBy / page

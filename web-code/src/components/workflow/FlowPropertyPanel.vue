@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   ElTabs,
   ElTabPane,
@@ -104,11 +105,12 @@ const gatewayTypes: { value: GatewayType; label: string }[] = [
   { value: 'parallel', label: '并行网关' },
   { value: 'inclusive', label: '包容网关' },
 ]
-const workflowTypes: { value: WorkflowType; label: string }[] = [
-  { value: 'bizFlow', label: '业务流' },
-  { value: 'approvalFlow', label: '审批流' },
-  { value: 'dataFlow', label: '数据流' },
-]
+const route = useRoute()
+const workflowTypes = computed<{ value: WorkflowType; label: string }[]>(() =>
+  route.name === 'biz-flow-designer'
+    ? [{ value: 'bizFlow', label: '业务流' }]
+    : [{ value: 'approvalFlow', label: '审批流' }]
+)
 const messageTypes: NonNullable<WorkflowNode['messageType']>[] = ['email', 'sms', 'im', 'webhook']
 
 /** 网关分支增删改 */

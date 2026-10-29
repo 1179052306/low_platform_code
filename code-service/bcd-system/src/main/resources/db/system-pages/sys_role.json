@@ -1,0 +1,370 @@
+{
+  "version": "1.0.0",
+  "seedVersion": 7,
+  "pageId": "page_sys_role",
+  "pageName": "角色管理",
+  "tableName": "sys_role",
+  "primaryKeyField": "code",
+  "keyStrategy": "UUID",
+  "pageType": "basedata",
+  "lastBizMode": "table",
+  "root": [],
+  "bizSchemas": {
+    "form": [
+      {
+        "id": "n_iz5j8",
+        "type": "el-row",
+        "props": {
+          "gutter": 16,
+          "rowGap": 8,
+          "justify": "start",
+          "align": "stretch",
+          "wrap": true
+        },
+        "children": [
+          {
+            "id": "n_dmexw",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_cct4j",
+                "type": "text-box",
+                "fieldName": "f_code",
+                "dbField": "code",
+                "children": [],
+                "props": {
+                  "label": "角色编码",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入角色编码",
+                  "mode": "text",
+                  "width": "100%",
+                  "required": true
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_fv0db",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_eqreq",
+                "type": "text-box",
+                "fieldName": "f_name",
+                "dbField": "name",
+                "children": [],
+                "props": {
+                  "label": "角色名称",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入角色名称",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_h2sr3",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_gxxxh",
+                "type": "switch",
+                "fieldName": "f_enabled",
+                "dbField": "enabled",
+                "children": [],
+                "props": {
+                  "label": "启用",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          }
+        ],
+        "css": {
+          "width": "100%",
+          "padding": "0 10px"
+        },
+        "heightAuto": true
+      }
+    ],
+    "table": [
+      {
+        "id": "grid_sys_role",
+        "type": "data-grid",
+        "children": [],
+        "width": 800,
+        "height": 400,
+        "props": {
+          "dataSourceType": "remote",
+          "advancedSearch": true,
+          "columns": [
+            {
+              "dataField": "code",
+              "caption": "角色编码",
+              "dataType": "string",
+              "width": 140,
+              "allowSorting": true,
+              "editorType": "default",
+              "formFieldName": "field_code",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "name",
+              "caption": "角色名称",
+              "dataType": "string",
+              "width": 160,
+              "editorType": "default",
+              "formFieldName": "field_name",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "enabled",
+              "caption": "启用",
+              "dataType": "boolean",
+              "width": 80,
+              "format": "true:是,false:否",
+              "editorType": "default",
+              "formFieldName": "field_enabled",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "userCount",
+              "caption": "用户数",
+              "dataType": "number",
+              "width": 90,
+              "editorType": "default",
+              "formFieldName": "field_userCount",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "menuCount",
+              "caption": "菜单数",
+              "dataType": "number",
+              "width": 90,
+              "editorType": "default",
+              "formFieldName": "field_menuCount",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "createdAt",
+              "caption": "创建时间",
+              "dataType": "string",
+              "width": 170,
+              "editorType": "default",
+              "formFieldName": "field_createdAt",
+              "allowEditing": false,
+              "visible": true
+            }
+          ],
+          "height": "100%",
+          "showBorders": true,
+          "columnAutoWidth": true,
+          "showSeq": true,
+          "seqWidth": 60,
+          "stripe": true,
+          "paging": {
+            "pageSize": 15,
+            "enabled": true
+          },
+          "pager": {
+            "showPageSizeSelector": true,
+            "allowedPageSizes": [
+              15,
+              30,
+              50,
+              100
+            ],
+            "showInfo": true,
+            "showNavigationButtons": true
+          },
+          "filterRow": {
+            "visible": true
+          },
+          "sorting": {
+            "mode": "single"
+          },
+          "selection": {
+            "mode": "multiple",
+            "showCheckBoxesMode": "always"
+          },
+          "toolbar": {
+            "visible": true,
+            "items": [
+              {
+                "name": "add",
+                "caption": "新增",
+                "icon": "plus",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:role:save",
+                "openPage": {
+                  "pageId": "page_sys_role",
+                  "bizMode": "form",
+                  "title": "新增角色",
+                  "width": "520px",
+                  "height": "360px"
+                }
+              },
+              {
+                "name": "edit",
+                "caption": "修改",
+                "icon": "edit",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:role:save",
+                "openPage": {
+                  "pageId": "page_sys_role",
+                  "bizMode": "form",
+                  "passSelectedRow": true,
+                  "title": "修改角色",
+                  "width": "520px",
+                  "height": "360px"
+                }
+              },
+              {
+                "name": "delete",
+                "caption": "删除",
+                "icon": "trash",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:role:delete"
+              },
+              {
+                "name": "assignMenus",
+                "caption": "分配菜单",
+                "icon": "menu",
+                "location": "before",
+                "visible": true,
+                "isCustom": true,
+                "permCode": "system:role:assignMenus",
+                "onClick": "const sel = grid.getSelectedRowsData()\nif (!sel || sel.length !== 1) { api.showMessage('请勾选一行角色', 'warning'); return }\nconst picked = await api.openPage('page_sys_menu', {}, { bizMode: 'table', title: '选择该角色可访问的菜单（可多选，将全量覆盖）', width: 860, height: 560, selectMode: true })\nif (!picked) return\nconst menus = Array.isArray(picked) ? picked : [picked]\nconst r = await api.call('sysRoleAssignMenus', { data: { roleCode: sel[0].code, menuIds: menus.map(m => m.id) } })\nif (r && r.ok) { api.showMessage('菜单授权已保存（重新登录后菜单刷新）'); grid.refresh() }"
+              }
+            ]
+          },
+          "modalConfig": {
+            "width": 520,
+            "height": 360,
+            "maximizable": true,
+            "draggable": true
+          },
+          "showColumnHeaders": true,
+          "showColumnLines": true,
+          "showRowLines": true,
+          "allowColumnReordering": true,
+          "allowColumnResizing": true,
+          "wordWrapEnabled": true,
+          "showOverflow": true,
+          "showHeaderOverflow": true,
+          "autoResize": true,
+          "size": "mini",
+          "round": false,
+          "showFooter": false,
+          "showFooterOverflow": true,
+          "keepSource": false,
+          "virtualScroll": false,
+          "virtualScrollThreshold": 60,
+          "columnPersistence": false,
+          "editShowStatus": true,
+          "keyExpr": "id",
+          "remoteMethod": "POST",
+          "dataSource": [],
+          "tableName": "",
+          "tableComment": "",
+          "parentType": "page",
+          "parentRef": ""
+        },
+        "css": {
+          "width": "100%",
+          "height": "100%",
+          "padding": "0",
+          "margin": "0"
+        },
+        "heightAuto": true
+      }
+    ],
+    "mobile": []
+  },
+  "queryConfig": {
+    "fields": [
+      {
+        "fieldName": "code",
+        "label": "角色编码",
+        "operators": [
+          "contains",
+          "=",
+          "startswith"
+        ]
+      },
+      {
+        "fieldName": "name",
+        "label": "角色名称",
+        "operators": [
+          "contains",
+          "="
+        ]
+      }
+    ],
+    "pageSize": 15
+  }
+}

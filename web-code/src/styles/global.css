@@ -64,14 +64,16 @@ body,
 .lc-icon-select-popper {
   z-index: 100000 !important;
 }
-/* 弹窗内 Element Plus 下拉/弹出层 z-index 高于 page-modal-overlay(10000+) 避免被遮挡 */
+/* 弹窗内 Element Plus 下拉/弹出层 z-index 高于 page-modal-overlay(10000+) 避免被遮挡；
+   同时必须严格高于 ElDialog overlay(100000)——若同为 100000，keep-alive 页面切换后
+   dialog overlay 会后插入 body 而盖住持久化的 select popper，导致下拉无法选值 */
 .el-select__popper,
 .el-picker__popper,
 .el-autocomplete-suggestion,
 .el-cascader__dropdown,
 .el-tree-select__popper,
 .el-popover.el-popper {
-  z-index: 100000 !important;
+  z-index: 100002 !important;
 }
 /* 弹窗内关闭确认框：z-index 高于 page-modal-overlay(10000+) 避免被遮挡 */
 .el-overlay:has(.lc-modal-confirm) {
@@ -95,5 +97,5 @@ body.designer-page .el-message {
 }
 
 /* ElDialog 内 ElSelect 下拉面板 z-index 提升，避免被弹框遮挡（弹框 overlay z-index 为 100000） */
-.dialog-inner-popper { z-index: 100001 !important; }
+.dialog-inner-popper { z-index: 100002 !important; }
 

@@ -16,16 +16,20 @@ import ReportViewer from '@/components/ReportViewer.vue'
 import { setupApiGovernance } from '@/api'
 import { loadApiRegistry } from '@/store/api-store'
 import { initLang } from '@/store/lang'
+import { setupPermDirective } from '@/directives/perm'
+import { restoreSession } from '@/store/auth'
 
 VxeUI.use(VxeTable as any)
 
 setupApiGovernance()
 loadApiRegistry().catch((e) => console.error('[main] loadApiRegistry failed:', e))
 initLang().catch((e) => console.error('[main] initLang failed:', e))
+restoreSession()
 
 const app = createApp(App)
 app.component('ReportViewer', ReportViewer)
 app.use(router)
 app.use(VxeUI as any)
+setupPermDirective(app)
 
 app.mount('#app')

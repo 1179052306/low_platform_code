@@ -538,6 +538,7 @@ onBeforeUnmount(() => {
             :value-field="getColBaseDataRef(cond.field)!.valueField"
             :value="cond.value ?? null"
             placeholder="请选择"
+            lazy
             @value-changed="(val: any) => { cond.value = val ?? '' }"
           />
           <ElDatePicker
@@ -607,6 +608,7 @@ onBeforeUnmount(() => {
               :value-field="getColBaseDataRef(cond.field)!.valueField"
               :value="cond.value2 ?? null"
               placeholder="请选择"
+              lazy
               @value-changed="(val: any) => { cond.value2 = val ?? '' }"
             />
             <ElDatePicker

@@ -1,0 +1,18 @@
+pluginId: item-plugin
+version: 1.0.0
+name: 物料业务插件
+author: example
+minPlatformVersion: 1.0.0
+
+# 入口类（必须有无参构造函数）
+entryClass: com.example.plugin.ItemPlugin
+
+# BizPlugin 实现 MultiHook，PluginContainer 会自动调用 getHooks() 注册所有钩子
+hooks:
+  - impl: com.example.plugin.ItemPlugin
+
+permissions:
+  - "db:insert:B_STOCK_INIT"
+  - "db:insert:B_OP_LOG"
+  - "db:query:B_ITEM"
+  - "db:update:B_ITEM"

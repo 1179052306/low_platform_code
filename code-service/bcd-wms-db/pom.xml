@@ -58,9 +58,25 @@
             <artifactId>poi-ooxml</artifactId>
 
         </dependency>
+        <!-- commons-compress resolved 到 1.27.1，其 FileTimes.isUnixTime 需 commons-io 2.16+，显式升级避免 NoSuchMethodError -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <!-- 共享 OAuth 基础类（com.server.oauth：LowcodeUserDetails / DeviceAuthenticationKeyGenerator）所需 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security.oauth</groupId>
+            <artifactId>spring-security-oauth2</artifactId>
+            <version>2.3.7.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

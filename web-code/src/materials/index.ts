@@ -377,6 +377,7 @@ export const materialConfigs: MaterialConfig[] = [
       refPageId: '',
       displayField: '',
       valueField: 'id',
+      codeField: '',
       placeholder: '请选择',
       width: 240,
       value: null,

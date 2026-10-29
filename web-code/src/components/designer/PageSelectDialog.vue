@@ -319,7 +319,7 @@ watch(
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 20000;
+  z-index: 100001;
   display: flex;
   align-items: center;
   justify-content: center;

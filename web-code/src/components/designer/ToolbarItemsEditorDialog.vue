@@ -46,6 +46,7 @@ const PRESET_ITEMS: {
   children?: ToolbarItemConfig[]
 }[] = [
   { name: 'add', caption: t('新增'), icon: 'plus', defaultLocation: 'before' },
+  { name: 'import', caption: t('导入'), icon: 'upload', defaultLocation: 'before' },
   {
     name: 'delete',
     caption: t('删除'),
@@ -53,6 +54,9 @@ const PRESET_ITEMS: {
     defaultLocation: 'before',
   },
   { name: 'edit', caption: t('编辑'), icon: 'edit', defaultLocation: 'before' },
+  { name: 'sortAsc', caption: t('升序'), icon: 'arrowup', defaultLocation: 'before' },
+  { name: 'sortDesc', caption: t('降序'), icon: 'arrowdown', defaultLocation: 'before' },
+  { name: 'copyRow', caption: t('复制行'), icon: 'copy', defaultLocation: 'before' },
   { name: 'save', caption: t('保存'), icon: 'save', defaultLocation: 'after' },
   {
     name: 'cancel',
@@ -71,6 +75,17 @@ const PRESET_ITEMS: {
       { name: 'export_query', caption: t('查询导出'), icon: 'export', location: 'after', visible: true, isCustom: false },
       { name: 'export_template_selected', caption: t('模板选中导出'), icon: 'download', location: 'after', visible: true, isCustom: false },
       { name: 'export_template_query', caption: t('模板查询导出'), icon: 'download', location: 'after', visible: true, isCustom: false },
+    ],
+  },
+  {
+    name: 'statusToggle',
+    caption: t('启用/禁用'),
+    icon: 'checkmarkcircle',
+    defaultLocation: 'after',
+    itemType: 'dropdown',
+    children: [
+      { name: 'enable', caption: t('启用'), icon: 'check', location: 'after', visible: true, isCustom: false },
+      { name: 'disable', caption: t('禁用'), icon: 'clear', location: 'after', visible: true, isCustom: false },
     ],
   },
   {
@@ -107,6 +122,7 @@ const props = defineProps<{
   modelValue: string
   visible: boolean
   title?: string
+  remoteGrid?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -149,6 +165,7 @@ function getRealIndex(filteredIdx: number): number {
 function defaultOpenPageForPreset(name: string): ToolbarItemConfig['openPage'] {
   if (name === 'add') return { pageId: '__current__', bizMode: 'form', title: t('新增'), width: '80%', height: '80%' }
   if (name === 'edit') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, title: t('修改'), width: '80%', height: '80%' }
+  if (name === 'copyRow') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, title: t('复制行'), width: '80%', height: '80%' }
   return undefined
 }
 
@@ -159,8 +176,19 @@ function defaultChildrenForPreset(name: string): ToolbarItemConfig[] | undefined
     { name: 'export_template_selected', caption: t('模板选中导出'), icon: 'download', location: 'after', visible: true, isCustom: false },
     { name: 'export_template_query', caption: t('模板查询导出'), icon: 'download', location: 'after', visible: true, isCustom: false },
   ]
+  if (name === 'statusToggle') return [
+    { name: 'enable', caption: t('启用'), icon: 'check', location: 'after', visible: true, isCustom: false },
+    { name: 'disable', caption: t('禁用'), icon: 'clear', location: 'after', visible: true, isCustom: false },
+  ]
   return undefined
 }
+
+// 静态表格：不展示新增/编辑/删除/保存/取消/启用禁用预设按钮；远程表格（表格页面）：不展示升序/降序预设按钮
+const excludedPresetNames = computed(() => {
+  if (props.remoteGrid) return ['sortAsc', 'sortDesc']
+  return ['add', 'edit', 'delete', 'save', 'cancel', 'statusToggle']
+})
+const filteredPresetItems = computed(() => PRESET_ITEMS.filter((p) => !excludedPresetNames.value.includes(p.name)))
 
 watch(
   () => props.modelValue,
@@ -168,7 +196,9 @@ watch(
     try {
       const parsed = JSON.parse(val || '[]')
       if (Array.isArray(parsed) && parsed.length > 0) {
-        items.value = parsed.map((p: Record<string, unknown>) => ({
+        // 按表格类型过滤不适用的预设按钮（自定义按钮不受影响）
+        const filtered = parsed.filter((p: any) => p.isCustom === true || !excludedPresetNames.value.includes(String(p.name ?? '')))
+        items.value = filtered.map((p: Record<string, unknown>) => ({
           name: String(p.name ?? ''),
           caption: String(p.caption ?? p.name ?? ''),
           icon: String(p.icon ?? ''),
@@ -187,9 +217,35 @@ watch(
           children: (p.children as ToolbarItemConfig[])?.map((c) => ({ ...c, visible: c.visible !== false, showIcon: c.showIcon !== false })) ?? (!Boolean(p.isCustom) ? defaultChildrenForPreset(String(p.name ?? '')) : undefined),
           openPage: (p.openPage as ToolbarItemConfig['openPage']) ?? (!Boolean(p.isCustom) ? defaultOpenPageForPreset(String(p.name ?? '')) : undefined),
         }))
+        // 补充缺失的预设按钮（默认不显示）
+        const existingNames = new Set(filtered.map((p: any) => p.name))
+        for (const preset of filteredPresetItems.value) {
+          if (!existingNames.has(preset.name)) {
+            const newPreset = {
+              name: preset.name,
+              caption: preset.caption,
+              icon: preset.icon,
+              location: preset.defaultLocation,
+              visible: false,
+              permCode: preset.name,
+              isCustom: false,
+              itemType: preset.itemType || 'button',
+              children: preset.children,
+              openPage: defaultOpenPageForPreset(preset.name),
+            }
+            // 复制行默认插到"删除"按钮之前，其余预设追加到末尾
+            if (preset.name === 'copyRow') {
+              const deleteIdx = items.value.findIndex((i) => i.name === 'delete')
+              if (deleteIdx >= 0) items.value.splice(deleteIdx, 0, newPreset)
+              else items.value.push(newPreset)
+            } else {
+              items.value.push(newPreset)
+            }
+          }
+        }
       } else {
         // 默认显示预设按钮（全部不显示）
-        items.value = PRESET_ITEMS.map((p) => ({
+        items.value = filteredPresetItems.value.map((p) => ({
           name: p.name,
           caption: p.caption,
           icon: p.icon,
@@ -203,7 +259,7 @@ watch(
         }))
       }
     } catch {
-      items.value = PRESET_ITEMS.map((p) => ({
+      items.value = filteredPresetItems.value.map((p) => ({
         name: p.name,
         caption: p.caption,
         icon: p.icon,

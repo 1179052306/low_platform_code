@@ -3,11 +3,14 @@ package com.api.lowcode.common;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.api.lowcode.meta.MetaRegistry;
+import com.server.db.MultiDataSourceHolder;
 import com.server.sqlengine.SqlEngineJson;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.*;
 
@@ -29,23 +32,30 @@ public class MetaSyncService {
     @Resource
     private MetaRegistry metaRegistry;
 
+    @Resource(name = "multiDataSource")
+    private DataSource dataSource;
+
+    private volatile boolean exprColumnWidened = false;
+
     private static final Map<String, String> TYPE_MAP = new HashMap<>();
 
     static {
-        TYPE_MAP.put("text-box", "VARCHAR");
-        TYPE_MAP.put("text-area", "TEXT");
-        TYPE_MAP.put("number-box", "DECIMAL");
-        TYPE_MAP.put("date-box", "TIMESTAMP");
-        TYPE_MAP.put("check-box", "BOOLEAN");
-        TYPE_MAP.put("switch", "BOOLEAN");
-        TYPE_MAP.put("select-box", "VARCHAR");
-        TYPE_MAP.put("color-box", "VARCHAR");
-        TYPE_MAP.put("tag-box", "VARCHAR");
-        TYPE_MAP.put("lookup", "VARCHAR");
-        TYPE_MAP.put("radio-group", "VARCHAR");
-        TYPE_MAP.put("slider", "DECIMAL");
-        TYPE_MAP.put("range-slider", "VARCHAR");
-        TYPE_MAP.put("progress-bar", "DECIMAL");
+        TYPE_MAP.put("dx-text-box", "VARCHAR");
+        TYPE_MAP.put("dx-text-area", "TEXT");
+        TYPE_MAP.put("dx-number-box", "DECIMAL");
+        TYPE_MAP.put("dx-date-box", "TIMESTAMP");
+        TYPE_MAP.put("dx-date-time-box", "TIMESTAMP");
+        TYPE_MAP.put("dx-check-box", "BOOLEAN");
+        TYPE_MAP.put("dx-switch", "BOOLEAN");
+        TYPE_MAP.put("dx-select-box", "VARCHAR");
+        TYPE_MAP.put("dx-color-box", "VARCHAR");
+        TYPE_MAP.put("dx-tag-box", "VARCHAR");
+        TYPE_MAP.put("dx-lookup", "VARCHAR");
+        TYPE_MAP.put("dx-auto-complete", "VARCHAR");
+        TYPE_MAP.put("dx-radio-group", "VARCHAR");
+        TYPE_MAP.put("dx-slider", "DECIMAL");
+        TYPE_MAP.put("dx-range-slider", "VARCHAR");
+        TYPE_MAP.put("dx-progress-bar", "DECIMAL");
     }
 
     private static final String DEFAULT_DATA_TYPE = "VARCHAR";
@@ -61,6 +71,13 @@ public class MetaSyncService {
             return;
         }
         tableName = tableName.trim();
+        // 系统管理配置页面（sys_ 前缀 bizCode）的元数据由 bcd-system SystemPageSeeder 维护
+        // （写操作为 EXTERNAL_API 桥接），设计器保存时跳过，防止 ensure 的 SINGLE action 覆盖种子
+        if (tableName.startsWith("sys_")) {
+            return;
+        }
+
+        ensureExprColumnText();
 
         String bizCode = tableName;
         String bizName = schema.getString("pageName");
@@ -74,6 +91,7 @@ public class MetaSyncService {
             bizMeta.put("main_table", tableName);
             bizMeta.put("main_table_alias", "T");
             bizMeta.put("logic_delete_field", "deleted");
+            bizMeta.put("status_field", "status");
             String pkField = schema.getString("primaryKeyField");
             bizMeta.put("primary_key_field", pkField != null && !pkField.trim().isEmpty() ? pkField.trim() : "id");
             String keyStrategy = schema.getString("keyStrategy");
@@ -106,11 +124,20 @@ public class MetaSyncService {
                 fieldMeta.put("field_name", f.name);
                 fieldMeta.put("column_type", "BUSINESS");
                 fieldMeta.put("data_type", f.dataType);
-                fieldMeta.put("is_required", false);
-                fieldMeta.put("is_unique", false);
+                fieldMeta.put("is_required", f.required);
+                fieldMeta.put("is_unique", f.unique);
                 fieldMeta.put("is_system_field", false);
                 fieldMeta.put("sort_no", f.sortNo);
+                // 清除语义：取消组合唯一后显式写空串，避免 upsert 保留旧值
+                fieldMeta.put("unique_group", f.uniqueGroup != null ? f.uniqueGroup : "");
                 if (f.baseDataRef != null) {
+                if (f.defaultValueExpr != null) {
+                    // 编码规则 JSON，create 时空值由 NumberRuleEngine 按规则生成
+                    fieldMeta.put("default_value_expr", f.defaultValueExpr);
+                } else {
+                    // 显式清空，避免 upsert 保留旧规则
+                    fieldMeta.put("default_value_expr", "");
+                }
                     fieldMeta.put("base_data_ref", f.baseDataRef);
                 }
                 fieldMeta.put("created_at", now);
@@ -136,39 +163,58 @@ public class MetaSyncService {
         }
     }
 
-    /** 从表格列配置中扫描 baseDataRef，合并到对应字段的 displayField */
+    /** 从表格列配置中扫描 baseDataRef，合并到对应字段的 displayField 与 codeField */
     private void mergeTableBaseDataRefs(JSONObject schema, List<FieldDef> fields) {
         JSONObject bizSchemas = schema.getJSONObject("bizSchemas");
         if (bizSchemas == null) return;
         JSONArray tableRoot = bizSchemas.getJSONArray("table");
         if (tableRoot == null) return;
         Map<String, java.util.Set<String>> tableDisplayFields = new HashMap<>();
-        scanTableColumns(tableRoot, tableDisplayFields);
-        if (tableDisplayFields.isEmpty()) return;
+        Map<String, String> tableCodeFields = new HashMap<>();
+        scanTableColumns(tableRoot, tableDisplayFields, tableCodeFields);
+        boolean hasCodeFields = !tableCodeFields.isEmpty();
+        if (tableDisplayFields.isEmpty() && !hasCodeFields) return;
         for (FieldDef f : fields) {
             if (f.baseDataRef == null) continue;
-            java.util.Set<String> extraFields = tableDisplayFields.get(f.name.toUpperCase());
-            if (extraFields == null || extraFields.isEmpty()) continue;
+            String key = f.name.toUpperCase();
+            java.util.Set<String> extraFields = tableDisplayFields.get(key);
+            String colCodeField = tableCodeFields.get(key);
+            if ((extraFields == null || extraFields.isEmpty()) && (colCodeField == null || colCodeField.isEmpty())) continue;
             try {
                 JSONObject ref = JSONObject.parseObject(f.baseDataRef);
-                String existingDisplay = ref.getString("displayField");
-                java.util.Set<String> allFields = new java.util.LinkedHashSet<>();
-                if (existingDisplay != null) {
-                    for (String df : existingDisplay.split(",")) {
-                        String t = df.trim();
-                        if (!t.isEmpty()) allFields.add(t);
+                boolean changed = false;
+                if (extraFields != null && !extraFields.isEmpty()) {
+                    String existingDisplay = ref.getString("displayField");
+                    java.util.Set<String> allFields = new java.util.LinkedHashSet<>();
+                    if (existingDisplay != null) {
+                        for (String df : existingDisplay.split(",")) {
+                            String t = df.trim();
+                            if (!t.isEmpty()) allFields.add(t);
+                        }
+                    }
+                    allFields.addAll(extraFields);
+                    ref.put("displayField", String.join(",", allFields));
+                    changed = true;
+                }
+                // 列级编码字段合并：表单控件未配 codeField 时以列级配置为准（导入反查匹配字段）
+                if (colCodeField != null && !colCodeField.isEmpty()) {
+                    String existingCode = ref.getString("codeField");
+                    if (existingCode == null || existingCode.isEmpty()) {
+                        ref.put("codeField", colCodeField);
+                        changed = true;
                     }
                 }
-                allFields.addAll(extraFields);
-                ref.put("displayField", String.join(",", allFields));
-                f.baseDataRef = ref.toJSONString();
+                if (changed) {
+                    f.baseDataRef = ref.toJSONString();
+                }
             } catch (Exception e) {
                 log.warn("[MetaSync] 合并表格 baseDataRef 失败: field={}", f.name);
             }
         }
     }
 
-    private void scanTableColumns(JSONArray nodes, Map<String, java.util.Set<String>> map) {
+    private void scanTableColumns(JSONArray nodes, Map<String, java.util.Set<String>> map,
+                                  Map<String, String> codeFieldMap) {
         if (nodes == null) return;
         for (int i = 0; i < nodes.size(); i++) {
             JSONObject node = nodes.getJSONObject(i);
@@ -181,18 +227,28 @@ public class MetaSyncService {
                         JSONObject col = columns.getJSONObject(j);
                         String dataField = col.getString("dataField");
                         JSONObject baseDataRef = col.getJSONObject("baseDataRef");
-                        if (dataField != null && baseDataRef != null && dataField.contains(".")) {
+                        if (dataField == null || baseDataRef == null) continue;
+                        if (dataField.contains(".")) {
                             String sourceField = baseDataRef.getString("sourceField");
                             String displayField = dataField.substring(dataField.indexOf(".") + 1);
                             if (sourceField != null && !displayField.isEmpty()) {
                                 map.computeIfAbsent(sourceField.toUpperCase(), k -> new java.util.LinkedHashSet<>()).add(displayField);
                             }
                         }
+                        // 列级编码字段（ColumnEditorDialog 配置）：无点号列直接归属 dataField，带点号列归属 sourceField
+                        String colCodeField = baseDataRef.getString("codeField");
+                        if (colCodeField != null && !colCodeField.trim().isEmpty()) {
+                            String owner = dataField.contains(".")
+                                    ? baseDataRef.getString("sourceField") : dataField;
+                            if (owner != null && !owner.trim().isEmpty()) {
+                                codeFieldMap.putIfAbsent(owner.toUpperCase(), colCodeField.trim());
+                            }
+                        }
                     }
                 }
             }
             JSONArray children = node.getJSONArray("children");
-            if (children != null) scanTableColumns(children, map);
+            if (children != null) scanTableColumns(children, map, codeFieldMap);
         }
     }
 
@@ -221,7 +277,29 @@ public class MetaSyncService {
             if ("base-data".equals(type)) {
                 baseDataRef = extractBaseDataRef(node);
             }
-            fields.add(new FieldDef(dbField.trim(), dataType, sortNo[0]++, baseDataRef));
+            String defaultValueExpr = null;
+            if ("text-box".equals(type)) {
+                defaultValueExpr = extractDefaultValueExpr(node);
+            }
+            boolean required = extractRequired(node);
+            JSONObject uniqueRule = extractUniqueRule(node);
+            String uniqueGroup = null;
+            if (uniqueRule != null) {
+                JSONArray combine = uniqueRule.getJSONArray("combineFields");
+                JSONArray group = new JSONArray();
+                group.add(dbField.trim());
+                if (combine != null) {
+                    for (int i = 0; i < combine.size(); i++) {
+                        String cf = combine.getString(i);
+                        if (cf != null && !cf.trim().isEmpty() && !cf.trim().equals(dbField.trim())) {
+                            group.add(cf.trim());
+                        }
+                    }
+                }
+                uniqueGroup = group.toJSONString();
+            }
+            fields.add(new FieldDef(dbField.trim(), dataType, sortNo[0]++, baseDataRef, defaultValueExpr,
+                    required, uniqueRule != null, uniqueGroup));
         }
         JSONArray children = node.getJSONArray("children");
         if (children != null) {
@@ -230,6 +308,79 @@ public class MetaSyncService {
             }
         }
     }
+
+    /** 提取必填标记：props.required === true 或 validationRules 含 required 规则 */
+    private boolean extractRequired(JSONObject node) {
+        JSONObject props = node.getJSONObject("props");
+        if (props == null) return false;
+        if (Boolean.TRUE.equals(props.getBoolean("required"))) return true;
+        JSONArray rules = props.getJSONArray("validationRules");
+        if (rules != null) {
+            for (int i = 0; i < rules.size(); i++) {
+                JSONObject rule = rules.getJSONObject(i);
+                if (rule != null && "required".equals(rule.getString("type"))) return true;
+            }
+        }
+        return false;
+    }
+
+    /** 提取唯一性规则（validationRules 中 type=='unique' 的规则，含 combineFields 组合字段） */
+    private JSONObject extractUniqueRule(JSONObject node) {
+        JSONObject props = node.getJSONObject("props");
+        if (props == null) return null;
+        JSONArray rules = props.getJSONArray("validationRules");
+        if (rules == null) return null;
+        for (int i = 0; i < rules.size(); i++) {
+            JSONObject rule = rules.getJSONObject(i);
+            if (rule != null && "unique".equals(rule.getString("type"))) return rule;
+        }
+        return null;
+    }
+
+    /**
+     * 编码规则列扩容为 TEXT（多段规则 JSON 可能超过 VARCHAR(512)，PG 下超长直接报错致规则丢失）。
+     * 幂等：成功一次后跳过；按方言逐个尝试（PG/达梦/金仓 ALTER TYPE、Oracle/MySQL MODIFY、
+     * SQLServer ALTER COLUMN；SQLite VARCHAR 无长度约束无需扩列，语法不支持则静默跳过）。
+     */
+    private void ensureExprColumnText() {
+        if (exprColumnWidened) return;
+        String[] ddls = {
+                "ALTER TABLE lc_field_meta ALTER COLUMN default_value_expr TYPE TEXT",
+                "ALTER TABLE lc_field_meta MODIFY default_value_expr TEXT",
+                "ALTER TABLE lc_field_meta ALTER COLUMN default_value_expr varchar(max)",
+        };
+        MultiDataSourceHolder.setDatasource("lowcode");
+        try {
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            for (String ddl : ddls) {
+                try {
+                    jdbc.execute(ddl);
+                    exprColumnWidened = true;
+                    log.info("[MetaSync] default_value_expr 已扩容为 TEXT: {}", ddl);
+                    return;
+                } catch (Exception ignore) {
+                    // 该方言语法不适用，尝试下一条
+                }
+            }
+            log.warn("[MetaSync] default_value_expr 扩容 DDL 全部不适用（SQLite 等无长度约束库可忽略）");
+        } finally {
+            MultiDataSourceHolder.clearDataSource();
+        }
+    }
+
+    /** 提取编码规则 JSON（兼容 node 平铺层与 props 层） */
+    private String extractDefaultValueExpr(JSONObject node) {        String expr = node.getString("defaultValueExpr");
+        if (expr == null || expr.trim().isEmpty()) {
+            JSONObject props = node.getJSONObject("props");
+            expr = props != null ? props.getString("defaultValueExpr") : null;
+        }
+        String result = expr != null && !expr.trim().isEmpty() ? expr.trim() : null;
+        log.info("[MetaSync] 提取编码规则: type={} dbField={} expr={}",
+                node.getString("type"), node.getString("dbField"),
+                result != null ? (result.length() > 60 ? result.substring(0, 60) + "...len=" + result.length() : result) : "null");
+        return result;
+    }
+
 
     private String extractBaseDataRef(JSONObject node) {
         String refPageId = node.getString("refPageId");
@@ -241,12 +392,20 @@ public class MetaSyncService {
         JSONObject props = node.getJSONObject("props");
         String valueField = props != null ? props.getString("valueField") : null;
         String displayField = props != null ? props.getString("displayField") : null;
+        // 编码字段：数据导入反查（编码→主键）的匹配字段，前端强制必配（兼容 node 平铺层与 props 层）
+        String codeField = node.getString("codeField");
+        if (codeField == null || codeField.isEmpty()) {
+            codeField = props != null ? props.getString("codeField") : null;
+        }
         if (valueField == null || valueField.isEmpty()) valueField = "id";
         if (displayField == null || displayField.isEmpty()) displayField = "name";
         JSONObject ref = new JSONObject();
         ref.put("refPageId", refPageId);
         ref.put("valueField", valueField);
         ref.put("displayField", displayField);
+        if (codeField != null && !codeField.isEmpty()) {
+            ref.put("codeField", codeField);
+        }
         return ref.toJSONString();
     }
 
@@ -255,12 +414,21 @@ public class MetaSyncService {
         final String dataType;
         final int sortNo;
         String baseDataRef;
+        String defaultValueExpr;
+        final boolean required;
+        final boolean unique;
+        final String uniqueGroup;
 
-        FieldDef(String name, String dataType, int sortNo, String baseDataRef) {
+        FieldDef(String name, String dataType, int sortNo, String baseDataRef, String defaultValueExpr,
+                 boolean required, boolean unique, String uniqueGroup) {
             this.name = name;
             this.dataType = dataType;
             this.sortNo = sortNo;
             this.baseDataRef = baseDataRef;
+            this.defaultValueExpr = defaultValueExpr;
+            this.required = required;
+            this.unique = unique;
+            this.uniqueGroup = uniqueGroup;
         }
     }
 }

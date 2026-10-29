@@ -304,38 +304,17 @@ public class JsonConditionConverter {
         if (parts.length < 2) {
             return Condition.eq(column, value);
         }
-        Object low = tryParseNumber(parts[0].trim());
-        Object high = tryParseNumber(parts[1].trim());
-        return Condition.between(column, low, high);
+        return Condition.between(column, parts[0].trim(), parts[1].trim());
     }
 
     /**
-     * 尝试将字符串解析为数字，失败则返回原始字符串。
-     * PostgreSQL 不会自动将字符串参数转 integer 列，需要前端传入正确类型。
+     * 值原样返回，不做类型转换。
+     * <p>类型转换由 {@link com.server.sqlengine.executor.SqlExecutor#convertValueByTypeHint} 根据
+     * 列元数据 typeHint 决定：数值列转 Long/Double，varchar 列保持 String。
+     * 此处提前转换会导致 varchar 列的 "2" 被转成 Integer，PostgreSQL 报
+     * {@code operator does not exist: character varying = integer}。</p>
      */
-    private Object tryParseNumber(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        try {
-            return Integer.parseInt(str);
-        } catch (NumberFormatException e1) {
-            try {
-                return Long.parseLong(str);
-            } catch (NumberFormatException e2) {
-                try {
-                    return Double.parseDouble(str);
-                } catch (NumberFormatException e3) {
-                    return str;
-                }
-            }
-        }
-    }
-
     private Object convertValue(Object value) {
-        if (value instanceof String) {
-            return tryParseNumber((String) value);
-        }
         return value;
     }
 }

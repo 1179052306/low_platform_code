@@ -42,3 +42,17 @@ orig_toolbar.txt
 original_gridToolbar.txt
 check_span.py
 nul
+# 运行时日志/数据
+code-service/logs/
+code-service/data/
+code-service/bcd-code/data/
+*.gz
+
+# 临时脚本与截图
+patch-*.js
+gen-system-pages.js
+smoke_test.js
+start-auth-services.sh
+system-user-view-verified.png
+code-service/list-java.ps1
+code-service/restart-3015.ps1

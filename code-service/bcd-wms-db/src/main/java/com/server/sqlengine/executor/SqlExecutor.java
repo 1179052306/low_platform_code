@@ -8,8 +8,10 @@ import com.server.sqlengine.model.SqlParam;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -62,7 +64,9 @@ public class SqlExecutor {
     }
 
     /**
-     * 获取底层连接 —— 直接从 HikariDataSource 拿，不经过旧 DbHelp。
+     * 获取底层连接 —— 走 {@link DataSourceUtils}：
+     * 当前线程存在 Spring 事务绑定时复用绑定连接（事务真正生效），
+     * 无绑定时行为与直取等价（自动提交，用完即还）。
      */
     private Connection getConnection(@Nullable String dbName) throws SQLException {
         HikariDataSource ds = dbConfig.getHikariDataSource(dbName);
@@ -70,7 +74,32 @@ public class SqlExecutor {
             throw new SQLException("数据源未找到: dbName=" + dbName
                     + "，请检查 spring.datasource.names 配置");
         }
-        return ds.getConnection();
+        return DataSourceUtils.getConnection(ds);
+    }
+
+    /**
+     * 判断当前线程在该数据源上是否绑定了 Spring 事务资源。
+     * 绑定时连接由外层事务管理（不能自行 commit/rollback）。
+     */
+    private boolean isBoundToSpringTx(@Nullable String dbName) {
+        HikariDataSource ds = dbConfig.getHikariDataSource(dbName);
+        return ds != null && TransactionSynchronizationManager.hasResource(ds);
+    }
+
+    /**
+     * 归还连接 —— 绑定连接只减引用计数（由事务管理器最终归还），
+     * 非绑定连接真正关闭（行为等同 close）。
+     */
+    private void releaseConnection(@Nullable Connection conn, @Nullable String dbName) {
+        if (conn == null) {
+            return;
+        }
+        HikariDataSource ds = dbConfig.getHikariDataSource(dbName);
+        if (ds != null) {
+            DataSourceUtils.releaseConnection(conn, ds);
+        } else {
+            closeQuietly(conn);
+        }
     }
 
     // ==================== 单条查询 ====================
@@ -94,7 +123,7 @@ public class SqlExecutor {
         } finally {
             closeQuietly(rs);
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -136,7 +165,7 @@ public class SqlExecutor {
         } finally {
             closeQuietly(rs);
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -159,7 +188,7 @@ public class SqlExecutor {
             return rows;
         } finally {
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -182,9 +211,13 @@ public class SqlExecutor {
             List<List<SqlParam>> batchParams) throws SQLException {
         Connection conn = null;
         PreparedStatement ps = null;
+        boolean selfManagedTx = true;
         try {
+            selfManagedTx = !isBoundToSpringTx(dbName);
             conn = getConnection(dbName);
-            conn.setAutoCommit(false);
+            if (selfManagedTx) {
+                conn.setAutoCommit(false);
+            }
             ps = conn.prepareStatement(compiled.sql());
 
             for (List<SqlParam> rowParams : batchParams) {
@@ -195,17 +228,23 @@ public class SqlExecutor {
             int[] result = ps.executeBatch();
             long duration = System.currentTimeMillis() - start;
             warnSlowSql(duration, compiled.sql());
-            conn.commit();
+            if (selfManagedTx) {
+                conn.commit();
+            }
             return result;
         } catch (SQLException e) {
-            rollbackQuietly(conn);
+            if (selfManagedTx) {
+                rollbackQuietly(conn);
+            }
             throw e;
         } catch (RuntimeException e) {
-            rollbackQuietly(conn);
+            if (selfManagedTx) {
+                rollbackQuietly(conn);
+            }
             throw e;
         } finally {
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -226,9 +265,13 @@ public class SqlExecutor {
         Connection conn = null;
         PreparedStatement ps = null;
         int totalRows = 0;
+        boolean selfManagedTx = true;
         try {
+            selfManagedTx = !isBoundToSpringTx(dbName);
             conn = getConnection(dbName);
-            conn.setAutoCommit(false);
+            if (selfManagedTx) {
+                conn.setAutoCommit(false);
+            }
             for (CompiledSql compiled : sqlList) {
                 ps = conn.prepareStatement(compiled.sql());
                 bindParams(ps, compiled.params());
@@ -240,17 +283,23 @@ public class SqlExecutor {
                 closeQuietly(ps);
                 ps = null;
             }
-            conn.commit();
+            if (selfManagedTx) {
+                conn.commit();
+            }
             return totalRows;
         } catch (SQLException e) {
-            rollbackQuietly(conn);
+            if (selfManagedTx) {
+                rollbackQuietly(conn);
+            }
             throw e;
         } catch (RuntimeException e) {
-            rollbackQuietly(conn);
+            if (selfManagedTx) {
+                rollbackQuietly(conn);
+            }
             throw e;
         } finally {
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -278,7 +327,7 @@ public class SqlExecutor {
         } finally {
             closeQuietly(rs);
             closeQuietly(ps);
-            closeQuietly(conn);
+            releaseConnection(conn, dbName);
         }
     }
 
@@ -300,43 +349,58 @@ public class SqlExecutor {
         }
     }
 
-    /** 根据列类型转换值，确保绑定到 PreparedStatement 的值类型与数据库列类型匹配 */
+    /** 根据列类型提示转换值：以列类型为驱动双向转换
+     *  <p>正向：String → Long/Double/Boolean/Timestamp/Date（数值/日期/布尔列收到字符串）
+     *  <br>反向：Number → String（varchar/char/text 列收到数字）——PostgreSQL 不支持 varchar = integer 隐式转换
+     */
     private Object convertValueByTypeHint(Object value, String typeHint) {
         if (value == null || typeHint == null) {
             return value;
         }
         String t = typeHint.toLowerCase(Locale.ROOT);
-        if (t.contains("char") || t.contains("text") || t.contains("varchar")) {
-            if (value instanceof String) return value;
+        if ((t.contains("varchar") || t.contains("char") || t.contains("text"))
+                && value instanceof Number) {
             return String.valueOf(value);
         }
-        if (t.contains("bigint") || t.contains("int") || t.contains("numeric") || t.contains("decimal")) {
-            if (value instanceof Number) return value;
-            if (value instanceof String) {
-                String strValue = (String) value;
-                if (strValue.isEmpty()) return value;
-                try {
-                    return Long.parseLong(strValue);
-                } catch (NumberFormatException e1) {
-                    try {
-                        return Double.parseDouble(strValue);
-                    } catch (NumberFormatException e2) {
-                        return value;
-                    }
-                }
-            }
+        if (!(value instanceof String)) {
             return value;
         }
+        String strValue = (String) value;
+        if (strValue.isEmpty()) {
+            return value;
+        }
+        if (t.contains("bigint") || t.contains("int") || t.contains("numeric") || t.contains("decimal")) {
+            try {
+                return Long.parseLong(strValue);
+            } catch (NumberFormatException e1) {
+                try {
+                    return Double.parseDouble(strValue);
+                } catch (NumberFormatException e2) {
+                    return value;
+                }
+            }
+        }
+        if (t.contains("timestamp") || t.contains("datetime")) {
+            try {
+                return java.sql.Timestamp.valueOf(strValue);
+            } catch (IllegalArgumentException e) {
+                try {
+                    return java.sql.Timestamp.valueOf(strValue + " 00:00:00");
+                } catch (IllegalArgumentException e2) {
+                    return value;
+                }
+            }
+        }
+        if (t.contains("date") && !t.contains("datetime")) {
+            try {
+                return java.sql.Date.valueOf(strValue);
+            } catch (IllegalArgumentException e) {
+                return value;
+            }
+        }
         if (t.contains("boolean") || t.contains("bool")) {
-            if (value instanceof Boolean) return value;
-            if (value instanceof String) {
-                String strValue = (String) value;
-                if ("true".equalsIgnoreCase(strValue) || "1".equals(strValue) || "t".equals(strValue)) return Boolean.TRUE;
-                if ("false".equalsIgnoreCase(strValue) || "0".equals(strValue) || "f".equals(strValue)) return Boolean.FALSE;
-            }
-            if (value instanceof Number) {
-                return ((Number) value).intValue() != 0 ? Boolean.TRUE : Boolean.FALSE;
-            }
+            if ("true".equalsIgnoreCase(strValue) || "1".equals(strValue) || "t".equals(strValue)) return Boolean.TRUE;
+            if ("false".equalsIgnoreCase(strValue) || "0".equals(strValue) || "f".equals(strValue)) return Boolean.FALSE;
             return value;
         }
         return value;

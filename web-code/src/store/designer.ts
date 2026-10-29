@@ -1,5 +1,5 @@
 import { reactive, computed, ref } from 'vue'
-import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule } from '@/types/schema'
+import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule, PageRule } from '@/types/schema'
 
 import { httpRequest, extractPayload, setDebugPageIdProvider } from '@/utils/request'
 import {
@@ -138,6 +138,8 @@ export const designerStore = reactive({
   fieldChangeEvents: undefined as FieldBChangeEventRule[] | undefined,
   /** 页面级计算规则（对应 PageSchema.computeRules，前端运行时求值） */
   computeRules: undefined as ComputeRule[] | undefined,
+  /** 页面规则（对应 PageSchema.pageRules，字段变化触发动作列表） */
+  pageRules: undefined as PageRule[] | undefined,
   /** 分层继承：当前编辑层（方向一，默认 CUSTOMER） */
   currentLayer: 'CUSTOMER' as MetaLayer,
   /** 分层继承：是否显示合并预览（true=看合并后 schema，false=看当前层） */
@@ -1045,6 +1047,66 @@ export function validateFormBeforeSave(): { ok: boolean; errors: string[] } {
     } else {
       dbFields.add(node.dbField)
     }
+    // 基础资料控件：必须选择关联基础资料、显示列、编码字段
+    if (node.type === 'base-data') {
+      const p = node.props as Record<string, unknown>
+      const label = node.fieldName ?? node.type
+      const refPageId = String(p.refPageId ?? '').trim()
+      const displayField = String(p.displayField ?? '').trim()
+      const codeField = String(p.codeField ?? '').trim()
+      if (!refPageId) {
+        errors.push(`基础资料控件 ${label} 未选择关联基础资料`)
+      }
+      if (!displayField) {
+        errors.push(`基础资料控件 ${label} 未选择显示列`)
+      }
+      if (!codeField) {
+        errors.push(`基础资料控件 ${label} 未选择编码字段`)
+      }
+    }
+  }
+
+  // 检查明细表（data-grid）必填字段
+  for (const node of formNodes) {
+    if (node.type !== 'data-grid') continue
+    const label = node.fieldName ?? node.type
+    const props = node.props as Record<string, unknown>
+    const tableName = (props.tableName as string) || ''
+    const tableComment = (props.tableComment as string) || ''
+    const keyExpr = (props.keyExpr as string) || ''
+    const parentType = (props.parentType as string) || ''
+    const parentRef = (props.parentRef as string) || ''
+    if (!tableName.trim()) {
+      errors.push(`表格 ${label} 未填写明细表名`)
+    } else if (!IDENTIFIER_RE.test(tableName.trim())) {
+      errors.push(`表格 ${label} 的明细表名 "${tableName}" 不合法（只能以字母开头，仅含字母、数字、下划线）`)
+    }
+    if (!tableComment.trim()) {
+      errors.push(`表格 ${label} 未填写明细表说明`)
+    }
+    if (!keyExpr.trim()) {
+      errors.push(`表格 ${label} 未填写主键字段`)
+    } else if (!IDENTIFIER_RE.test(keyExpr.trim())) {
+      errors.push(`表格 ${label} 的主键字段 "${keyExpr}" 不合法`)
+    }
+    if (!parentType.trim()) {
+      errors.push(`表格 ${label} 未选择上级类型`)
+    }
+    if (parentType === 'table' && !parentRef.trim()) {
+      errors.push(`表格 ${label} 未选择上级来源（上级表格）`)
+    }
+    if (parentType === 'table' && parentRef.trim()) {
+      const parentNode = formNodes.find((n) => n.id === parentRef.trim())
+      if (parentNode) {
+        const parentKeyExpr = ((parentNode.props as Record<string, unknown>).keyExpr as string) || ''
+        if (!parentKeyExpr.trim()) {
+          errors.push(`表格 ${label} 的上级表格未填写主键字段，外键字段无法确定`)
+        }
+      }
+    }
+    if ((parentType === 'page' || !parentType) && !designerStore.primaryKeyField?.trim()) {
+      errors.push(`表格 ${label} 的上级页面未填写主键字段，外键字段无法确定`)
+    }
   }
 
   return { ok: errors.length === 0, errors }
@@ -1141,6 +1203,14 @@ export function setDesignerMode(mode: 'default' | 'biz'): void {
 
 /** 补全 schema 节点的默认属性、fieldName、位置、尺寸（向下兼容） */
 function migrateSchemaNodes(nodes: ComponentSchema[]): void {
+  // 归一化：种子/外部导入 schema 节点可能无 children 键，统一补空数组（下游 collectAllNodes/画布 watch/模板均假设存在）
+  const normalize = (list: ComponentSchema[]): void => {
+    for (const n of list) {
+      if (!Array.isArray(n.children)) (n as { children: ComponentSchema[] }).children = []
+      else normalize(n.children)
+    }
+  }
+  normalize(nodes)
   const allNodes = collectAllNodes(nodes)
   const usedFieldNames = new Set<string>()
   allNodes.forEach((node, index) => {
@@ -1220,6 +1290,7 @@ export function exportSchema(): PageSchema {
     root: designerStore.schema,
     fieldChangeEvents: designerStore.fieldChangeEvents,
     computeRules: designerStore.computeRules,
+    pageRules: designerStore.pageRules,
   }
   // 业务形态：同步当前 schema 到槽位，并输出三份独立内容
   if (designerStore.mode === 'biz') {
@@ -1345,7 +1416,13 @@ function migrateNodeProps(node: ComponentSchema): void {
 
 /** 导入页面 Schema（整体替换） */
 export function importSchema(page: PageSchema): boolean {
-  if (!page || !Array.isArray(page.root)) return false
+  // root 缺失但 bizSchemas 存在（basedata 配置页可能只存槽位内容）不拒绝，root 用空数组兜底
+  const hasRoot = Array.isArray(page.root)
+  const hasBiz = !!page.bizSchemas && (
+    Array.isArray(page.bizSchemas.form) || Array.isArray(page.bizSchemas.table) || Array.isArray(page.bizSchemas.mobile)
+  )
+  if (!page || (!hasRoot && !hasBiz)) return false
+  if (!hasRoot) page.root = []
   pushHistory()
   designerStore.pageId = page.pageId || `page_${Date.now().toString(36)}`
   designerStore.pageName = page.pageName || '未命名页面'
@@ -1358,6 +1435,7 @@ export function importSchema(page: PageSchema): boolean {
   designerStore.workflowId = page.workflowId
   designerStore.fieldChangeEvents = page.fieldChangeEvents
   designerStore.computeRules = page.computeRules
+  designerStore.pageRules = page.pageRules
   // 业务形态：加载三份独立内容，当前 schema 指向当前模式槽位
   if (designerStore.mode === 'biz') {
     // 恢复上次使用的子模式（持久化）
@@ -1409,6 +1487,7 @@ export function createRenderStore(primaryKeyField?: string, tableName?: string, 
     tableName: tableName || '',
     selectMode: selectMode ?? false,
     selectedRowData: null as Record<string, unknown> | null,
+    selectedRowsList: null as Record<string, unknown>[] | null,
   })
 }
 // ================ FE-S0：运行时渲染契约（G5/G1/G2/G3） ================
@@ -1501,6 +1580,13 @@ export function setFieldEventRules(rules: FieldBChangeEventRule[]): void {
 export function setComputeRules(rules: ComputeRule[]): void {
   pushHistory()
   designerStore.computeRules = rules
+}
+// ================ 页面规则（可视化配置替代事件代码） ================
+
+/** 整体替换页面规则（弹窗编辑确认时用，编辑操作，入撤销栈） */
+export function setPageRules(rules: PageRule[]): void {
+  pushHistory()
+  designerStore.pageRules = rules
 }
 // ================ FE-S3：分层继承（方向一） ================
 

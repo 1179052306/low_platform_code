@@ -23,6 +23,9 @@ public class BizMeta {
     private Integer version;
     private String remark;
 
+    /** 页面绑定的插件列表 JSON（[{pluginId, sortOrder, enabled}]） */
+    private String plugins;
+
     private List<FieldMeta> fields = new ArrayList<>();
     private Map<String, ActionMeta> actions = new LinkedHashMap<>();
     private List<StateMachineMeta> stateTransitions = new ArrayList<>();

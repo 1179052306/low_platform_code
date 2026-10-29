@@ -1,0 +1,650 @@
+{
+  "version": "1.0.0",
+  "seedVersion": 7,
+  "pageId": "page_sys_menu",
+  "pageName": "菜单管理",
+  "tableName": "sys_menu",
+  "primaryKeyField": "id",
+  "keyStrategy": "UUID",
+  "pageType": "basedata",
+  "lastBizMode": "table",
+  "root": [],
+  "bizSchemas": {
+    "form": [
+      {
+        "id": "n_138dpf",
+        "type": "el-row",
+        "props": {
+          "gutter": 16,
+          "rowGap": 8,
+          "justify": "start",
+          "align": "stretch",
+          "wrap": true
+        },
+        "children": [
+          {
+            "id": "n_kj5c1",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_jcqpq",
+                "type": "select-box",
+                "fieldName": "f_menu_type",
+                "dbField": "menu_type",
+                "children": [],
+                "props": {
+                  "label": "菜单类型",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "items": [
+                    {
+                      "value": "dir",
+                      "text": "目录"
+                    },
+                    {
+                      "value": "menu",
+                      "text": "页面"
+                    },
+                    {
+                      "value": "button",
+                      "text": "按钮"
+                    }
+                  ],
+                  "displayExpr": "text",
+                  "valueExpr": "value",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_mvsb4",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_l8id6",
+                "type": "text-box",
+                "fieldName": "f_menu_name",
+                "dbField": "menu_name",
+                "children": [],
+                "props": {
+                  "label": "菜单名称",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "请输入菜单名称",
+                  "mode": "text",
+                  "width": "100%",
+                  "required": true
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_o91ue",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_nivbm",
+                "type": "text-box",
+                "fieldName": "f_menu_code",
+                "dbField": "menu_code",
+                "children": [],
+                "props": {
+                  "label": "菜单编码",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "如 system.user（唯一）",
+                  "mode": "text",
+                  "width": "100%",
+                  "required": true
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_qh2nd",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_pzxqj",
+                "type": "text-box",
+                "fieldName": "f_parent_id",
+                "dbField": "parent_id",
+                "children": [],
+                "props": {
+                  "label": "上级菜单ID",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "顶级留空",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_s0auq",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_reuc5",
+                "type": "text-box",
+                "fieldName": "f_name_key",
+                "dbField": "name_key",
+                "children": [],
+                "props": {
+                  "label": "多语言Key",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "关联语言资源，可空",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_u4t4n",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_tndgg",
+                "type": "number-box",
+                "fieldName": "f_sort_no",
+                "dbField": "sort_no",
+                "children": [],
+                "props": {
+                  "label": "排序",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "width": "100%",
+                  "min": 0
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_whsqv",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_vkvq9",
+                "type": "text-box",
+                "fieldName": "f_route_path",
+                "dbField": "route_path",
+                "children": [],
+                "props": {
+                  "label": "路由路径",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "menu 型：如 /system/user",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_yodn0",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_x4run",
+                "type": "text-box",
+                "fieldName": "f_component",
+                "dbField": "component",
+                "children": [],
+                "props": {
+                  "label": "组件",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "vue:组件路径 或 page:{pageId}",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_10yfzx",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_z8r1e",
+                "type": "text-box",
+                "fieldName": "f_permission_code",
+                "dbField": "permission_code",
+                "children": [],
+                "props": {
+                  "label": "权限码",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "placeholder": "button 型：如 system:user:create",
+                  "mode": "text",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          },
+          {
+            "id": "n_12r4hi",
+            "type": "el-col",
+            "props": {
+              "span": 24,
+              "offset": 0,
+              "padding": "0",
+              "background": "#ffffff"
+            },
+            "children": [
+              {
+                "id": "n_118u4h",
+                "type": "switch",
+                "fieldName": "f_visible",
+                "dbField": "visible",
+                "children": [],
+                "props": {
+                  "label": "可见",
+                  "labelVisible": true,
+                  "labelPosition": "top",
+                  "width": "100%"
+                },
+                "css": {
+                  "width": "100%",
+                  "height": "100%",
+                  "padding": "0",
+                  "margin": "0"
+                }
+              }
+            ],
+            "css": {
+              "padding": "0",
+              "margin": "0"
+            }
+          }
+        ],
+        "css": {
+          "width": "100%",
+          "padding": "0 10px"
+        },
+        "heightAuto": true
+      }
+    ],
+    "table": [
+      {
+        "id": "grid_sys_menu",
+        "type": "data-grid",
+        "children": [],
+        "width": 800,
+        "height": 400,
+        "props": {
+          "dataSourceType": "remote",
+          "advancedSearch": true,
+          "columns": [
+            {
+              "dataField": "menu_name",
+              "caption": "菜单名称",
+              "dataType": "string",
+              "width": 150,
+              "editorType": "default",
+              "formFieldName": "field_menu_name",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "menu_type",
+              "caption": "类型",
+              "dataType": "string",
+              "width": 80,
+              "format": "dir:目录,menu:页面,button:按钮",
+              "editorType": "default",
+              "formFieldName": "field_menu_type",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "menu_code",
+              "caption": "菜单编码",
+              "dataType": "string",
+              "width": 150,
+              "editorType": "default",
+              "formFieldName": "field_menu_code",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "route_path",
+              "caption": "路由路径",
+              "dataType": "string",
+              "width": 140,
+              "editorType": "default",
+              "formFieldName": "field_route_path",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "permission_code",
+              "caption": "权限码",
+              "dataType": "string",
+              "width": 170,
+              "editorType": "default",
+              "formFieldName": "field_permission_code",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "sort_no",
+              "caption": "排序",
+              "dataType": "number",
+              "width": 70,
+              "editorType": "default",
+              "formFieldName": "field_sort_no",
+              "allowEditing": false,
+              "visible": true
+            },
+            {
+              "dataField": "visible",
+              "caption": "可见",
+              "dataType": "boolean",
+              "width": 70,
+              "format": "true:是,false:否",
+              "editorType": "default",
+              "formFieldName": "field_visible",
+              "allowEditing": false,
+              "visible": true
+            }
+          ],
+          "height": "100%",
+          "showBorders": true,
+          "columnAutoWidth": true,
+          "showSeq": false,
+          "stripe": true,
+          "paging": {
+            "pageSize": 15,
+            "enabled": true
+          },
+          "pager": {
+            "showPageSizeSelector": true,
+            "allowedPageSizes": [
+              15,
+              30,
+              50,
+              100
+            ],
+            "showInfo": true,
+            "showNavigationButtons": true
+          },
+          "filterRow": {
+            "visible": true
+          },
+          "sorting": {
+            "mode": "single"
+          },
+          "selection": {
+            "mode": "multiple",
+            "showCheckBoxesMode": "always"
+          },
+          "toolbar": {
+            "visible": true,
+            "items": [
+              {
+                "name": "add",
+                "caption": "新增",
+                "icon": "plus",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:menu:save",
+                "openPage": {
+                  "pageId": "page_sys_menu",
+                  "bizMode": "form",
+                  "title": "新增菜单",
+                  "width": "640px",
+                  "height": "560px"
+                }
+              },
+              {
+                "name": "edit",
+                "caption": "修改",
+                "icon": "edit",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:menu:save",
+                "openPage": {
+                  "pageId": "page_sys_menu",
+                  "bizMode": "form",
+                  "passSelectedRow": true,
+                  "title": "修改菜单",
+                  "width": "640px",
+                  "height": "560px"
+                }
+              },
+              {
+                "name": "delete",
+                "caption": "删除",
+                "icon": "trash",
+                "location": "before",
+                "visible": true,
+                "isCustom": false,
+                "permCode": "system:menu:delete"
+              }
+            ]
+          },
+          "modalConfig": {
+            "width": 640,
+            "height": 560,
+            "maximizable": true,
+            "draggable": true
+          },
+          "showColumnHeaders": true,
+          "showColumnLines": true,
+          "showRowLines": true,
+          "allowColumnReordering": true,
+          "allowColumnResizing": true,
+          "wordWrapEnabled": true,
+          "showOverflow": true,
+          "showHeaderOverflow": true,
+          "autoResize": true,
+          "size": "mini",
+          "round": false,
+          "showFooter": false,
+          "showFooterOverflow": true,
+          "keepSource": false,
+          "virtualScroll": false,
+          "virtualScrollThreshold": 60,
+          "columnPersistence": false,
+          "editShowStatus": true,
+          "keyExpr": "id",
+          "remoteMethod": "POST",
+          "dataSource": [],
+          "tableName": "",
+          "tableComment": "",
+          "parentType": "page",
+          "parentRef": ""
+        },
+        "css": {
+          "width": "100%",
+          "height": "100%",
+          "padding": "0",
+          "margin": "0"
+        },
+        "heightAuto": true
+      }
+    ],
+    "mobile": []
+  },
+  "queryConfig": {
+    "fields": [
+      {
+        "fieldName": "menu_name",
+        "label": "菜单名称",
+        "operators": [
+          "contains",
+          "="
+        ]
+      },
+      {
+        "fieldName": "menu_code",
+        "label": "菜单编码",
+        "operators": [
+          "contains",
+          "=",
+          "startswith"
+        ]
+      },
+      {
+        "fieldName": "menu_type",
+        "label": "类型",
+        "operators": [
+          "=",
+          "<>"
+        ]
+      }
+    ],
+    "pageSize": 15
+  }
+}

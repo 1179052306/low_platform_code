@@ -15,6 +15,7 @@ const props = withDefaults(
     refPageId?: string
     displayField?: string
     valueField?: string
+    codeField?: string
     placeholder?: string
     value?: any
     disabled?: boolean
@@ -25,11 +26,13 @@ const props = withDefaults(
     dropdownWidthOffset?: number
     initialDisplayValue?: string
     autoFocus?: boolean
+    lazy?: boolean
   }>(),
   {
     refPageId: '',
     displayField: '',
     valueField: 'id',
+    codeField: '',
     placeholder: '请选择',
     value: null,
     disabled: false,
@@ -40,6 +43,7 @@ const props = withDefaults(
     dropdownWidthOffset: 0,
     initialDisplayValue: '',
     autoFocus: false,
+    lazy: false,
   },
 )
 
@@ -191,7 +195,15 @@ async function loadPageMeta() {
   }
 }
 
-watch(() => props.refPageId, loadPageMeta, { immediate: false })
+let _metaLoaded = false
+/** 确保页面元数据已加载（lazy 模式下延迟到首次交互时加载） */
+async function ensurePageMeta() {
+  if (_metaLoaded) return
+  _metaLoaded = true
+  await loadPageMeta()
+}
+
+watch(() => props.refPageId, () => { _metaLoaded = false; loadPageMeta() }, { immediate: false })
 onMounted(async () => {
   if (props.autoFocus) {
     nextTick(() => {
@@ -208,7 +220,16 @@ onMounted(async () => {
     displayValue.value = props.initialDisplayValue
     searchText.value = props.initialDisplayValue
   }
-  await loadPageMeta()
+  // lazy 模式：延迟到首次交互时才加载页面元数据
+  if (props.lazy) {
+    if (props.initialDisplayValue) return
+    if (props.value != null && props.value !== '') {
+      displayValue.value = String(props.value)
+      searchText.value = displayValue.value
+    }
+    return
+  }
+  await ensurePageMeta()
   if (props.initialDisplayValue) return
   if (props.value != null && props.value !== '' && !displayValue.value) {
     const newVal = props.value
@@ -259,9 +280,13 @@ const dataSource = computed(() => {
         const gatewayPayload: Record<string, unknown> = { page, pageSize }
         const allFilters: unknown[] = []
         if (!echoMode && kw) {
-          for (let i = 0; i < displayExprs.value.length; i++) {
+          // 配置了编码字段时只用编码字段搜索；否则按显示字段搜索（多个显示字段 or 连接）
+          const searchTargets = props.codeField
+            ? [props.codeField.trim().toUpperCase()]
+            : displayExprs.value
+          for (let i = 0; i < searchTargets.length; i++) {
             allFilters.push({ Symbol: i === 0 ? 'and' : 'or' })
-            allFilters.push({ Id: displayExprs.value[i], Symbol: 'like', Val: `%${kw}%`, TableAlias: 'T' })
+            allFilters.push({ Id: searchTargets[i], Symbol: 'like', Val: `%${kw}%`, TableAlias: 'T' })
           }
         }
         if (loadOptions.filter) {
@@ -439,6 +464,7 @@ watch(dependValue, (newVal, oldVal) => {
 
 async function openPopupPage() {
   if (!props.refPageId || props.disabled) return
+  await ensurePageMeta()
   try {
     const result = await pageModal.openPage(props.refPageId, {}, { mode: 'popup', width: 900, height: 600, bizMode: 'table', selectMode: true })
     if (result && typeof result === 'object') {
@@ -465,6 +491,7 @@ function onSearchInput(val: string) {
   searchText.value = text
   searchKeyword = text
   if (text && !isOpen.value) {
+    ensurePageMeta()
     isOpen.value = true
   }
   searchVersion.value++
@@ -478,6 +505,7 @@ function onSearchInput(val: string) {
 
 function onTextBoxFocusIn() {
   if (isReadOnly.value) return
+  ensurePageMeta()
   isOpen.value = true
   if (!searchKeyword) {
     searchVersion.value++

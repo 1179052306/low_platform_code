@@ -7,6 +7,7 @@ import com.api.lowcode.engine.event.SyncEventBus;
 import com.api.lowcode.meta.MetaRegistry;
 import com.api.lowcode.plugin.spi.ActionHook;
 import com.api.lowcode.plugin.spi.HookPhase;
+import com.api.lowcode.plugin.spi.MultiHook;
 import com.api.lowcode.plugin.spi.Plugin;
 import com.api.lowcode.plugin.spi.PluginContext;
 import com.api.lowcode.plugin.spi.StateChangeListener;
@@ -94,15 +95,22 @@ public class PluginContainer {
     }
 
     private void registerHooks(Plugin plugin) {
-        if (plugin instanceof ActionHook) {
-            ActionHook hook = (ActionHook) plugin;
-            if (hook.phase() == HookPhase.PRE) {
-                preHooks.add(hook);
-                log.info("[PluginContainer] 注册前置钩子: {}", hook.getClass().getName());
-            } else {
-                postHooks.add(hook);
-                log.info("[PluginContainer] 注册后置钩子: {}", hook.getClass().getName());
+        if (plugin instanceof MultiHook) {
+            for (ActionHook hook : ((MultiHook) plugin).getHooks()) {
+                registerSingleHook(hook);
             }
+        } else if (plugin instanceof ActionHook) {
+            registerSingleHook((ActionHook) plugin);
+        }
+    }
+
+    private void registerSingleHook(ActionHook hook) {
+        if (hook.phase() == HookPhase.PRE) {
+            preHooks.add(hook);
+            log.info("[PluginContainer] 注册前置钩子: {}", hook.getClass().getName());
+        } else {
+            postHooks.add(hook);
+            log.info("[PluginContainer] 注册后置钩子: {}", hook.getClass().getName());
         }
     }
 
@@ -167,6 +175,49 @@ public class PluginContainer {
                         bizCode, action);
                 hook.invoke(ctx);
             }
+        }
+    }
+
+    /**
+     * 按 pluginId 查找已加载的钩子。
+     */
+    public ActionHook findHookById(String pluginId, HookPhase phase) {
+        List<ActionHook> hooks = phase == HookPhase.PRE ? preHooks : postHooks;
+        for (ActionHook hook : hooks) {
+            if (hook.pluginId().equals(pluginId)) {
+                return hook;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 按页面绑定的插件列表执行钩子（不再全局遍历）。
+     *
+     * @param bindings JSON 数组：[{pluginId, sortOrder, enabled}]
+     */
+    public void invokeBoundHooks(String bizCode, String action, ActionContext ctx,
+                                 JSONArray bindings, HookPhase phase) throws Exception {
+        if (bindings == null || bindings.isEmpty()) return;
+
+        List<JSONObject> sorted = new java.util.ArrayList<>();
+        for (int i = 0; i < bindings.size(); i++) {
+            JSONObject b = bindings.getJSONObject(i);
+            if (b.getBooleanValue("enabled")) {
+                sorted.add(b);
+            }
+        }
+        sorted.sort(java.util.Comparator.comparingInt(b -> b.getIntValue("sortOrder", 0)));
+
+        for (JSONObject b : sorted) {
+            String pluginId = b.getString("pluginId");
+            ActionHook hook = findHookById(pluginId, phase);
+            if (hook == null) {
+                log.warn("[PluginContainer] 绑定的插件未加载，跳过: {} phase={}", pluginId, phase);
+                continue;
+            }
+            log.debug("[PluginContainer] 绑定钩子执行: {} bizCode={} action={} phase={}", pluginId, bizCode, action, phase);
+            hook.invoke(ctx);
         }
     }
 

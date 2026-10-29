@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS lc_field_meta (
     is_unique         BOOLEAN DEFAULT FALSE,
     is_system_field   BOOLEAN DEFAULT FALSE,
     permission_expr   VARCHAR(512),
-    default_value_expr VARCHAR(512),
+    default_value_expr TEXT,
     validation_expr   VARCHAR(512),
     sort_no           INT DEFAULT 0,
     base_data_ref     TEXT,
@@ -790,3 +790,22 @@ INSERT INTO BASE_DATA_CACHE (CACHE_NAME, CACHE_TYPE, TTL, MAX_CAPACITY, ENABLE_L
     ('B_UNIT', 'REDIS', 7200, 10000, TRUE, TRUE, TRUE, TRUE, 1000, TRUE, 2, 60, 3000, TRUE, 7200, TRUE, 10, 30000, 2, 2000, 5000, 5242880, 'EVENTUAL', 'FAIL_FAST', 'NONE'),
     ('B_CATEGORY', 'REDIS', 7200, 10000, TRUE, TRUE, TRUE, TRUE, 1000, TRUE, 3, 60, 3000, TRUE, 7200, TRUE, 10, 30000, 2, 2000, 5000, 5242880, 'EVENTUAL', 'FAIL_FAST', 'NONE')
 ON CONFLICT DO NOTHING;
+-- ============================================================
+-- 数据修改审计日志表（只记录 UPDATE 操作）
+-- 由 DataAuditService 异步批量写入（内存队列 + afterCommit）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lc_data_audit_log (
+    id              VARCHAR(64) PRIMARY KEY,
+    biz_code        VARCHAR(64),
+    table_name      VARCHAR(128),
+    record_id       VARCHAR(64),
+    action          VARCHAR(16),
+    changed_fields  VARCHAR(500),
+    before_data     TEXT,
+    after_data      TEXT,
+    operator        VARCHAR(64),
+    operated_at     VARCHAR(64),
+    ip              VARCHAR(64)
+);
+CREATE INDEX IF NOT EXISTS idx_audit_table_record_time
+    ON lc_data_audit_log (table_name, record_id, operated_at DESC);

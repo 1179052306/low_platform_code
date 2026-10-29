@@ -25,6 +25,15 @@
         <version>1.0-1</version>
 
     </dependency>
+    <!-- Nacos 服务发现 + 配置中心 -->
+    <dependency>
+        <groupId>com.alibaba.cloud</groupId>
+        <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.alibaba.cloud</groupId>
+        <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+    </dependency>
 
     <!-- 单元测试依赖 -->
     <dependency>

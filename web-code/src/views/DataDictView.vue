@@ -28,6 +28,7 @@ import {
 const dictList = ref<DataDict[]>([])
 const selectedDict = ref<DataDict | undefined>(undefined)
 const dictItems = ref<DataDictItem[]>([])
+const selectedItem = ref<DataDictItem | undefined>(undefined)
 
 const showDictDialog = ref(false)
 const editingDict = ref<DataDict | null>(null)
@@ -61,6 +62,7 @@ async function refreshItems(dictCode: string) {
   } catch {
     dictItems.value = []
   }
+  selectedItem.value = undefined
 }
 
 onMounted(async () => {
@@ -74,6 +76,15 @@ function onDictSelectionChanged(e: { selectedRowsData: DataDict[] }) {
   } else {
     selectedDict.value = undefined
     dictItems.value = []
+    selectedItem.value = undefined
+  }
+}
+
+function onItemSelectionChanged(e: { selectedRowsData: DataDictItem[] }) {
+  if (e.selectedRowsData.length > 0) {
+    selectedItem.value = e.selectedRowsData[0]
+  } else {
+    selectedItem.value = undefined
   }
 }
 
@@ -212,10 +223,12 @@ async function onDeleteItem(item: DataDictItem) {
         <div class="dict-toolbar">
           <ElButton type="default" @click="addItem">{{ t('新增项') }}</ElButton>
           <ElButton
-            @click="() => { if (dictItems[0]) editItem(dictItems[0]) }"
+            :disabled="!selectedItem"
+            @click="() => { if (selectedItem) editItem(selectedItem) }"
           >{{ t('编辑') }}</ElButton>
           <ElButton
-            @click="() => { if (dictItems[0]) onDeleteItem(dictItems[0]) }"
+            :disabled="!selectedItem"
+            @click="() => { if (selectedItem) onDeleteItem(selectedItem) }"
           >{{ t('删除') }}</ElButton>
         </div>
         <LcTable
@@ -223,12 +236,14 @@ async function onDeleteItem(item: DataDictItem) {
           class="dict-grid"
           :data-source="dictItems"
           :columns="dictItemColumns"
+          :selection="{ mode: 'single', showCheckBoxesMode: 'none' }"
           :show-borders="true"
           :show-column-lines="false"
           :show-row-lines="true"
           :paging="{ enabled: false }"
           height="100%"
           key-expr="id"
+          @selection-changed="onItemSelectionChanged"
         />
         <div v-else class="dict-items-empty">
           {{ t('请选择左侧字典') }}

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onActivated, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { t, loadAllTranslations } from '@/store/lang'
 
 import RendererNode from '@/components/renderer/RendererNode.vue'
 import PageModalHost from '@/components/renderer/PageModalHost.vue'
+import ImportDialog from '@/components/import/ImportDialog.vue'
 import {
   designerStore,
   importSchema,
@@ -39,18 +40,88 @@ provide(DESIGNER_STORE_KEY, designerStore)
 const route = useRoute()
 const previewRootRef = ref<HTMLElement>()
 
-/** 新标签页打开时 store 为空，需从 sessionStorage（设计器实时数据）或 localStorage（已保存数据）恢复 */
-onMounted(async () => {
+/** 清空 store 中的页面数据，为重新加载做准备 */
+function clearPageData(): void {
+  designerStore.schema = []
+  designerStore.pageId = ''
+  designerStore.pageName = ''
+  designerStore.tableName = ''
+  designerStore.pageType = 'custom'
+  designerStore.themeId = ''
+  designerStore.computeRules = []
+  designerStore.fieldChangeEvents = []
+  designerStore.pageRules = undefined
+}
+
+/** 从后端按 pageId 加载页面 schema */
+async function loadPageFromBackend(pageId: string): Promise<void> {
+  const versionId = route.query.version as string
+  if (versionId) {
+    try {
+      const versionSchema = await loadVersionSchema(pageId, versionId)
+      if (versionSchema) {
+        const pageSchema: PageSchema = {
+          version: '1.0',
+          pageId,
+          pageName: (versionSchema.pageName as string) || t('预览页面'),
+          tableName: (versionSchema.tableName as string) || '',
+          pageCss:
+            (versionSchema.pageCss as Record<string, string>) || {
+              background: '#ffffff',
+            },
+          root: (versionSchema.root as unknown as ComponentSchema[]) || [],
+          computeRules: versionSchema.computeRules as unknown as PageSchema['computeRules'],
+          fieldChangeEvents: versionSchema.fieldChangeEvents as unknown as PageSchema['fieldChangeEvents'],
+          pageRules: versionSchema.pageRules as unknown as PageSchema['pageRules'],
+        }
+        importSchema(pageSchema)
+      }
+    } catch {
+      /* 版本加载失败，回退到合并 schema */
+    }
+  }
+  if (!designerStore.schema.length) {
+    try {
+      const page = await loadPage(pageId)
+      if (page) {
+        if (page.pageType && page.pageType !== 'custom') {
+          setDesignerMode('biz')
+        }
+        importSchema(page)
+      }
+    } catch {
+      // loadPage 失败，尝试分层继承合并 schema
+    }
+  }
+  if (!designerStore.schema.length) {
+    try {
+      const merged = await loadMergedSchema(pageId)
+      if (merged.pageType && merged.pageType !== 'custom') {
+        setDesignerMode('biz')
+      }
+      importSchema(merged)
+    } catch {
+      const latest = await loadLatestPage()
+      if (latest) {
+        if (latest.pageType && latest.pageType !== 'custom') {
+          setDesignerMode('biz')
+        }
+        importSchema(latest)
+      }
+    }
+  }
+}
+
+/** 加载页面数据（首次挂载或路由变化时调用） */
+async function loadPageData(): Promise<void> {
   // 优先从 sessionStorage 读取设计器当前数据（无需保存即可预览）
   const previewDataStr = sessionStorage.getItem('lowcode-preview-data')
   if (previewDataStr) {
     try {
       const previewData = JSON.parse(previewDataStr)
-      // 根据页面类型设置设计器模式：业务页面进 biz 模式以加载 bizSchemas
       if (previewData.pageType && previewData.pageType !== 'custom') {
         setDesignerMode('biz')
       }
-      // 构造 PageSchema 并导入
       const pageSchema: PageSchema = {
         version: '1.0',
         pageId: previewData.pageId || 'preview',
@@ -61,77 +132,22 @@ onMounted(async () => {
         root: previewData.schema,
         computeRules: previewData.computeRules,
         fieldChangeEvents: previewData.fieldChangeEvents,
+        pageRules: previewData.pageRules,
         pageType: previewData.pageType,
         bizSchemas: previewData.bizSchemas,
         lastBizMode: previewData.lastBizMode,
       }
       importSchema(pageSchema)
-
     } catch {
       // 忽略格式错误，回退到 localStorage
     }
   }
 
-  // 如果仍无 schema，尝试从后端恢复：分层继承时优先加载合并后 schema
+  // 如果仍无 schema，尝试从后端恢复
   if (!designerStore.schema.length) {
-    const pageId = route.query.pageId as string
-    const versionId = route.query.version as string
+    const pageId = (route.meta.pageId as string) || (route.query.pageId as string)
     if (pageId) {
-      // ?version= 预览特定版本：优先加载该版本 schema
-      if (versionId) {
-        try {
-          const versionSchema = await loadVersionSchema(pageId, versionId)
-          if (versionSchema) {
-            const pageSchema: PageSchema = {
-              version: '1.0',
-              pageId,
-              pageName: (versionSchema.pageName as string) || t('预览页面'),
-              tableName: (versionSchema.tableName as string) || '',
-              pageCss:
-                (versionSchema.pageCss as Record<string, string>) || {
-                  background: '#ffffff',
-                },
-              root: (versionSchema.root as unknown as ComponentSchema[]) || [],
-              computeRules: versionSchema.computeRules as unknown as PageSchema['computeRules'],
-              fieldChangeEvents: versionSchema.fieldChangeEvents as unknown as PageSchema['fieldChangeEvents'],
-            }
-            importSchema(pageSchema)
-          }
-        } catch {
-          /* 版本加载失败，回退到合并 schema */
-        }
-      }
-      // 未指定版本或版本加载失败：优先 loadPage（含完整 bizSchemas），失败再回退 loadMergedSchema
-      if (!designerStore.schema.length) {
-        try {
-          const page = await loadPage(pageId)
-          if (page) {
-            if (page.pageType && page.pageType !== 'custom') {
-              setDesignerMode('biz')
-            }
-            importSchema(page)
-          }
-        } catch {
-          // loadPage 失败，尝试分层继承合并 schema
-        }
-      }
-      if (!designerStore.schema.length) {
-        try {
-          const merged = await loadMergedSchema(pageId)
-          if (merged.pageType && merged.pageType !== 'custom') {
-            setDesignerMode('biz')
-          }
-          importSchema(merged)
-        } catch {
-          const latest = await loadLatestPage()
-          if (latest) {
-            if (latest.pageType && latest.pageType !== 'custom') {
-              setDesignerMode('biz')
-            }
-            importSchema(latest)
-          }
-        }
-      }
+      await loadPageFromBackend(pageId)
     } else {
       const page = await loadLatestPage()
       if (page) {
@@ -160,7 +176,6 @@ onMounted(async () => {
         const rows = resBody.data?.data || []
         if (rows.length > 0) {
           const rowData = rows[0] as Record<string, unknown>
-          // 填充表单控件值
           for (const node of designerStore.schema) {
             fillFormValues(node, rowData)
           }
@@ -180,11 +195,31 @@ onMounted(async () => {
       // 主题加载失败忽略，使用默认样式
     }
   }
+}
+
+/** 首次挂载：加载页面数据 */
+onMounted(async () => {
+  await loadPageData()
 })
+
+/** keep-alive 重新激活：若路由 pageId 变化则清空 store 重新加载 */
+onActivated(async () => {
+  const currentPageId = (route.meta.pageId as string) || (route.query.pageId as string)
+  if (currentPageId && currentPageId !== designerStore.pageId) {
+    clearPageData()
+    await loadPageData()
+  }
+})
+
+/** 业务页（单据/基础资料）流式渲染；自定义页保持自由画布定位 */
+const isBizPage = computed(() => !!designerStore.pageType && designerStore.pageType !== 'custom')
+
+/** Tab 内渲染（动态路由）时高度填满父容器；独立 /preview 全屏页时用 100vh */
+const isStandalone = computed(() => !route.meta?.dynamic)
 
 const pageStyle = computed(() => ({
   background: designerStore.pageCss.background || 'var(--lc-page-bg, #ffffff)',
-  minHeight: '100vh',
+  minHeight: isStandalone.value ? '100vh' : '100%',
 }))
 </script>
 
@@ -203,17 +238,18 @@ const pageStyle = computed(() => ({
         v-for="node in designerStore.schema"
         :key="node.id"
         :node="node"
-        :positioned="true"
+        :positioned="!isBizPage"
       />
     </div>
     <PageModalHost />
+    <ImportDialog />
   </div>
 </template>
 
 <style scoped>
 .preview {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;

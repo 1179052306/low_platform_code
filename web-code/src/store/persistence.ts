@@ -177,6 +177,7 @@ export class SaveConflictError extends Error {
 }
 
 export async function savePage(schema: PageSchema): Promise<SavedPageMeta> {
+  clearPageCache(schema.pageId)
   const cleanedSchema: PageSchema = {
     ...schema,
     root: cleanNodeForSave(schema.root),
@@ -208,14 +209,27 @@ export async function savePage(schema: PageSchema): Promise<SavedPageMeta> {
   }
 }
 
-/** 按 pageId 加载页面元数据 */
-export async function loadPage(pageId: string): Promise<PageSchema | null> {
-  try {
-    const data = await apiCall(`/api/lowcode/page/${pageId}`, { method: 'POST' })
-    return (data as PageSchema) ?? null
-  } catch {
-    return null
+/** 页面 schema 请求缓存：同一 pageId 复用 Promise，避免重复 HTTP 请求 */
+const _pageCache = new Map<string, Promise<PageSchema | null>>()
+
+/** 清除页面缓存（可指定 pageId，不指定则清除全部） */
+export function clearPageCache(pageId?: string): void {
+  if (pageId) {
+    _pageCache.delete(pageId)
+  } else {
+    _pageCache.clear()
   }
+}
+
+/** 按 pageId 加载页面元数据（带缓存：同一 pageId 只发一次请求） */
+export async function loadPage(pageId: string): Promise<PageSchema | null> {
+  const cached = _pageCache.get(pageId)
+  if (cached) return cached
+  const promise = apiCall(`/api/lowcode/page/${pageId}`, { method: 'POST' })
+    .then((data) => (data as PageSchema) ?? null)
+    .catch(() => null)
+  _pageCache.set(pageId, promise)
+  return promise
 }
 
 /** 加载最近一次保存的页面 */
@@ -243,6 +257,7 @@ export async function listPagesByModule(
 
 /** 软删除页面（标记 deletedAt，不移除数据） */
 export async function deletePage(pageId: string): Promise<void> {
+  clearPageCache(pageId)
   await apiCall(`/api/lowcode/page/${pageId}`, { method: 'DELETE' })
 }
 

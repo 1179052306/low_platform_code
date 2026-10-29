@@ -14,10 +14,19 @@ export default defineConfig({
     port: 5173,
     open: false,
     proxy: {
+      // P1 分流：认证/系统管理走网关(8000)，其余低代码接口暂直连 bcd-code(3015)
+      // P3 权限闭环后可全量切 8000
+      '/api/auth': {
+        target: 'http://localhost:7000',
+        changeOrigin: true,
+      },
+      '/api/sys': {
+        target: 'http://localhost:7000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:3015',
         changeOrigin: true,
-
       },
     },
   },

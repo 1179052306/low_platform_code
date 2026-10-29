@@ -1,3 +1,4 @@
+
 package com.server.redis;
 
 /**
@@ -140,8 +141,18 @@ public class RedissonConfig {
                 .map(String::trim)
                 .collect(Collectors.toList());
 
+        // 修复：给每个哨兵节点地址添加 redis:// 前缀（Redisson 要求 URL 必须以 redis:// 或 rediss:// 开头）
+        List<String> formattedNodes = nodes.stream()
+                .map(addr -> {
+                    if (!addr.startsWith("redis://") && !addr.startsWith("rediss://")) {
+                        return "redis://" + addr;
+                    }
+                    return addr;
+                })
+                .collect(Collectors.toList());
+
         SentinelServersConfig serverConfig = config.useSentinelServers()
-                .addSentinelAddress(nodes.toArray(new String[0]))
+                .addSentinelAddress(formattedNodes.toArray(new String[0]))
                 .setMasterName(sentinelMaster)
                 .setTimeout(timeout)
                 .setConnectTimeout(3000)
@@ -170,8 +181,18 @@ public class RedissonConfig {
                 .map(String::trim)
                 .collect(Collectors.toList());
 
+        // 修复：给每个集群节点地址添加 redis:// 前缀（Redisson 要求 URL 必须以 redis:// 或 rediss:// 开头）
+        List<String> formattedNodes = nodes.stream()
+                .map(addr -> {
+                    if (!addr.startsWith("redis://") && !addr.startsWith("rediss://")) {
+                        return "redis://" + addr;
+                    }
+                    return addr;
+                })
+                .collect(Collectors.toList());
+
         ClusterServersConfig serverConfig = config.useClusterServers()
-                .addNodeAddress(nodes.toArray(new String[0]))
+                .addNodeAddress(formattedNodes.toArray(new String[0]))
                 .setTimeout(timeout)
                 .setConnectTimeout(3000)
                 .setRetryAttempts(3)

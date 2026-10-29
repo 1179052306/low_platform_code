@@ -7,6 +7,7 @@ import com.api.lowcode.common.BusinessTableSyncService;
 import com.api.lowcode.common.MetaSyncService;
 import com.api.lowcode.meta.MetaService;
 import com.api.lowcode.perm.PagePermService;
+import com.api.lowcode.perm.PermSyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class PageService {
 
   @Resource
   private MetaService metaService;
+
+  @Resource
+  private PermSyncService permSyncService;
 
   private static final String TABLE = "lowcode_page";
 
@@ -93,12 +97,18 @@ public class PageService {
     String syncMsg = null;
     if (lastBizMode == null || "form".equals(lastBizMode)) {
       syncMsg = tableSyncService.syncTable(schema);
+      String detailMsg = tableSyncService.syncDetailTables(schema);
+      if (detailMsg != null) {
+        syncMsg = (syncMsg != null) ? syncMsg + " " + detailMsg : detailMsg;
+      }
       // 同步字段关联（base-data 控件关联的基础资料页面）
       syncFieldRefs(pageId, schema);
     }
 
     // 元数据同步：任何模式保存都触发（schema 中始终包含 bizSchemas.form 字段定义）
     metaSyncService.syncMeta(schema);
+
+    permSyncService.syncPermissions(schema);
 
     // 记录版本历史（metaKey 用 pageName，与前端 VersionHistoryPanel 查询一致）
     try {

@@ -19,9 +19,16 @@ public class TransactionOrchestrator {
     private int defaultTimeout = 30;
 
     public Object run(String bizCode, String action, ActionContext ctx, Action body) throws Exception {
+        return run(bizCode, action, ctx, body, defaultTimeout);
+    }
+
+    /**
+     * 带事务超时（秒）的执行 —— 大批量写入场景（如数据导入同步路径）需更长超时。
+     */
+    public Object run(String bizCode, String action, ActionContext ctx, Action body, int timeoutSeconds) throws Exception {
         DefaultTransactionDefinition def = new DefaultTransactionDefinition(
                 TransactionDefinition.PROPAGATION_REQUIRED);
-        def.setTimeout(defaultTimeout);
+        def.setTimeout(timeoutSeconds);
         TransactionStatus status = txManager.getTransaction(def);
         try {
             Object result = body.execute(ctx);

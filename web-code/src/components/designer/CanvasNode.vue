@@ -70,7 +70,7 @@ const labelConfig = computed(() => {
     label: (p.label as string) ?? getConfig(props.node.type)?.title ?? '',
     labelVisible: p.labelVisible !== false,
     labelPosition: (p.labelPosition as string) || 'top',
-    required: p.required === true || (Array.isArray(p.validationRules) && p.validationRules.some((r: any) => r.type === 'required')),
+    required: !p.defaultValueExpr && (p.required === true || (Array.isArray(p.validationRules) && p.validationRules.some((r: any) => r.type === 'required'))),
     requiredPosition: (p.requiredPosition as string) || 'after',
     tooltipEnabled: p.tooltipEnabled === true,
     tooltipText: (p.tooltipText as string) || '',
@@ -383,6 +383,11 @@ const boundProps = computed(() => {
     delete base.requiredPosition
     delete base.tooltipEnabled
     delete base.tooltipText
+    // 启用编码规则的文本框：占位文字固定为"空自动生成"
+    if (props.node.type === 'text-box' && props.node.props.defaultValueExpr) {
+      base.codeRuleEnabled = true
+      base.placeholder = '空自动生成'
+    }
   }
 
   // 设计器中强制 visible=true，避免用户设置 visible=false 后控件消失无法选中编辑
@@ -1037,7 +1042,7 @@ watch([showGridToolbar, showAdvancedSearch], () => {
 })
 
 watch(
-  () => props.node.children.length,
+  () => props.node.children?.length ?? 0,
   () => {
     if (
       isPositioned.value &&
@@ -1344,13 +1349,13 @@ const wrapperClass = computed(() => {
         />
       </template>
       <!-- 透明覆盖层：拦截 iframe 等元素的事件捕获，确保鼠标事件冒泡到 canvas-node -->
-      <div class="node-body-overlay"></div>
+      <div v-if="node.type !== 'data-grid'" class="node-body-overlay"></div>
     </div>
 
     <!-- 容器控件：子节点渲染在内容区，控件级 CSS 样式已应用在外层 wrapper（定位时）或单独内容区（非定位时） -->
     <component :is="materialComponents[node.type]" v-else v-bind="boundProps">
       <div class="container-content" :style="containerContentStyle">
-        <div v-if="!node.children.length" class="container-empty">
+        <div v-if="!node.children?.length" class="container-empty">
           {{ t('拖入组件到此容器') }}
         </div>
         <!-- 容器内拖拽对齐辅助线 -->

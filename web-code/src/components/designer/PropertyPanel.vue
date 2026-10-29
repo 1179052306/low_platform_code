@@ -26,6 +26,8 @@ import {
   ElSwitch,
   ElColorPicker,
   ElButton,
+  ElCollapse,
+  ElCollapseItem,
 } from 'element-plus'
 import { listWorkflows } from '@/store/workflow'
 
@@ -204,6 +206,8 @@ const nonDateFieldNames = computed(() => {
 /** FE-S10 P2: 数据字典列表（供引用字典选择） */
 const dataDictList = ref<DataDict[]>([])
 const showNumberRuleDialog = ref(false)
+const showDictSelectDialog = ref(false)
+const dictSelectSearch = ref('')
 
 
 /** FE-S10 P2: 当前节点的编号规则表达式 */
@@ -289,13 +293,38 @@ async function loadDataDicts() {
   }
 }
 
-/** FE-S10 P2: 设置引用字典 */
-function onDictSelectChange(e: Event) {
-  const value = (e.target as HTMLSelectElement).value
+
+/** FE-S10 P2: 从弹框选择字典 */
+function onDictRowSelect(dict: DataDict) {
   const node = getSelectedNode()
   if (!node) return
-  updateProps(node.id, 'dictCode', value || undefined)
+  updateProps(node.id, 'dictCode', dict.code)
+  showDictSelectDialog.value = false
 }
+
+/** FE-S10 P2: 清除引用字典 */
+function onDictClear() {
+  const node = getSelectedNode()
+  if (!node) return
+  updateProps(node.id, 'dictCode', undefined)
+}
+
+/** FE-S10 P2: 过滤后的字典列表 */
+const filteredDictList = computed(() => {
+  const kw = dictSelectSearch.value.trim().toLowerCase()
+  if (!kw) return dataDictList.value
+  return dataDictList.value.filter(d =>
+    d.code.toLowerCase().includes(kw) || (d.name || '').toLowerCase().includes(kw)
+  )
+})
+
+/** FE-S10 P2: 当前引用字典名称 */
+const currentNodeDictName = computed(() => {
+  const code = currentNodeDictCode.value
+  if (!code) return ''
+  const d = dataDictList.value.find(x => x.code === code)
+  return d ? `${d.name} (${d.code})` : code
+})
 
 /** FE-S10 P2: 编号规则保存 */
 function onSaveNumberRule(expr: string) {
@@ -322,6 +351,10 @@ const fieldSelectVisible = ref(false)
 const fieldSelectId = ref('')
 const valueFieldSelectVisible = ref(false)
 const valueFieldSelectId = ref('')
+const codeFieldSelectVisible = ref(false)
+const codeFieldSelectId = ref('')
+/** 被关联基础资料页面中启用编码规则（编号规则）的字段，用作编码字段默认值 */
+const refPageCodeRuleField = ref('')
 
 /** 加载基础资料页面列表 */
 async function loadBaseDataPages() {
@@ -337,6 +370,7 @@ async function loadRefPageFields(refPageId: string) {
   if (!refPageId) {
     refPageFields.value = []
     refPagePrimaryKey.value = ''
+    refPageCodeRuleField.value = ''
     return
   }
   try {
@@ -344,6 +378,7 @@ async function loadRefPageFields(refPageId: string) {
     if (!page) {
       refPageFields.value = []
       refPagePrimaryKey.value = ''
+      refPageCodeRuleField.value = ''
       return
     }
     refPagePrimaryKey.value = page.primaryKeyField || 'id'
@@ -384,9 +419,19 @@ async function loadRefPageFields(refPageId: string) {
             })
           }
         }
+        // 检测启用编码规则（编号规则表达式）的字段，作为编码字段默认值
+        if (
+          node.dbField &&
+          !node.dbField.includes('.') &&
+          !refPageCodeRuleField.value &&
+          String((node.props as Record<string, unknown> | undefined)?.defaultValueExpr ?? '') !== ''
+        ) {
+          refPageCodeRuleField.value = node.dbField
+        }
         if (node.children?.length) collect(node.children)
       }
     }
+    refPageCodeRuleField.value = ''
     collect(page.root || [])
     if (page.bizSchemas?.form?.length) collect(page.bizSchemas.form)
 
@@ -457,6 +502,12 @@ function onRefPageSelectConfirm(pageId: string) {
       setEditable('valueField', pk)
       updateProps(node.id, 'valueField', pk)
     }
+    // 被关联页面存在启用编码规则的字段时，编码字段默认选中该字段
+    const codeRuleField = refPageCodeRuleField.value
+    if (codeRuleField && !String(node.props.codeField ?? '')) {
+      setEditable('codeField', codeRuleField)
+      updateProps(node.id, 'codeField', codeRuleField)
+    }
   })
 }
 
@@ -487,6 +538,36 @@ function onValueFieldSelectConfirm(dbField: string) {
   setEditable('valueField', dbField)
   updateProps(node.id, 'valueField', dbField)
 }
+
+/** dx-base-data：选择编码字段 */
+function onCodeFieldSelect(e: { value?: unknown }) {
+  const node = getSelectedNode()
+  if (!node) return
+  const val = String(e.value ?? '')
+  setEditable('codeField', val)
+  updateProps(node.id, 'codeField', val || undefined)
+}
+
+/** 打开编码字段选择弹窗 */
+function openCodeFieldSelectDialog() {
+  codeFieldSelectId.value = String(getEditable('codeField') ?? '')
+  codeFieldSelectVisible.value = true
+}
+
+/** 编码字段选择弹窗确认回调（单选） */
+function onCodeFieldSelectConfirm(dbField: string) {
+  const node = getSelectedNode()
+  if (!node) return
+  setEditable('codeField', dbField)
+  updateProps(node.id, 'codeField', dbField)
+}
+
+/** 已选编码字段文本（用于按钮显示） */
+const codeFieldText = computed(() => {
+  const field = String(getEditable('codeField') ?? '')
+  if (!field) return ''
+  return refPageFields.value.find((p) => p.dbField === field)?.displayText || field
+})
 
 /** 已选基础资料页面名称（用于按钮显示） */
 const refPageDisplayName = computed(() => {
@@ -968,6 +1049,60 @@ function onPageSelect(pageId: string) {
   setPageOpenField(pageSelectDialogProp.value, 'pageId', pageId)
 }
 
+/** 明细表上级来源选择 */
+const parentPageSelectVisible = ref(false)
+const parentPageSelectProp = ref('')
+const parentPageSelectValue = ref('')
+
+function openParentPageSelect(prop: string) {
+  parentPageSelectProp.value = prop
+  parentPageSelectValue.value = String(getEditable(prop) ?? '')
+  parentPageSelectVisible.value = true
+}
+
+function onParentPageSelectConfirm(pageId: string) {
+  setEditable(parentPageSelectProp.value, pageId)
+  updateProps(selectedNode.value!.id, parentPageSelectProp.value, pageId)
+  parentPageSelectVisible.value = false
+}
+
+/** 当前 schema 中其他 data-grid 的选项（用于 parentType=table 的下拉选择） */
+const otherDetailTableOptions = computed(() => {
+  if (!selectedNode.value) return []
+  return collectAllNodes(designerStore.schema)
+    .filter((n: any) => n.type === 'data-grid' && n.id !== selectedNode.value!.id)
+    .map((n: any) => {
+      const tn = (n.props?.tableName as string) || ''
+      const comment = (n.props?.tableComment as string) || ''
+      const fieldName = (n.fieldName as string) || ''
+      const label = comment || fieldName || tn || n.id
+      const suffix = tn ? ` (${tn})` : ' (未配表名)'
+      return { label: label + suffix, value: n.id, hasTableName: !!tn }
+    })
+})
+
+/** 显式追踪所有 data-grid 的 keyExpr，确保修改任一表格主键时触发重算 */
+const allGridKeyExprs = computed(() => {
+  void designerStore.schemaRevision
+  return collectAllNodes(designerStore.schema)
+    .filter((n: any) => n.type === 'data-grid')
+    .map((n: any) => ({ id: n.id as string, keyExpr: (n.props?.keyExpr as string) || '' }))
+})
+
+/** 解析上级主键字段（外键字段） */
+const resolvedParentPkFieldSync = computed(() => {
+  const pt = getEditable('parentType') as string
+  const pr = (getEditable('parentRef') as string) || ''
+  if (pt === 'table' && pr.trim()) {
+    const item = allGridKeyExprs.value.find((it) => it.id === pr.trim())
+    return item?.keyExpr || ''
+  }
+  return designerStore.primaryKeyField || ''
+})
+
+/** 最终展示的上级主键字段（外键） */
+const displayParentPkField = computed(() => resolvedParentPkFieldSync.value)
+
 /** API 服务选择弹窗状态 */
 const apiSelectDialogVisible = ref(false)
 const apiSelectDialogProp = ref('')
@@ -1322,8 +1457,16 @@ const filteredCommonSetters = computed(() => {
     const condProp = setter.visibleIf.prop
     const condVal = getEditable(condProp)
     const equals = setter.visibleIf.equals
-    if (typeof equals === 'boolean') return Boolean(condVal) === equals
-    return String(condVal ?? '') === String(equals)
+    if (equals !== undefined) {
+      if (typeof equals === 'boolean') return Boolean(condVal) === equals
+      return String(condVal ?? '') === String(equals)
+    }
+    const notEquals = setter.visibleIf.notEquals
+    if (notEquals !== undefined) {
+      if (typeof notEquals === 'boolean') return Boolean(condVal) !== notEquals
+      return String(condVal ?? '') !== String(notEquals)
+    }
+    return true
   })
   const hiddenFiltered = visibleSetters.filter((setter) => {
     if (!setter.hiddenIf) return true
@@ -1336,10 +1479,10 @@ const filteredCommonSetters = computed(() => {
   const bizFiltered = hiddenFiltered.filter((setter) => {
     if (
       designerStore.mode === 'biz' &&
-      designerStore.bizMode === 'table' &&
-      setter.prop === 'dataSourceType'
+      designerStore.bizMode === 'table'
     ) {
-      return false
+      if (setter.prop === 'dataSourceType') return false
+      if (setter.group === '明细表') return false
     }
     return true
   })
@@ -1351,6 +1494,58 @@ const filteredCommonSetters = computed(() => {
       setter.label.toLowerCase().includes(kw)
   )
 })
+
+/** 当前组件是否有分组属性 */
+const hasGroups = computed(() =>
+  filteredCommonSetters.value.some((s) => s.group),
+)
+
+/** 按分组整理 setters：有 group 的按 group 聚合，无 group 的归入空名组 */
+const setterGroups = computed(() => {
+  const setters = filteredCommonSetters.value
+  if (!hasGroups.value) {
+    return [{ name: '', setters }]
+  }
+  const map = new Map<string, typeof setters>()
+  for (const setter of setters) {
+    const g = setter.group || '其他'
+    if (!map.has(g)) map.set(g, [])
+    map.get(g)!.push(setter)
+  }
+  return Array.from(map.entries()).map(([name, sts]) => ({ name, setters: sts }))
+})
+
+/** 默认展开的分组（前三个） */
+const DEFAULT_EXPANDED_GROUPS = new Set<string>()
+const expandedGroups = ref<Set<string>>(new Set())
+/** 搜索时自动展开所有分组 */
+watch(
+  () => [normalizedKeyword.value, hasGroups.value, selectedNode.value?.id] as [string, boolean, string | undefined],
+  ([kw, hg, nodeId], old) => {
+    if (!hg) return
+    if (old && old[2] !== nodeId) {
+      const groups = setterGroups.value.map((g) => g.name)
+      expandedGroups.value = new Set(groups.slice(0, 3))
+    }
+    if (kw) {
+      expandedGroups.value = new Set(setterGroups.value.map((g) => g.name))
+    } else if (!expandedGroups.value.size) {
+      expandedGroups.value = new Set(setterGroups.value.slice(0, 3).map((g) => g.name))
+    }
+  },
+  { immediate: true },
+)
+
+function toggleGroup(name: string): void {
+  const next = new Set(expandedGroups.value)
+  if (next.has(name)) next.delete(name)
+  else next.add(name)
+  expandedGroups.value = next
+}
+
+function isGroupExpanded(name: string): boolean {
+  return expandedGroups.value.has(name)
+}
 
 function isSet(prop: string): boolean {
   const node = selectedNode.value
@@ -1431,6 +1626,8 @@ const CSS_FIELDS: {
   placeholder: string
   unitSelect?: boolean
   unitOptions?: string[]
+  boxEdit?: boolean
+  borderEdit?: boolean
 }[] = [
   {
     key: 'width',
@@ -1449,12 +1646,29 @@ const CSS_FIELDS: {
   {
     key: 'padding',
     label: t('内边距'),
-    placeholder: t('如 10px 或 10px 20px'),
+    placeholder: '',
+    boxEdit: true,
   },
-  { key: 'margin', label: t('外边距'), placeholder: t('如 8px 或 8px auto') },
+  {
+    key: 'margin',
+    label: t('外边距'),
+    placeholder: '',
+    boxEdit: true,
+  },
   { key: 'background', label: t('背景色'), placeholder: t('如 #f5f5f5') },
-  { key: 'borderRadius', label: t('圆角'), placeholder: t('如 4px 或 50%') },
-  { key: 'border', label: t('边框'), placeholder: t('如 1px solid #ddd') },
+  {
+    key: 'borderRadius',
+    label: t('圆角'),
+    placeholder: t('数值'),
+    unitSelect: true,
+    unitOptions: ['px', '%'],
+  },
+  {
+    key: 'border',
+    label: t('边框'),
+    placeholder: '',
+    borderEdit: true,
+  },
   {
     key: 'overflow',
     label: t('溢出'),
@@ -1521,6 +1735,104 @@ function onCssColorChange(key: keyof NodeCss) {
     if (!node) return
     updateNodeCss(node.id, key, String(e.value ?? ''))
   }
+}
+
+/** 解析 CSS box 值（padding/margin）为四个方向 { value, unit } */
+function parseBoxValue(str: string): { value: string; unit: string }[] {
+  const empty = { value: '', unit: 'px' }
+  if (!str || !str.trim()) return [{ ...empty }, { ...empty }, { ...empty }, { ...empty }]
+  const parts = str.trim().split(/\s+/)
+  const parseOne = (s: string): { value: string; unit: string } => {
+    const m = s.match(/^(-?\d+\.?\d*)\s*(px|%|rem|em|vh|vw|auto)?$/)
+    if (m) return { value: m[1], unit: m[2] || 'px' }
+    return { value: s, unit: '' }
+  }
+  if (parts.length === 1) {
+    const p = parseOne(parts[0])
+    return [p, { ...p }, { ...p }, { ...p }]
+  }
+  if (parts.length === 2) {
+    const v = parseOne(parts[0]), h = parseOne(parts[1])
+    return [v, h, { ...v }, { ...h }]
+  }
+  if (parts.length === 3) {
+    const top = parseOne(parts[0]), right = parseOne(parts[1]), bottom = parseOne(parts[2])
+    return [top, right, bottom, { ...right }]
+  }
+  return [parseOne(parts[0]), parseOne(parts[1]), parseOne(parts[2]), parseOne(parts[3])]
+}
+
+/** 组合四个方向为 CSS box 值字符串（自动简化） */
+function composeBoxValue(sides: { value: string; unit: string }[]): string {
+  const strs = sides.map(s => (s.value ? s.value + s.unit : ''))
+  if (strs.every(s => !s)) return ''
+  if (strs[0] === strs[1] && strs[1] === strs[2] && strs[2] === strs[3]) return strs[0]
+  if (strs[0] === strs[2] && strs[1] === strs[3]) return `${strs[0]} ${strs[1]}`.trim()
+  if (strs[1] === strs[3]) return `${strs[0]} ${strs[1]} ${strs[2]}`.trim()
+  return strs.join(' ')
+}
+
+function getBoxParsed(key: keyof NodeCss): { value: string; unit: string }[] {
+  void designerStore.schemaRevision
+  return parseBoxValue(getCssValue(key))
+}
+
+function onBoxInput(key: keyof NodeCss, side: number, e: Event): void {
+  const node = getSelectedNode()
+  if (!node) return
+  const sides = parseBoxValue(getCssValue(key))
+  sides[side].value = (e.target as HTMLInputElement).value
+  updateNodeCss(node.id, key, composeBoxValue(sides))
+}
+
+function onBoxUnitInput(key: keyof NodeCss, side: number, e: Event): void {
+  const node = getSelectedNode()
+  if (!node) return
+  const sides = parseBoxValue(getCssValue(key))
+  sides[side].unit = (e.target as HTMLSelectElement).value
+  updateNodeCss(node.id, key, composeBoxValue(sides))
+}
+
+/** 解析边框值为 { width, style, color } */
+function parseBorderValue(str: string): { width: string; style: string; color: string } {
+  if (!str || !str.trim()) return { width: '', style: 'solid', color: '#dcdfe6' }
+  const m = str.trim().match(/^(\d+)\s*(px)?\s+(none|solid|dashed|dotted)\s+(.+)$/)
+  if (m) return { width: m[1], style: m[3], color: m[4] }
+  return { width: '', style: 'solid', color: '' }
+}
+
+function getBorderParsed(): { width: string; style: string; color: string } {
+  void designerStore.schemaRevision
+  return parseBorderValue(getCssValue('border'))
+}
+
+function onBorderWidthInput(e: Event): void {
+  const node = getSelectedNode()
+  if (!node) return
+  const b = parseBorderValue(getCssValue('border'))
+  b.width = (e.target as HTMLInputElement).value
+  updateNodeCss(node.id, 'border', composeBorderValue(b))
+}
+
+function onBorderStyleChange(e: Event): void {
+  const node = getSelectedNode()
+  if (!node) return
+  const b = parseBorderValue(getCssValue('border'))
+  b.style = (e.target as HTMLSelectElement).value
+  updateNodeCss(node.id, 'border', composeBorderValue(b))
+}
+
+function onBorderColorChange(val: string | null): void {
+  const node = getSelectedNode()
+  if (!node) return
+  const b = parseBorderValue(getCssValue('border'))
+  b.color = val ?? ''
+  updateNodeCss(node.id, 'border', composeBorderValue(b))
+}
+
+function composeBorderValue(b: { width: string; style: string; color: string }): string {
+  if (!b.width && !b.color) return ''
+  return `${b.width || '0'}px ${b.style} ${b.color || '#dcdfe6'}`.trim()
 }
 
 // ---------- 控件搜索 ----------
@@ -1785,6 +2097,38 @@ const nodeValidationRules = computed<ValidationRuleConfig[]>(() => {
   return Array.isArray(rules) ? (rules as ValidationRuleConfig[]) : []
 })
 
+/** 唯一性规则的联合字段候选：表单内其他表单类控件字段 */
+const otherFormFieldNames = computed(() => {
+  const node = selectedNode.value
+  if (!node) return []
+  const formNodes = collectAllNodes(designerStore.bizSchemas.form)
+  return formNodes
+    .filter(
+      (n) =>
+        n.fieldName &&
+        n.fieldName !== node.fieldName &&
+        getConfig(n.type)?.category === '表单'
+    )
+    .map((n) => ({
+      fieldName: n.fieldName as string,
+      label: (n.props.label as string) || '',
+    }))
+})
+
+function isCombineFieldSelected(rule: ValidationRuleConfig, fieldName: string): boolean {
+  return (rule.combineFields || []).includes(fieldName)
+}
+
+function toggleCombineField(idx: number, fieldName: string) {
+  const rule = nodeValidationRules.value[idx]
+  if (!rule) return
+  const current = rule.combineFields || []
+  const next = current.includes(fieldName)
+    ? current.filter((f) => f !== fieldName)
+    : [...current, fieldName]
+  updateValidationRule(idx, 'combineFields', next.length ? next : undefined)
+}
+
 function addValidationRule(type: ValidationType) {
   const node = selectedNode.value
   if (!node) return
@@ -1804,6 +2148,9 @@ function addValidationRule(type: ValidationType) {
   }
   if (type === 'compare') {
     newRule.comparisonType = '=='
+  }
+  if (type === 'unique') {
+    newRule.message = t('该值已存在')
   }
   rules.push(newRule)
   updateProps(node.id, 'validationRules', rules)
@@ -2043,23 +2390,25 @@ function onAddRuleSelect(e: Event) {
         <!-- FE-S10 P2: 引用字典 + 编号规则（仅表单字段控件显示） -->
         <div v-if="isFormField" class="prop-section">
           <div class="prop-section-title">{{ t('数据字典与编号') }}</div>
-          <div class="prop-item">
+          <div v-if="selectedNode?.type === 'select-box'" class="prop-item">
             <div class="prop-label">{{ t('引用字典') }}</div>
-            <select
-              class="page-input"
-              :value="currentNodeDictCode"
-              @change="onDictSelectChange"
-            >
-              <option value="">{{ t('不引用') }}</option>
-              <option
-                v-for="d in dataDictList"
-                :key="d.code"
-                :value="d.code"
-                :selected="currentNodeDictCode === d.code"
-              >{{ d.name }} ({{ d.code }})</option>
-            </select>
+            <div class="prop-dict-select">
+              <input
+                class="page-input"
+                type="text"
+                readonly
+                :value="currentNodeDictName"
+                :placeholder="t('不引用')"
+                @click="showDictSelectDialog = true"
+              />
+              <button
+                v-if="currentNodeDictCode"
+                class="prop-clear-btn"
+                @click="onDictClear"
+              >{{ t('清除') }}</button>
+            </div>
           </div>
-          <div class="prop-item">
+          <div v-if="selectedNode?.type === 'text-box'" class="prop-item">
             <div class="prop-label">{{ t('编号规则') }}</div>
             <div class="prop-number-rule">
               <input
@@ -2153,6 +2502,25 @@ function onAddRuleSelect(e: Event) {
             </div>
           </div>
           <div class="prop-item">
+            <div class="prop-label">{{ t('编码字段') }}</div>
+            <div class="page-open-setter">
+              <button
+                class="page-open-select-btn"
+                :disabled="!getEditable('refPageId')"
+                @click="openCodeFieldSelectDialog"
+              >
+                {{ codeFieldText || t('选择编码字段') }}
+              </button>
+              <button
+                v-if="getEditable('codeField')"
+                class="page-open-clear-btn"
+                @click="onCodeFieldSelect({ value: '' })"
+              >
+                {{ t('清除') }}
+              </button>
+            </div>
+          </div>
+          <div class="prop-item">
             <div class="prop-label">{{ t('值字段') }}</div>
             <div class="page-open-setter">
               <button
@@ -2196,8 +2564,8 @@ function onAddRuleSelect(e: Event) {
           @save="onDependFilterSave"
         />
 
-        <!-- 必填验证开关（仅可验证控件显示） -->
-        <div v-if="isValidatable" class="prop-section">
+        <!-- 必填验证开关（仅可验证控件显示；启用编码规则时必填不生效，隐藏开关） -->
+        <div v-if="isValidatable && !currentNodeNumberExpr" class="prop-section">
           <div class="prop-section-title">{{ t('验证') }}</div>
           <div class="prop-item">
             <div class="prop-label">{{ t('必填') }}</div>
@@ -2213,6 +2581,9 @@ function onAddRuleSelect(e: Event) {
             <div class="css-unit-row">
               <input
                 v-if="getCssParsed('width').unit !== 'auto'"
+                type="number"
+                min="0"
+                step="any"
                 class="page-input css-unit-input"
                 :value="getCssParsed('width').value"
                 :placeholder="t('数值')"
@@ -2241,6 +2612,9 @@ function onAddRuleSelect(e: Event) {
             <div class="css-unit-row">
               <input
                 v-if="getCssParsed('height').unit !== 'auto'"
+                type="number"
+                min="0"
+                step="any"
                 class="page-input css-unit-input"
                 :value="getCssParsed('height').value"
                 :placeholder="t('数值')"
@@ -2276,10 +2650,31 @@ function onAddRuleSelect(e: Event) {
         <div v-if="filteredCommonSetters.length" class="prop-section">
           <div class="prop-section-title">{{ t('可配置属性') }}</div>
           <div
-            v-for="setter in filteredCommonSetters"
-            :key="setter.prop"
-            class="prop-item"
+            v-for="g in setterGroups"
+            :key="g.name || '__default__'"
+            class="prop-group"
           >
+            <div
+              v-if="hasGroups"
+              class="prop-group-header"
+              @click="toggleGroup(g.name)"
+            >
+              <span
+                class="prop-group-arrow"
+                :class="{ expanded: isGroupExpanded(g.name) }"
+              >▶</span>
+              <span class="prop-group-name">{{ t(g.name) }}</span>
+              <span class="prop-group-count">{{ g.setters.length }}</span>
+            </div>
+            <div
+              v-show="!hasGroups || isGroupExpanded(g.name)"
+              class="prop-group-body"
+            >
+            <div
+              v-for="setter in g.setters"
+              :key="setter.prop"
+              class="prop-item"
+            >
             <div class="prop-label">
               {{ formatSetterLabel(setter) }}
               <button
@@ -2481,6 +2876,37 @@ function onAddRuleSelect(e: Event) {
                 {{ t('▦ 编辑汇总配置') }}
               </button>
             </div>
+            <!-- 明细表上级来源选择器 -->
+            <div
+              v-else-if="setter.type === 'parentTablePicker' && selectedNode"
+              class="parent-table-picker"
+            >
+              <template v-if="getEditable('parentType') === 'table'">
+                <ElSelect
+                  :model-value="(getEditable(setter.prop) as string) || ''"
+                  :placeholder="t('请选择表格控件')"
+                  style="width: 100%"
+                  @update:model-value="(v) => { setEditable(setter.prop, v); updateProps(selectedNode!.id, setter.prop, v) }"
+                >
+                  <ElOption
+                    v-for="opt in otherDetailTableOptions"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </ElSelect>
+                <span
+                  v-if="otherDetailTableOptions.length === 0"
+                  class="prop-hint"
+                >{{ t('暂无其他表格控件，请先在页面中添加 data-grid') }}</span>
+              </template>
+              <template v-else>
+                <span class="prop-readonly" style="margin-top: 0">{{ t('当前表单页面') }}</span>
+              </template>
+              <span class="prop-readonly">
+                {{ t('外键字段（自动取上级主键）') }}：<strong>{{ displayParentPkField }}</strong>
+              </span>
+            </div>
             <!-- 打开页面配置：弹窗选择页面 + 传参 + 弹窗形式 -->
             <div
               v-else-if="setter.type === 'pageOpen' && selectedNode"
@@ -2621,6 +3047,8 @@ function onAddRuleSelect(e: Event) {
               />
             </div>
           </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2648,6 +3076,9 @@ function onAddRuleSelect(e: Event) {
               <div class="css-unit-row">
                 <input
                   v-if="getCssParsed(field.key).unit !== 'auto'"
+                  type="number"
+                  min="0"
+                  step="any"
                   class="page-input css-unit-input"
                   :value="getCssParsed(field.key).value"
                   :placeholder="t('数值')"
@@ -2669,6 +3100,68 @@ function onAddRuleSelect(e: Event) {
                     {{ opt }}
                   </option>
                 </select>
+              </div>
+            </template>
+            <template v-else-if="field.boxEdit">
+              <div class="css-box-editor">
+                <div
+                  v-for="(sideLabel, si) in [t('上'), t('右'), t('下'), t('左')]"
+                  :key="si"
+                  class="css-box-row"
+                >
+                  <span class="css-box-label">{{ sideLabel }}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    class="page-input css-box-input"
+                    :value="getBoxParsed(field.key)[si].value"
+                    :placeholder="t('数值')"
+                    @input="onBoxInput(field.key, si, $event)"
+                  />
+                  <select
+                    class="css-unit-select css-box-unit"
+                    :value="getBoxParsed(field.key)[si].unit"
+                    @change="onBoxUnitInput(field.key, si, $event)"
+                    @click.stop
+                    @mousedown.stop
+                  >
+                    <option value="px">px</option>
+                    <option value="%">%</option>
+                  </select>
+                </div>
+              </div>
+            </template>
+            <template v-else-if="field.borderEdit">
+              <div class="css-border-editor">
+                <div class="css-border-row">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    class="page-input css-border-width"
+                    :value="getBorderParsed().width"
+                    :placeholder="t('宽度')"
+                    @input="onBorderWidthInput($event)"
+                  />
+                  <span class="css-border-px">px</span>
+                  <select
+                    class="css-unit-select css-border-style"
+                    :value="getBorderParsed().style"
+                    @change="onBorderStyleChange($event)"
+                    @click.stop
+                    @mousedown.stop
+                  >
+                    <option value="solid">{{ t('实线') }}</option>
+                    <option value="dashed">{{ t('虚线') }}</option>
+                    <option value="dotted">{{ t('点线') }}</option>
+                    <option value="none">{{ t('无') }}</option>
+                  </select>
+                </div>
+                <ElColorPicker
+                  :model-value="getBorderParsed().color || '#dcdfe6'"
+                  @update:model-value="onBorderColorChange"
+                />
               </div>
             </template>
             <template v-else>
@@ -3017,6 +3510,26 @@ function onAddRuleSelect(e: Event) {
                 @input="(e: Event) => updateValidationRule(idx, 'message', (e.target as HTMLInputElement).value)"
               />
             </div>
+            <div v-if="rule.type === 'unique'" class="prop-item">
+              <div class="prop-label">{{ t('联合字段（组合唯一）') }}</div>
+              <div class="combine-fields-box">
+                <label
+                  v-for="f in otherFormFieldNames"
+                  :key="f.fieldName"
+                  class="combine-field-option"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="isCombineFieldSelected(rule, f.fieldName)"
+                    @change="toggleCombineField(idx, f.fieldName)"
+                  />
+                  <span>{{ f.fieldName }}<template v-if="f.label">（{{ f.label }}）</template></span>
+                </label>
+                <div v-if="!otherFormFieldNames.length" class="combine-fields-empty">
+                  {{ t('暂无其他表单字段') }}
+                </div>
+              </div>
+            </div>
             <template
               v-for="field in getRuleMeta(rule.type)?.fields || []"
               :key="field.prop"
@@ -3097,6 +3610,7 @@ function onAddRuleSelect(e: Event) {
       v-model:visible="columnDialogVisible"
       :title="t('列配置编辑')"
       :editing-mode="gridEditingMode"
+      :remote-grid="selectedNode?.type === 'data-grid' && (selectedNode.props as any)?.dataSourceType === 'remote'"
       :form-fields="formFieldOptions"
       @update:model-value="onColumnDialogConfirm"
     />
@@ -3104,6 +3618,7 @@ function onAddRuleSelect(e: Event) {
       v-model:model-value="toolbarItemsDialogValue"
       v-model:visible="toolbarItemsDialogVisible"
       :title="t('工具栏按钮配置')"
+      :remote-grid="selectedNode?.type === 'data-grid' && (selectedNode.props as any)?.dataSourceType === 'remote'"
       @update:model-value="onToolbarItemsDialogConfirm"
     />
     <SummaryEditorDialog
@@ -3132,6 +3647,13 @@ function onAddRuleSelect(e: Event) {
       page-type="basedata"
       @select="(id: string) => onRefPageSelectConfirm(id)"
     />
+    <!-- 明细表上级页面选择弹窗 -->
+    <PageSelectDialog
+      v-model:visible="parentPageSelectVisible"
+      v-model:model-value="parentPageSelectValue"
+      :exclude-page-id="designerStore.pageId"
+      @select="(id: string) => onParentPageSelectConfirm(id)"
+    />
     <!-- 显示字段选择弹窗 -->
     <FieldSelectDialog
       v-model:visible="fieldSelectVisible"
@@ -3148,6 +3670,14 @@ function onAddRuleSelect(e: Event) {
       :fields="refPageFields"
       :title="t('选择值字段')"
       @select="(field: string) => onValueFieldSelectConfirm(field)"
+    />
+    <!-- 编码字段选择弹窗（单选） -->
+    <FieldSelectDialog
+      v-model:visible="codeFieldSelectVisible"
+      v-model:model-value="codeFieldSelectId"
+      :fields="refPageFields"
+      :title="t('选择编码字段')"
+      @select="(field: string) => onCodeFieldSelectConfirm(field)"
     />
     <ApiSelectDialog
       v-model:visible="apiSelectDialogVisible"
@@ -3205,6 +3735,54 @@ function onAddRuleSelect(e: Event) {
       :non-date-field-names="nonDateFieldNames"
       @save="onSaveNumberRule"
     />
+    <!-- 引用字典选择弹窗 -->
+    <Teleport to="body" v-if="showDictSelectDialog">
+      <div class="dict-select-overlay" @click="showDictSelectDialog = false">
+        <div class="dict-select-dialog" @click.stop>
+          <div class="dict-select-header">
+            <span>{{ t('选择引用字典') }}</span>
+            <button class="dict-select-close" @click="showDictSelectDialog = false">×</button>
+          </div>
+          <div class="dict-select-body">
+            <input
+              class="page-input dict-select-search"
+              type="text"
+              v-model="dictSelectSearch"
+              :placeholder="t('搜索字典编码或名称')"
+            />
+            <table class="dict-select-table">
+              <thead>
+                <tr>
+                  <th>{{ t('编码') }}</th>
+                  <th>{{ t('名称') }}</th>
+                  <th>{{ t('状态') }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredDictList.length === 0">
+                  <td colspan="4" class="dict-select-empty">{{ t('暂无数据') }}</td>
+                </tr>
+                <tr
+                  v-for="d in filteredDictList"
+                  :key="d.code"
+                  :class="{ 'is-selected': currentNodeDictCode === d.code }"
+                >
+                  <td>{{ d.code }}</td>
+                  <td>{{ d.name }}</td>
+                  <td>{{ d.enabled ? t('启用') : t('禁用') }}</td>
+                  <td class="dict-select-action">
+                    <button class="dict-select-pick" @click="onDictRowSelect(d)">
+                      {{ currentNodeDictCode === d.code ? t('已选') : t('选择') }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </aside>
 </template>
 
@@ -3314,6 +3892,49 @@ function onAddRuleSelect(e: Event) {
   padding-left: 8px;
   border-left: 3px solid #1976d2;
 }
+.prop-group {
+  margin-bottom: 4px;
+}
+.prop-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  background: #f5f7fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+}
+.prop-group-header:hover {
+  background: #ecf5ff;
+}
+.prop-group-arrow {
+  font-size: 10px;
+  color: #909399;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.prop-group-arrow.expanded {
+  transform: rotate(90deg);
+}
+.prop-group-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #303133;
+  flex: 1;
+}
+.prop-group-count {
+  font-size: 11px;
+  color: #909399;
+  background: #e4e7ed;
+  border-radius: 8px;
+  padding: 1px 7px;
+}
+.prop-group-body {
+  padding-left: 4px;
+}
 .grid-gen-btn {
   padding: 6px 16px;
   font-size: 13px;
@@ -3398,6 +4019,54 @@ function onAddRuleSelect(e: Event) {
   font-size: 13px;
   background: #f5f7fa;
 }
+.css-box-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.css-box-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.css-box-label {
+  width: 14px;
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  flex-shrink: 0;
+}
+.css-box-input {
+  flex: 1;
+  min-width: 0;
+}
+.css-box-unit {
+  width: 50px !important;
+}
+.css-border-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.css-border-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.css-border-width {
+  flex: 1;
+  min-width: 0;
+}
+.css-border-px {
+  font-size: 12px;
+  color: #909399;
+  flex-shrink: 0;
+}
+.css-border-style {
+  width: 70px !important;
+}
 
 .json-editor {
   width: 100%;
@@ -3466,6 +4135,12 @@ function onAddRuleSelect(e: Event) {
 /* 列配置编辑器按钮 */
 .columns-setter {
   display: flex;
+  flex-wrap: wrap;
+}
+.parent-table-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 .column-edit-btn {
   width: 100%;
@@ -3481,6 +4156,24 @@ function onAddRuleSelect(e: Event) {
   background: #1976d2;
   color: #fff;
   border-style: solid;
+}
+.prop-hint {
+  flex-basis: 100%;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #e6a23c;
+  line-height: 1.4;
+}
+.prop-readonly {
+  flex-basis: 100%;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
+}
+.prop-readonly strong {
+  color: #1976d2;
+  font-size: 14px;
 }
 
 /* 文本域包装器 */
@@ -3668,6 +4361,30 @@ function onAddRuleSelect(e: Event) {
   padding: 8px 10px;
   margin-bottom: 8px;
   background: #fafbff;
+}
+.combine-fields-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #fff;
+}
+.combine-field-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #606266;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.combine-fields-empty {
+  font-size: 12px;
+  color: #c0c4cc;
 }
 .validation-rule-header {
   display: flex;
@@ -3919,6 +4636,111 @@ function onAddRuleSelect(e: Event) {
   cursor: pointer;
   font-size: 11px;
   text-decoration: underline;
+}
+.prop-dict-select {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.prop-dict-select .page-input {
+  cursor: pointer;
+  flex: 1;
+}
+.dict-select-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 21000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dict-select-dialog {
+  background: #fff;
+  border-radius: 8px;
+  width: 520px;
+  max-width: 90vw;
+  max-height: 80vh;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+.dict-select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 15px;
+  font-weight: 600;
+}
+.dict-select-close {
+  border: none;
+  background: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
+}
+.dict-select-close:hover {
+  color: #1f2937;
+}
+.dict-select-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+.dict-select-search {
+  margin-bottom: 10px;
+}
+.dict-select-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dict-select-table th {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 2px solid #e5e7eb;
+  color: #6b7280;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dict-select-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #1f2937;
+}
+.dict-select-table tr.is-selected td {
+  background: #ecf5ff;
+}
+.dict-select-table tr:hover td {
+  background: #f5f7fa;
+}
+.dict-select-empty {
+  text-align: center;
+  color: #c0c4cc;
+  padding: 24px 0;
+}
+.dict-select-action {
+  text-align: right;
+  white-space: nowrap;
+}
+.dict-select-pick {
+  padding: 3px 10px;
+  background: #409eff;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.dict-select-pick:hover {
+  background: #66b1ff;
+}
+.dict-select-table tr.is-selected .dict-select-pick {
+  background: #e6a23c;
+  cursor: default;
 }
 
 </style>

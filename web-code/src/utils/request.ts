@@ -140,6 +140,8 @@ export interface RequestOptions {
   body?: BodyInit
   /** 是否自动添加 Content-Type: application/json，默认 true；FormData 场景设 false */
   jsonContentType?: boolean
+  /** 内部标记：401 刷新后重放（防循环），外部勿传 */
+  _replayed?: boolean
 }
 
 /** 请求结果 */
@@ -149,10 +151,81 @@ export interface RequestResult {
   data: unknown
 }
 
+// ---- 认证头注入与 401 统一出口（A6：fetch 对 4xx 不抛异常，检测必须在此统一出口做） ----
+
+/** 从 localStorage 同步读 token（避免 request ↔ store/auth 循环依赖） */
+function currentAccessToken(): string | null {
+  try {
+    const raw = localStorage.getItem('lowcode:auth')
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { accessToken?: string }
+    return parsed.accessToken ?? null
+  } catch {
+    return null
+  }
+}
+
+/** 免 401 处理的 URL（登录/刷新本身） */
+function isAuthSelfUrl(url: string): boolean {
+  return url.includes('/api/auth/login') || url.includes('/api/auth/refresh')
+}
+
+/** 全局刷新单飞（防并发 401 轮换竞态互踢） */
+let _refreshing: Promise<boolean> | null = null
+
+async function tryRefreshOnce(): Promise<boolean> {
+  if (!_refreshing) {
+    _refreshing = (async () => {
+      try {
+        const raw = localStorage.getItem('lowcode:auth')
+        if (!raw) return false
+        const s = JSON.parse(raw) as { refreshToken?: string }
+        let deviceId = localStorage.getItem('lowcode:deviceId')
+        if (!deviceId) {
+          deviceId = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+          localStorage.setItem('lowcode:deviceId', deviceId)
+        }
+        const resp = await window.fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: s.refreshToken, deviceId }),
+        })
+        if (!resp.ok) return false
+        const body = (await resp.json()) as { res?: boolean; data?: { accessToken?: string; refreshToken?: string } }
+        if (body.res === false || !body.data?.accessToken) return false
+        localStorage.setItem(
+          'lowcode:auth',
+          JSON.stringify({ ...JSON.parse(raw), accessToken: body.data.accessToken, refreshToken: body.data.refreshToken }),
+        )
+        return true
+      } catch {
+        return false
+      } finally {
+        setTimeout(() => (_refreshing = null), 0)
+      }
+    })()
+  }
+  return _refreshing
+}
+
+/** 刷新失败：清会话 + 提示 + 跳登录页（hash 路由，避免 import router 循环依赖） */
+async function redirectToLogin(): Promise<void> {
+  localStorage.removeItem('lowcode:auth')
+  try {
+    const { ElMessage } = await import('element-plus')
+    ElMessage.warning('登录已过期，请重新登录')
+  } catch {
+    // ignore
+  }
+  const redirect = encodeURIComponent(window.location.hash.slice(1) || '/home')
+  window.location.hash = `#/login?redirect=${redirect}`
+}
+
 /**
  * 核心请求函数：封装 window.fetch，统一注入基礎头、走拦截器、记审计
  *
  * 网络错误时抛出原异常（由调用方决定是否 catch），与 window.fetch 语义一致
+ * 401 统一出口：静默刷新（单飞）→ 重放一次；失败清会话跳登录
  */
 export async function httpRequest(
   url: string,
@@ -160,6 +233,10 @@ export async function httpRequest(
 ): Promise<RequestResult> {
   const method = options.method || 'GET'
   const headers = getBaseHeaders()
+  const token = currentAccessToken()
+  if (token && !('Authorization' in headers)) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
   if (options.jsonContentType !== false) {
     if (!('Content-Type' in headers)) headers['Content-Type'] = 'application/json'
   }
@@ -192,12 +269,37 @@ export async function httpRequest(
     throw networkErr
   }
 
+  // ---- 401/403 统一出口（A6：fetch 对 4xx 不抛异常，须按 status 检测） ----
+  if (resp.status === 401 && !isAuthSelfUrl(config.url) && !options._replayed) {
+    const refreshed = await tryRefreshOnce()
+    if (refreshed) {
+      const replayHeaders = { ...headers }
+      const newToken = currentAccessToken()
+      if (newToken) replayHeaders['Authorization'] = `Bearer ${newToken}`
+      const replay = await httpRequest(url, { ...options, headers: replayHeaders, _replayed: true })
+      return replay
+    }
+    await redirectToLogin()
+  }
+
   const text = await resp.text()
   let data: unknown
   try {
     data = JSON.parse(text)
   } catch {
     data = text
+  }
+
+  if (resp.status === 403) {
+    const msg = (data as { msg?: string; message?: string })?.msg
+      || (data as { message?: string })?.message
+      || '无操作权限'
+    try {
+      const { ElMessage } = await import('element-plus')
+      ElMessage.error(msg)
+    } catch {
+      // ignore
+    }
   }
 
   let ctx: ResponseContext = {

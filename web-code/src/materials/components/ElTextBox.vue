@@ -11,6 +11,8 @@ const props = defineProps<{
   maxLength?: number
   mask?: string
   showClearButton?: boolean
+  /** 启用编码规则：输入禁止空格、换行等空白与特殊字符 */
+  codeRuleEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -27,9 +29,13 @@ const emit = defineEmits<{
 const inner = computed({
   get: () => props.modelValue ?? props.value ?? '',
   set: (v) => {
-    emit('update:value', v)
-    emit('update:modelValue', v)
-    emit('valueChanged', { value: v })
+    // 编码规则字段：过滤空格、换行、tab 等空白与控制字符
+    const cleaned = props.codeRuleEnabled && typeof v === 'string'
+      ? v.replace(/[\s\u0000-\u001f\u007f]/g, '')
+      : v
+    emit('update:value', cleaned)
+    emit('update:modelValue', cleaned)
+    emit('valueChanged', { value: cleaned })
   },
 })
 

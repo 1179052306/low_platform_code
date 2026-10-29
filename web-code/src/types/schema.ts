@@ -1,7 +1,7 @@
 /** 低代码平台协议类型定义 */
 
 /** 属性设置器类型 */
-export type SetterType = 'input' | 'textarea' | 'number' | 'switch' | 'select' | 'apiSelect' | 'color' | 'iconSelect' | 'json' | 'columns' | 'toolbarItems' | 'summary' | 'pageOpen' | 'optionsEditor' | 'itemsSelect'
+export type SetterType = 'input' | 'textarea' | 'number' | 'switch' | 'select' | 'apiSelect' | 'color' | 'iconSelect' | 'json' | 'columns' | 'toolbarItems' | 'summary' | 'pageOpen' | 'optionsEditor' | 'itemsSelect' | 'parentTablePicker'
 
 /** 属性设置器配置：描述右侧属性面板如何编辑某个 prop */
 export interface PropSetterConfig {
@@ -10,9 +10,11 @@ export interface PropSetterConfig {
   type: SetterType
   options?: { label: string; value: string | number }[]
   /** 条件显示：当指定 prop 的值等于指定值时才显示此属性 */
-  visibleIf?: { prop: string; equals: string | boolean }
+  visibleIf?: { prop: string; equals?: string | boolean; notEquals?: string | boolean }
   /** 条件隐藏：当指定 prop 有值（notEmpty=true）或为空（notEmpty=false）时隐藏 */
   hiddenIf?: { prop: string; notEmpty?: boolean }
+  /** 属性分组名称（用于属性面板折叠面板分组显示） */
+  group?: string
 }
 
 /** 物料分类（对齐 DevExtreme 官方文档分类） */
@@ -208,6 +210,8 @@ export interface PageSchema {
   workflowId?: string
   /** 页面级计算规则（FE-S10：表达式从字段级提升为界面级规则） */
   computeRules?: ComputeRule[]
+  /** 页面规则（字段变化触发条件后执行动作列表，可视化配置替代事件代码） */
+  pageRules?: PageRule[]
 }
 
 /** 计算规则目标字段（一个目标字段 + 其计算表达式） */
@@ -230,6 +234,116 @@ export interface ComputeRule {
   targets: ComputeRuleTarget[]
   /** 是否启用 */
   enabled?: boolean
+}
+
+// ================ 页面规则（可视化配置替代事件代码） ================
+
+/** 页面规则动作类型 */
+export type PageRuleActionType =
+  | 'setVisible'
+  | 'setDisabled'
+  | 'setRequired'
+  | 'setReadOnly'
+  | 'setValue'
+  | 'setDataSource'
+  | 'setProp'
+  | 'setStyle'
+  | 'callApi'
+  | 'openPage'
+  | 'showMessage'
+  | 'runScript'
+
+/** 数据源刷新配置 */
+export interface PageRuleDataSourceConfig {
+  url: string
+  /** 参数键值表，值可引用字段 ${fieldA} */
+  params?: Record<string, string>
+  labelField?: string
+  valueField?: string
+}
+
+/** 接口调用配置 */
+export interface PageRuleApiConfig {
+  method: 'GET' | 'POST'
+  url: string
+  /** 请求体（可含表达式） */
+  body?: string
+  /** 成功后连锁执行的动作 */
+  successActions?: PageRuleAction[]
+}
+
+/** 打开页面配置 */
+export interface PageRulePageConfig {
+  pageName: string
+  mode?: 'modal' | 'navigate'
+  /** 参数键值表，值可引用字段 ${fieldA} */
+  params?: Record<string, string>
+}
+
+/** 消息提示配置 */
+export interface PageRuleMessageConfig {
+  type: 'success' | 'warning' | 'error' | 'info'
+  text: string
+}
+
+/** 页面规则动作 */
+export interface PageRuleAction {
+  id: string
+  type: PageRuleActionType
+  /** 目标控件字段名 */
+  targetField?: string
+  /** setVisible/setDisabled/setRequired/setReadOnly 的 true/false */
+  boolValue?: boolean
+  /** setValue 的值表达式 / 条件表达式 */
+  expr?: string
+  /** setDataSource 配置 */
+  dataSourceConfig?: PageRuleDataSourceConfig
+  /** setProp 的属性路径（如 'placeholder'） */
+  propPath?: string
+  /** setProp 的值（可表达式） */
+  propValue?: string
+  /** setStyle 的样式键 */
+  styleKey?: string
+  /** setStyle 的值 */
+  styleValue?: string
+  /** callApi 配置 */
+  apiConfig?: PageRuleApiConfig
+  /** openPage 配置 */
+  pageConfig?: PageRulePageConfig
+  /** showMessage 配置 */
+  messageConfig?: PageRuleMessageConfig
+  /** runScript 的 JS 代码（沙箱执行，注入 api） */
+  script?: string
+}
+
+/** 页面规则触发条件（字段 + 运算符 + 值，多条件 AND 关系） */
+export interface PageRuleCondition {
+  /** 字段名 */
+  field: string
+  /** 运算符：=, <>, >, >=, <, <=, contains, notcontains, startswith, endswith, between */
+  operator: string
+  /** 比较值 */
+  value: string
+  /** between 操作符的第二个值（结束值） */
+  value2?: string
+}
+
+/** 页面规则（字段变化 → 条件判断 → 动作列表） */
+export interface PageRule {
+  /** 规则 ID */
+  id: string
+  /** 规则名称 */
+  name: string
+  /** 是否启用 */
+  enabled: boolean
+  /** 触发条件列表（多条件 AND 关系，条件中的字段即触发字段，空数组=无条件触发） */
+  conditions: PageRuleCondition[]
+  /** 满足条件时执行的动作列表 */
+  actions: PageRuleAction[]
+  /** 不满足条件时执行（用于"否则隐藏"等场景） */
+  elseActions?: PageRuleAction[]
+  /** 排序号 */
+  sortNo: number
 }
 
 /** 附件配置（FE-S10 P2） */

@@ -9,7 +9,7 @@ import {
   onBeforeUnmount,
 } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getSession, logout } from '@/store/auth'
+import { getSession, logout, menus as authMenus, loadMenus } from '@/store/auth'
 import {
   t,
   currentLang,
@@ -302,6 +302,68 @@ export default defineComponent({
     const session = getSession()
     const username = computed(() => session?.username ?? '未登录')
 
+    // ================ 动态菜单（后端 RBAC 下发：dir 目录→面板菜单（同"页面开发"交互）；menu 页面→直跳项） ================
+    interface DynamicMenuNode {
+      id?: string
+      menuType?: string
+      menuName?: string
+      nameKey?: string
+      menuCode?: string
+      routePath?: string
+      icon?: string
+      children?: DynamicMenuNode[]
+    }
+
+    /** 后端菜单树 → 侧边菜单项（登录后 /api/sys/profile/menus 拉取；title 用 menuName，nameKey 翻译未配置时中文兜底） */
+    const dynamicMenuItems = computed<MenuItem[]>(() => {
+      const out: MenuItem[] = []
+      const roots = (authMenus.value || []) as DynamicMenuNode[]
+      const collectMenuItems = (nodes: DynamicMenuNode[]): PanelItem[] => {
+        const items: PanelItem[] = []
+        for (const c of nodes || []) {
+          if (c.menuType === 'menu' && c.routePath) {
+            items.push({
+              title: c.menuName || c.routePath,
+              desc: '',
+              icon: c.icon || '▦',
+              path: c.routePath,
+            })
+          }
+          if (c.children?.length) {
+            items.push(...collectMenuItems(c.children))
+          }
+        }
+        return items
+      }
+      for (const n of roots) {
+        if (n.menuType === 'dir') {
+          const items = collectMenuItems(n.children || [])
+          if (items.length) {
+            out.push({
+              key: 'dyn-' + (n.id || n.menuCode || n.menuName),
+              title: n.menuName || '',
+              icon: n.icon || '⚙',
+              panel: { groups: [{ title: n.menuName || '', items }] },
+            })
+          }
+        } else if (n.menuType === 'menu' && n.routePath) {
+          out.push({
+            key: 'dyn-' + (n.id || n.routePath),
+            title: n.menuName || '',
+            icon: n.icon || '▦',
+            path: n.routePath,
+          })
+        }
+      }
+      return out
+    })
+
+    /** 侧边栏总菜单：动态菜单在前（用户被授权的功能入口），静态开发菜单在后 */
+    const allMenus = computed<MenuItem[]>(() => [
+      ...dynamicMenuItems.value,
+      ...MENUS,
+    ])
+
     // ================ 侧边栏 ================
     const collapsed = ref(false)
     /** 当前弹出大面板的菜单 key（单开互斥，'' 为全收起） */
@@ -310,7 +372,7 @@ export default defineComponent({
 
     /** 当前路由归属的一级菜单 key（用于菜单高亮） */
     const activeMenuKey = computed(() => {
-      for (const m of MENUS) {
+      for (const m of allMenus.value) {
         if (m.path === route.path) return m.key
         if (
           m.panel?.groups.some((g) =>
@@ -323,7 +385,7 @@ export default defineComponent({
     })
 
     const openedPanel = computed(
-      () => MENUS.find((m) => m.key === openPanelKey.value)?.panel ?? null
+      () => allMenus.value.find((m) => m.key === openPanelKey.value)?.panel ?? null
     )
 
     /** 面板内按关键词过滤后的分组 */
@@ -397,14 +459,27 @@ export default defineComponent({
       () => route.path,
       (p) => {
         const meta = ROUTE_TAB_META[p]
-        if (!meta) return
-        if (!tabs.value.some((t) => t.path === p)) {
-          tabs.value.push({
-            path: p,
-            title: meta.title,
-            componentName: meta.componentName,
-            closable: true,
-          })
+        if (meta) {
+          if (!tabs.value.some((t) => t.path === p)) {
+            tabs.value.push({
+              path: p,
+              title: meta.title,
+              componentName: meta.componentName,
+              closable: true,
+            })
+          }
+          return
+        }
+        // 动态路由页面（RBAC 菜单注册）：用路由 meta 开 tab
+        if (p !== '/home' && p !== '/login' && route.name && String(route.name).startsWith('dyn-')) {
+          if (!tabs.value.some((t) => t.path === p)) {
+            tabs.value.push({
+              path: p,
+              title: (route.meta?.title as string) || p,
+              componentName: (route.meta?.componentName as string) || String(route.name),
+              closable: true,
+            })
+          }
         }
       },
       { immediate: true }
@@ -544,7 +619,7 @@ export default defineComponent({
     }
     const allMenuEntries = computed<MenuEntry[]>(() => {
       const list: MenuEntry[] = []
-      for (const m of MENUS) {
+      for (const m of allMenus.value) {
         if (m.path) {
           list.push({
             title: m.title,
@@ -727,6 +802,10 @@ export default defineComponent({
       document.addEventListener('click', onDocClick)
       loadModule('home', 'menu')
       applyDefaultTheme()
+      // 兜底：登录时菜单拉取失败/旧会话恢复为空时，挂载后再拉一次（侧边栏 RBAC 菜单）
+      if (!authMenus.value || authMenus.value.length === 0) {
+        loadMenus().catch(() => undefined)
+      }
     })
     onBeforeUnmount(() => {
       document.removeEventListener('click', onDocClick)
@@ -736,6 +815,7 @@ export default defineComponent({
       username,
       collapsed,
       MENUS,
+      allMenus,
       openPanelKey,
       activeMenuKey,
       openedPanel,
@@ -939,7 +1019,7 @@ export default defineComponent({
       <aside class="side-menu" :class="{ collapsed }">
         <nav class="menu-list">
           <button
-            v-for="item in MENUS"
+            v-for="item in allMenus"
             :key="item.key"
             class="menu-item"
             :class="{
@@ -1731,7 +1811,7 @@ export default defineComponent({
   background: linear-gradient(160deg, #1e2f42 0%, #24384e 100%);
   border-radius: 10px;
   box-shadow: 0 14px 40px rgba(10, 25, 45, 0.35);
-  z-index: 35;
+  z-index: 999;
   display: flex;
   flex-direction: column;
   overflow: hidden;

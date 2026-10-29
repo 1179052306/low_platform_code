@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: bcd-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8001
+        username: nacos
+        password: nacos
+        namespace: code
+      config:
+        server-addr: localhost:8001
+        username: nacos
+        password: nacos
+        namespace: code
+        file-extension: yml
+        shared-configs:
+          - data-id: redis.yml
+            refresh: true
+          - data-id: management.yml
+            refresh: true

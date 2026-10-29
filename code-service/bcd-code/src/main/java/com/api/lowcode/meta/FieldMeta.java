@@ -12,6 +12,8 @@ public class FieldMeta {
     private String dataType;
     private Boolean isRequired;
     private Boolean isUnique;
+    /** 组合唯一字段列表（含自身，JSON 数组字符串，与 __uniqueChecks 的 fields 语义一致） */
+    private String uniqueGroup;
     private Boolean isSystemField;
     private String permissionExpr;
     private String defaultValueExpr;
