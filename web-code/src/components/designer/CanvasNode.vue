@@ -1642,7 +1642,7 @@ const wrapperClass = computed(() => {
   align-items: center;
   gap: 0;
   min-height: 40px;
-  padding: 4px 12px;
+  padding: 4px 2px;
   border-bottom: 1px solid #e4e7ed;
   background-color: #ffffff;
   box-sizing: border-box;

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>仓库建造者 - Babylon.js</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Microsoft YaHei',sans-serif; background:#000; color:#fff; overflow:hidden; height:100vh; user-select:none; }
+  #renderCanvas { width:100%; height:100%; display:block; outline:none; touch-action:none; }
+  .hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+
+  /* 准星 */
+  .crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; }
+  .crosshair::before, .crosshair::after { content:''; position:absolute; background:rgba(255,255,255,.9); box-shadow:0 0 4px rgba(0,0,0,.8); }
+  .crosshair::before { top:50%; left:3px; right:3px; height:2px; transform:translateY(-50%); }
+  .crosshair::after { left:50%; top:3px; bottom:3px; width:2px; transform:translateX(-50%); }
+  .crosshair .dot { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:5px; height:5px; background:#fa3; border-radius:50%; box-shadow:0 0 8px #fa3; }
+
+  /* 顶部模式切换 */
+  .modebar { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; gap:6px; pointer-events:auto; }
+  .mode-btn { padding:10px 24px; background:rgba(8,12,18,.85); border:2px solid rgba(80,160,255,.3); color:#8aa; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; backdrop-filter:blur(8px); transition:all .15s; }
+  .mode-btn.active { border-color:#fa3; color:#fa3; background:rgba(255,170,50,.15); box-shadow:0 0 16px rgba(255,170,50,.3); }
+
+  /* 面包屑 */
+  .breadcrumb { position:absolute; top:64px; left:50%; transform:translateX(-50%); padding:6px 18px; background:rgba(8,12,18,.8); border:1px solid rgba(80,160,255,.25); border-radius:6px; display:flex; gap:8px; font-size:13px; backdrop-filter:blur(6px); }
+  .crumb { color:#8aa; cursor:pointer; pointer-events:auto; }
+  .crumb:hover { color:#5af; }
+  .crumb.cur { color:#fff; font-weight:600; }
+  .sep { color:#445; }
+
+  /* 物品栏（底部 hotbar，游戏风格） */
+  .hotbar { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; pointer-events:auto; }
+  .slot { width:72px; height:72px; background:rgba(8,12,18,.85); border:2px solid rgba(80,160,255,.25); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; cursor:pointer; backdrop-filter:blur(8px); transition:all .12s; }
+  .slot:hover { border-color:#5af; transform:translateY(-4px); }
+  .slot.active { border-color:#fa3; background:rgba(255,170,50,.18); box-shadow:0 0 20px rgba(255,170,50,.4); transform:translateY(-6px); }
+  .slot .ic { font-size:28px; }
+  .slot .nm { font-size:10px; color:#bcc; margin-top:2px; }
+  .slot .key { position:absolute; top:4px; left:6px; font-size:11px; color:#5af; font-weight:700; }
+
+  /* 手持物品提示（左下） */
+  .hand { position:absolute; bottom:24px; left:24px; padding:12px 18px; background:rgba(8,12,18,.85); border:1px solid rgba(80,160,255,.25); border-radius:8px; backdrop-filter:blur(8px); min-width:200px; }
+  .hand .t { font-size:11px; color:#5af; letter-spacing:1px; }
+  .hand .n { font-size:16px; font-weight:700; margin:3px 0; }
+  .hand .d { font-size:12px; color:#8aa; }
+
+  /* 右下信息 */
+  .info { position:absolute; bottom:24px; right:24px; padding:12px 18px; background:rgba(8,12,18,.85); border:1px solid rgba(80,160,255,.25); border-radius:8px; backdrop-filter:blur(8px); min-width:200px; }
+  .info .t { font-size:11px; color:#5af; letter-spacing:1px; }
+  .info .n { font-size:16px; font-weight:700; margin:3px 0; }
+  .info .d { font-size:12px; color:#8aa; }
+
+  /* 小地图 */
+  .minimap { position:absolute; top:14px; right:14px; width:170px; padding:8px; background:rgba(8,12,18,.85); border:1px solid rgba(80,160,255,.25); border-radius:8px; backdrop-filter:blur(8px); pointer-events:auto; }
+  .minimap canvas { width:100%; height:110px; background:#0a0e14; border-radius:4px; }
+  .minimap .lbl { font-size:10px; color:#5af; text-align:center; margin-top:4px; letter-spacing:1px; }
+
+  /* 提示 toast */
+  .toast { position:absolute; top:110px; left:50%; transform:translateX(-50%); padding:10px 26px; background:rgba(255,170,50,.95); color:#112; border-radius:24px; font-size:14px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,.5); opacity:0; transition:opacity .25s; }
+  .toast.show { opacity:1; }
+
+  /* 中央提示（按E进入） */
+  .interact { position:absolute; top:55%; left:50%; transform:translateX(-50%); padding:8px 20px; background:rgba(255,170,50,.9); color:#112; border-radius:6px; font-size:14px; font-weight:600; opacity:0; transition:opacity .2s; }
+  .interact.show { opacity:1; }
+
+  /* 弹窗 */
+  .modal { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); padding:24px 30px; background:rgba(8,12,18,.95); border:2px solid #5af; border-radius:12px; text-align:center; pointer-events:auto; backdrop-filter:blur(10px); }
+  .modal h4 { font-size:17px; margin-bottom:18px; }
+  .modal .opts { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .modal .opt { padding:14px 26px; background:rgba(80,160,255,.15); border:2px solid #5af; color:#fff; border-radius:8px; cursor:pointer; font-size:17px; font-weight:700; transition:all .12s; }
+  .modal .opt:hover { background:#5af; color:#112; }
+  .modal .cancel { margin-top:16px; padding:6px 18px; background:transparent; border:1px solid #555; color:#888; border-radius:6px; cursor:pointer; font-size:12px; }
+
+  /* 开场 */
+  .intro { position:fixed; inset:0; background:radial-gradient(ellipse at center,#1a2030,#000); z-index:100; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer; }
+  .intro h1 { font-size:46px; font-weight:800; letter-spacing:6px; background:linear-gradient(90deg,#5af,#fa3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .intro p { color:#8aa; margin-top:12px; font-size:16px; }
+  .intro .keys { margin-top:30px; display:flex; gap:22px; }
+  .intro .k { text-align:center; }
+  .intro .kk { display:inline-block; padding:6px 14px; background:#1a2030; border:1px solid #5af; border-radius:6px; font-weight:700; color:#5af; font-size:13px; }
+  .intro .kd { font-size:12px; color:#8aa; margin-top:6px; }
+  .intro .start { margin-top:34px; padding:14px 50px; background:linear-gradient(90deg,#fa3,#fc5); color:#112; border-radius:30px; font-size:20px; font-weight:700; box-shadow:0 0 40px rgba(255,170,50,.5); }
+  .intro.hide { display:none; }
+</style>
+</head>
+<body>
+<canvas id="renderCanvas" tabindex="0"></canvas>
+
+<div class="hud">
+  <div class="crosshair" id="crosshair"><div class="dot"></div></div>
+  <div class="modebar">
+    <div class="mode-btn active" data-mode="plan">📋 规划模式</div>
+    <div class="mode-btn" data-mode="walk">🚶 漫游模式</div>
+  </div>
+  <div class="breadcrumb" id="breadcrumb"></div>
+  <div class="hotbar" id="hotbar"></div>
+  <div class="hand" id="hand"></div>
+  <div class="info" id="info"></div>
+  <div class="minimap"><canvas id="miniCanvas"></canvas><div class="lbl">MINIMAP</div></div>
+  <div class="toast" id="toast"></div>
+  <div class="interact" id="interact">按 E 进入仓库</div>
+  <div id="modalSlot"></div>
+</div>
+
+<div class="intro" id="intro">
+  <h1>WAREHOUSE BUILDER</h1>
+  <p>Babylon.js 引擎 · 幸福工厂风格 · 3D 仓库搭建</p>
+  <div class="keys">
+    <div class="k"><span class="kk">Tab</span><div class="kd">切换规划/漫游</div></div>
+    <div class="k"><span class="kk">W A S D</span><div class="kd">漫游移动</div></div>
+    <div class="k"><span class="kk">鼠标拖</span><div class="kd">转视角</div></div>
+    <div class="k"><span class="kk">1-5</span><div class="kd">选物品</div></div>
+    <div class="k"><span class="kk">左键</span><div class="kd">放置</div></div>
+    <div class="k"><span class="kk">E</span><div class="kd">进入仓库</div></div>
+  </div>
+  <div class="start">点击进入</div>
+</div>
+
+<script src="./babylon.js"></script>
+<script>
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+const scene = new BABYLON.Scene(engine);
+scene.clearColor = new BABYLON.Color4(0.54, 0.66, 0.78, 1);
+scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+scene.fogColor = new BABYLON.Color3(0.54, 0.66, 0.78);
+scene.fogDensity = 0.003;
+scene.collisionsEnabled = true;
+scene.gravity = new BABYLON.Vector3(0, -0.5, 0);
+
+// 光照
+const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
+hemi.intensity = 0.7;
+hemi.groundColor = new BABYLON.Color3(0.4, 0.4, 0.5);
+const dir = new BABYLON.DirectionalLight('dir', new BABYLON.Vector3(-0.5, -1, -0.3), scene);
+dir.intensity = 0.6;
+const shadowGen = new BABYLON.ShadowGenerator(2048, dir);
+shadowGen.useBlurExponentialShadowMap = true;
+
+// ===== 状态 =====
+let mode = 'plan'; // plan | walk
+let scope = 'park'; // park | warehouse
+let currentWarehouse = null;
+let currentFloor = 1;
+const FLOOR_H = 4;
+let selectedType = null;
+let started = false;
+let placedMeshes = [];
+let groundMesh = null;
+let previewMesh = null;
+let pendingPlace = null;
+let nearWarehouse = null;
+
+// 相机
+let planCam, walkCam;
+function setupPlanCam() {
+  planCam = new BABYLON.ArcRotateCamera('plan', Math.PI/4, Math.PI/3, 40, BABYLON.Vector3.Zero(), scene);
+  planCam.lowerRadiusLimit = 10;
+  planCam.upperRadiusLimit = 120;
+  planCam.upperBetaLimit = Math.PI/2 - 0.05;
+  planCam.wheelDeltaPercentage = 0.5;
+  planCam.angularSensibility = 4;
+}
+function setupWalkCam() {
+  walkCam = new BABYLON.UniversalCamera('walk', new BABYLON.Vector3(0, 3, 15), scene);
+  walkCam.applyGravity = false;
+  walkCam.checkCollisions = false;
+  walkCam.speed = 1.5;
+  walkCam.minZ = 0.1;
+  walkCam.fov = 0.9;
+  walkCam.angularSensibility = 8;
+  walkCam.checkCollisions = true;
+  walkCam.ellipsoid = new BABYLON.Vector3(1.5, 2, 1.5);
+}
+setupPlanCam();
+setupWalkCam();
+scene.activeCamera = planCam;
+
+// ===== 材质工厂 =====
+function mat(color, opts = {}) {
+  const m = new BABYLON.StandardMaterial('m' + Math.random(), scene);
+  m.diffuseColor = BABYLON.Color3.FromHexString(color);
+  if (opts.specular) m.specularColor = BABYLON.Color3.FromHexString(opts.specular);
+  if (opts.emissive) m.emissiveColor = BABYLON.Color3.FromHexString(opts.emissive);
+  m.specularPower = opts.shiny || 64;
+  if (opts.alpha != null) m.alpha = opts.alpha;
+  return m;
+}
+
+// ===== 场景构建 =====
+function clearAll() {
+  placedMeshes.forEach(m => m.dispose());
+  placedMeshes = [];
+  if (previewMesh) { previewMesh.dispose(); previewMesh = null; }
+  if (groundMesh) { groundMesh.dispose(); groundMesh = null; }
+  // 清除其他临时网格
+  const toRemove = scene.meshes.filter(m => m.name.startsWith('tmp_'));
+  toRemove.forEach(m => m.dispose());
+}
+
+function buildPark() {
+  clearAll();
+  scope = 'park';
+  currentWarehouse = null;
+  // 工厂园区地面
+  groundMesh = BABYLON.MeshBuilder.CreateGround('tmp_ground', { width: 300, height: 300 }, scene);
+  groundMesh.material = mat('#4a4a4a');
+  groundMesh.receiveShadows = true;
+  groundMesh.metadata = { isGround: true };
+  // 网格
+  const grid = BABYLON.MeshBuilder.CreateGround('tmp_grid', { width: 300, height: 300, subdivisions: 60 }, scene);
+  const gm = new BABYLON.StandardMaterial('gm', scene);
+  gm.wireframe = true;
+  gm.diffuseColor = new BABYLON.Color3(0.35, 0.35, 0.35);
+  gm.alpha = 0.25;
+  grid.material = gm;
+  grid.position.y = 0.01;
+
+  planCam.setTarget(BABYLON.Vector3.Zero());
+  planCam.radius = 40;
+  walkCam.position = new BABYLON.Vector3(0, 3, 20);
+  setBreadcrumb(['空地']);
+  setInfo('园区空地', '规划模式：放置仓库建筑');
+  setHotbar([
+    { type:'warehouse', icon:'🏢', name:'仓库', key:'1' }
+  ]);
+  selectedType = null;
+  rebuildPreview();
+}
+
+function buildFloor(wh, floor) {
+  clearAll();
+  scope = 'warehouse';
+  currentWarehouse = wh;
+  currentFloor = floor;
+  const yBase = (floor - 1) * FLOOR_H;
+  const yCeil = yBase + FLOOR_H;
+  const w = wh.metadata.w, d = wh.metadata.d;
+  // 白色地坪漆地面（仓库尺寸）
+  groundMesh = BABYLON.MeshBuilder.CreateGround('tmp_ground', { width: w, height: d }, scene);
+  groundMesh.material = mat('#f0f0f0');
+  groundMesh.position.y = yBase;
+  groundMesh.receiveShadows = true;
+  groundMesh.metadata = { isGround: true };
+  // 楼顶板（不透明，覆盖仓库范围）
+  const ceil = BABYLON.MeshBuilder.CreateGround('tmp_ceil', { width: w, height: d }, scene);
+  ceil.material = mat('#d8d4cc');
+  ceil.position.y = yCeil;
+  // 横梁（沿X方向，间距5米，仅仓库内）
+  const beamMat = mat('#8a8a80');
+  for (let i = -d/2 + 5; i <= d/2 - 1; i += 5) {
+    const b = BABYLON.MeshBuilder.CreateBox('tmp_beam', { width: w, height: 0.3, depth: 0.4 }, scene);
+    b.position = new BABYLON.Vector3(0, yCeil - 0.15, i); b.material = beamMat;
+  }
+  // 主梁（沿Z方向，中间一根）
+  const b2 = BABYLON.MeshBuilder.CreateBox('tmp_beam', { width: 0.4, height: 0.3, depth: d }, scene);
+  b2.position = new BABYLON.Vector3(0, yCeil - 0.15, 0); b2.material = beamMat;
+  // 四周墙壁（带碰撞，防止走出边界）
+  const wallMat = mat('#e0ddd5');
+  const wt = 0.25;
+  [[0, yBase + FLOOR_H/2, -d/2, w, FLOOR_H, wt],
+   [0, yBase + FLOOR_H/2, d/2, w, FLOOR_H, wt],
+   [-w/2, yBase + FLOOR_H/2, 0, wt, FLOOR_H, d],
+   [w/2, yBase + FLOOR_H/2, 0, wt, FLOOR_H, d]].forEach(([px,py,pz,pw,ph,pd]) => {
+    const wall = BABYLON.MeshBuilder.CreateBox('tmp_wall', { width:pw, height:ph, depth:pd }, scene);
+    wall.position = new BABYLON.Vector3(px,py,pz); wall.material = wallMat;
+    wall.checkCollisions = true;
+  });
+  // 分区线（浅灰色）
+  const lc = new BABYLON.Color3(0.65, 0.65, 0.68);
+  for (let i = -w/2 + 5; i < w/2; i += 5) {
+    const l1 = BABYLON.MeshBuilder.CreateLines('tmp_line', { points: [new BABYLON.Vector3(i, yBase+0.02, -d/2+0.5), new BABYLON.Vector3(i, yBase+0.02, d/2-0.5)] }, scene);
+    l1.color = lc; l1.alpha = 0.5;
+  }
+  for (let i = -d/2 + 5; i < d/2; i += 5) {
+    const l2 = BABYLON.MeshBuilder.CreateLines('tmp_line', { points: [new BABYLON.Vector3(-w/2+0.5, yBase+0.02, i), new BABYLON.Vector3(w/2-0.5, yBase+0.02, i)] }, scene);
+    l2.color = lc; l2.alpha = 0.5;
+  }
+
+  planCam.setTarget(new BABYLON.Vector3(0, yBase + 2, 0));
+  planCam.radius = 25;
+  walkCam.position = new BABYLON.Vector3(0, yBase + 3, d/2 - 2);
+  setBreadcrumb(['空地', wh.name, floor + 'F']);
+  setInfo(wh.name + ' · ' + floor + 'F', '放置货架/石柱/障碍物');
+  setHotbar([
+    { type:'rack', icon:'🗄️', name:'货架', key:'1' },
+    { type:'pillar', icon:'🟫', name:'石柱', key:'2' },
+    { type:'obstacle', icon:'🚧', name:'障碍物', key:'3' },
+    { type:'inspect', icon:'🔍', name:'查看', key:'4' }
+  ]);
+  selectedType = null;
+  rebuildPreview();
+}
+
+// ===== 物品创建 =====
+function makeWarehouse(x, z, floors) {
+  const root = new BABYLON.TransformNode('wh', scene);
+  root.position = new BABYLON.Vector3(x, 0, z);
+  const w = 20, d = 15, fh = 4, totalH = floors * fh;
+  const wallMat = mat('#d8d4cc');
+  const trimMat = mat('#3a4a5a');
+  const roofMat = mat('#4a5560');
+  const winMat = mat('#6a8caa', { emissive: '#2a4a6a', alpha: 0.75 });
+  const accentMat = mat('#e08a3a');
+  const doorMat = mat('#5a6a78');
+  // 四面墙
+  [[0,totalH/2,-d/2,w,totalH,0.25],[0,totalH/2,d/2,w,totalH,0.25],
+   [-w/2,totalH/2,0,0.25,totalH,d],[w/2,totalH/2,0,0.25,totalH,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+    const wall = BABYLON.MeshBuilder.CreateBox('w', { width:pw, height:ph, depth:pd }, scene);
+    wall.position = new BABYLON.Vector3(px,py,pz); wall.material = wallMat;
+    wall.parent = root; wall.checkCollisions = true; shadowGen.addShadowCaster(wall);
+  });
+  // 楼层装饰带
+  for (let i=1;i<floors;i++) {
+    [[0,i*fh,-d/2,w,0.15,0.28],[0,i*fh,d/2,w,0.15,0.28],
+     [-w/2,i*fh,0,0.28,0.15,d],[w/2,i*fh,0,0.28,0.15,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+      const ln = BABYLON.MeshBuilder.CreateBox('l', { width:pw, height:ph, depth:pd }, scene);
+      ln.position = new BABYLON.Vector3(px,py,pz); ln.material = accentMat; ln.parent = root;
+    });
+  }
+  // 窗户
+  for (let f=0;f<floors;f++) {
+    const wy = f*fh + fh*0.55;
+    const cnt = Math.floor((w-2)/3.2);
+    for (let i=0;i<cnt;i++) {
+      const wx = -w/2 + 1 + i*3.2 + 0.9;
+      [d/2+0.13, -d/2-0.13].forEach(wz => {
+        const win = BABYLON.MeshBuilder.CreateBox('win', { width:1.8, height:1.6, depth:0.08 }, scene);
+        win.position = new BABYLON.Vector3(wx, wy, wz); win.material = winMat; win.parent = root;
+      });
+    }
+  }
+  // 屋顶
+  const roof = BABYLON.MeshBuilder.CreateBox('roof', { width:w+1, height:0.2, depth:d+1 }, scene);
+  roof.position = new BABYLON.Vector3(0, totalH+0.1, 0); roof.material = roofMat; roof.parent = root;
+  // 卷帘门
+  const door = BABYLON.MeshBuilder.CreateBox('door', { width:4.5, height:3.5, depth:0.18 }, scene);
+  door.position = new BABYLON.Vector3(0, 1.75, d/2+0.05); door.material = doorMat; door.parent = root;
+  // 雨棚
+  const canopy = BABYLON.MeshBuilder.CreateBox('can', { width:6, height:0.15, depth:1.8 }, scene);
+  canopy.position = new BABYLON.Vector3(0, 3.65, d/2+0.9); canopy.material = trimMat; canopy.parent = root;
+  // 角柱
+  [[-w/2,-d/2],[w/2,-d/2],[-w/2,d/2],[w/2,d/2]].forEach(([cx,cz])=>{
+    const col = BABYLON.MeshBuilder.CreateBox('col', { width:0.4, height:totalH+0.3, depth:0.4 }, scene);
+    col.position = new BABYLON.Vector3(cx, (totalH+0.3)/2, cz); col.material = trimMat; col.parent = root;
+  });
+  root.metadata = { type:'warehouse', isWarehouse:true, w, d, floors, name:`仓库${placedMeshes.filter(m=>m.metadata&&m.metadata.type==='warehouse').length+1}` };
+  // 给所有子 mesh 启用碰撞
+  root.getChildMeshes().forEach(m => { m.checkCollisions = true; });
+  placedMeshes.push(root);
+  return root;
+}
+
+function makeRack(x, z) {
+  const root = new BABYLON.TransformNode('rack', scene);
+  root.position = new BABYLON.Vector3(x, scope==='warehouse'?(currentFloor-1)*FLOOR_H:0, z);
+  const postMat = mat('#4a4f5a'), shelfMat = mat('#6a6a70');
+  const W=8, D=1.2, H=4.8, levels=3;
+  for (let i=0;i<=levels;i++) {
+    const s = BABYLON.MeshBuilder.CreateBox('s', { width:W, height:0.08, depth:D }, scene);
+    s.position = new BABYLON.Vector3(0, (H/levels)*i, 0); s.material = shelfMat; s.parent = root;
+  }
+  for (const px of [-W/2,W/2]) for (const pz of [-D/2,D/2]) {
+    const p = BABYLON.MeshBuilder.CreateBox('p', { width:0.14, height:H, depth:0.14 }, scene);
+    p.position = new BABYLON.Vector3(px, H/2, pz); p.material = postMat; p.parent = root;
+  }
+  const cols = { full:'#66bb6a', partial:'#ffca28', empty:'#4a5060', locked:'#ef5350' };
+  for (let l=0;l<levels;l++) for (let b=0;b<8;b++) {
+    const r = Math.abs(Math.sin(x*0.3+z*0.2+l*2+b*1.7));
+    const st = r<0.3?'empty':r<0.5?'partial':r<0.85?'full':'locked';
+    const bw = W/8;
+    const box = BABYLON.MeshBuilder.CreateBox('b', { width:bw*0.82, height:0.65, depth:D*0.65 }, scene);
+    box.position = new BABYLON.Vector3(-W/2+bw*(b+0.5), (H/levels)*(l+0.5), 0);
+    box.material = mat(cols[st], { emissive: cols[st], alpha: 0.6 });
+    box.parent = root;
+  }
+  root.metadata = { type:'rack' };
+  placedMeshes.push(root);
+  return root;
+}
+
+function makePillar(x, z) {
+  const m = BABYLON.MeshBuilder.CreateCylinder('pil', { diameter:0.6, height:4 }, scene);
+  m.position = new BABYLON.Vector3(x, 2 + (scope==='warehouse'?(currentFloor-1)*FLOOR_H:0), z);
+  m.material = mat('#6a5a4a');
+  m.metadata = { type:'pillar' };
+  placedMeshes.push(m);
+  return m;
+}
+
+function makeObstacle(x, z) {
+  const m = BABYLON.MeshBuilder.CreateBox('obs', { size:2 }, scene);
+  m.position = new BABYLON.Vector3(x, 1 + (scope==='warehouse'?(currentFloor-1)*FLOOR_H:0), z);
+  m.material = mat('#8a6a3a');
+  m.metadata = { type:'obstacle' };
+  placedMeshes.push(m);
+  return m;
+}
+
+// 粒子特效
+function spawnParticles(pos) {
+  const ps = new BABYLON.ParticleSystem('ps', 50, scene);
+  ps.particleTexture = new BABYLON.Texture('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGWA21EAAAAAElFTkSuQmCC', scene);
+  ps.emitter = pos;
+  ps.minEmitBox = new BABYLON.Vector3(-0.5,0,-0.5);
+  ps.maxEmitBox = new BABYLON.Vector3(0.5,0,0.5);
+  ps.color1 = new BABYLON.Color4(1, 0.7, 0.2, 1);
+  ps.color2 = new BABYLON.Color4(1, 0.9, 0.5, 1);
+  ps.minSize = 0.1; ps.maxSize = 0.3;
+  ps.minLifeTime = 0.3; ps.maxLifeTime = 0.8;
+  ps.emitRate = 100;
+  ps.gravity = new BABYLON.Vector3(0, 3, 0);
+  ps.direction1 = new BABYLON.Vector3(-2, 3, -2);
+  ps.direction2 = new BABYLON.Vector3(2, 5, 2);
+  ps.start();
+  setTimeout(() => ps.stop(), 300);
+  setTimeout(() => ps.dispose(), 1500);
+}
+
+// ===== 预览 =====
+function rebuildPreview() {
+  if (previewMesh) { previewMesh.dispose(); previewMesh = null; }
+  if (!selectedType || selectedType === 'inspect') return;
+  let w, h, d;
+  if (selectedType === 'warehouse') { w=20; h=12; d=15; }
+  else if (selectedType === 'rack') { w=8; h=4.8; d=1.2; }
+  else if (selectedType === 'pillar') { w=0.6; h=4; d=0.6; }
+  else { w=2; h=2; d=2; }
+  if (selectedType === 'pillar') {
+    previewMesh = BABYLON.MeshBuilder.CreateCylinder('prev', { diameter:w, height:h }, scene);
+  } else {
+    previewMesh = BABYLON.MeshBuilder.CreateBox('prev', { width:w, height:h, depth:d }, scene);
+  }
+  const pm = new BABYLON.StandardMaterial('pm', scene);
+  pm.diffuseColor = new BABYLON.Color3(0.25, 0.65, 0.95);
+  pm.alpha = 0.4;
+  pm.wireframe = false;
+  previewMesh.material = pm;
+  previewMesh.position.y = h / 2;
+}
+
+// ===== UI =====
+function setBreadcrumb(crumbs) {
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+  crumbs.forEach((c, i) => {
+    const s = document.createElement('span');
+    s.className = 'crumb' + (i === crumbs.length - 1 ? ' cur' : '');
+    s.textContent = c;
+    s.onclick = () => { if (i === 0 && scope === 'warehouse') buildPark(); };
+    bc.appendChild(s);
+    if (i < crumbs.length - 1) { const sp = document.createElement('span'); sp.className='sep'; sp.textContent=' / '; bc.appendChild(sp); }
+  });
+}
+function setInfo(name, desc) {
+  document.getElementById('info').innerHTML = `<div class="t">当前层级</div><div class="n">${name}</div><div class="d">${desc}</div>`;
+}
+function setHotbar(items) {
+  const hb = document.getElementById('hotbar');
+  hb.innerHTML = '';
+  items.forEach(it => {
+    const s = document.createElement('div');
+    s.className = 'slot';
+    s.dataset.type = it.type;
+    s.innerHTML = `<span class="key">${it.key}</span><span class="ic">${it.icon}</span><span class="nm">${it.name}</span>`;
+    s.onclick = () => {
+      hb.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      selectedType = it.type;
+      setHand(it);
+      rebuildPreview();
+    };
+    hb.appendChild(s);
+  });
+}
+function setHand(item) {
+  if (!item) { document.getElementById('hand').innerHTML = ''; return; }
+  const descs = { warehouse:'放置到地面建仓库', rack:'3层8格存储货架', pillar:'承重石柱', obstacle:'通道障碍物', inspect:'点击库位查看物料' };
+  document.getElementById('hand').innerHTML = `<div class="t">手持物品</div><div class="n">${item.icon} ${item.name}</div><div class="d">${descs[item.type]||''}</div>`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+function showModal(title, options, onSelect) {
+  const slot = document.getElementById('modalSlot');
+  const m = document.createElement('div');
+  m.className = 'modal';
+  let html = `<h4>${title}</h4><div class="opts">`;
+  options.forEach((o, i) => { html += `<div class="opt" data-i="${i}">${o.label}</div>`; });
+  html += `</div><div class="cancel">取消</div>`;
+  m.innerHTML = html;
+  slot.innerHTML = ''; slot.appendChild(m);
+  m.querySelectorAll('.opt').forEach(b => b.onclick = () => { slot.innerHTML = ''; onSelect(options[parseInt(b.dataset.i)]); });
+  m.querySelector('.cancel').onclick = () => { slot.innerHTML = ''; };
+}
+function clearModal() { document.getElementById('modalSlot').innerHTML = ''; }
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  if (m === 'plan') {
+    scene.activeCamera = planCam;
+    planCam.attachControl(canvas, true);
+    document.getElementById('crosshair').style.display = 'none';
+  } else {
+    scene.activeCamera = walkCam;
+    planCam.detachControl(canvas);
+    document.getElementById('crosshair').style.display = 'block';
+    canvas.focus();
+  }
+}
+
+// 自定义漫游鼠标控制（按住左键拖动转视角，clamp 俯仰角）
+let walkYaw = 0, walkPitch = 0;
+let walkDragging = false, walkLastX = 0, walkLastY = 0;
+canvas.addEventListener('pointerdown', (e) => {
+  if (mode !== 'walk' || !started) return;
+  if (e.button !== 0) return;
+  walkDragging = true; walkLastX = e.clientX; walkLastY = e.clientY;
+});
+window.addEventListener('pointermove', (e) => {
+  if (!walkDragging) return;
+  walkYaw -= (e.clientX - walkLastX) * 0.003;
+  walkPitch -= (e.clientY - walkLastY) * 0.003;
+  walkPitch = Math.max(-1.2, Math.min(0.3, walkPitch));
+  walkLastX = e.clientX; walkLastY = e.clientY;
+});
+window.addEventListener('pointerup', () => { walkDragging = false; });
+
+// ===== 交互 =====
+const intro = document.getElementById('intro');
+intro.addEventListener('click', () => {
+  started = true;
+  intro.classList.add('hide');
+  setMode('plan');
+});
+
+document.querySelectorAll('.mode-btn').forEach(b => {
+  b.addEventListener('click', () => setMode(b.dataset.mode));
+});
+
+// 键盘
+const keysDown = {};
+window.addEventListener('keydown', e => {
+  keysDown[e.code] = true;
+  if (e.code === 'Tab') { e.preventDefault(); setMode(mode === 'plan' ? 'walk' : 'plan'); }
+  if (e.code === 'Escape') {
+    if (document.getElementById('modalSlot').children.length) { clearModal(); return; }
+    if (scope === 'warehouse') buildPark();
+  }
+  if (e.code === 'KeyE' && nearWarehouse) {
+    const wh = nearWarehouse.metadata;
+    const opts = [];
+    for (let f = 1; f <= wh.floors; f++) opts.push({ label: f + 'F', floor: f });
+    showModal('选择进入楼层', opts, o => buildFloor(wh, o.floor));
+  }
+  // 数字键
+  const slots = document.querySelectorAll('.slot');
+  for (let i = 0; i < slots.length; i++) {
+    if (e.code === 'Digit' + (i + 1)) slots[i].click();
+  }
+});
+window.addEventListener('keyup', e => { keysDown[e.code] = false; });
+
+// 鼠标点击放置
+canvas.addEventListener('pointerdown', (e) => {
+  if (!started) return;
+  if (document.getElementById('modalSlot').children.length) return;
+  if (e.button !== 0) return;
+  // 延迟检测是否拖动（pointerup 时判断）
+  pointerDownPos = { x: e.clientX, y: e.clientY };
+});
+let pointerDownPos = null;
+canvas.addEventListener('pointerup', (e) => {
+  if (!started || !pointerDownPos) return;
+  const moved = Math.abs(e.clientX - pointerDownPos.x) + Math.abs(e.clientY - pointerDownPos.y) > 5;
+  pointerDownPos = null;
+  if (moved) return; // 拖动了不放置
+  if (document.getElementById('modalSlot').children.length) return;
+  if (!selectedType || selectedType === 'inspect') {
+    // 查看模式
+    if (selectedType === 'inspect') {
+      const pick = scene.pick(scene.pointerX, scene.pointerY, m => m.metadata && m.metadata.isLocation);
+      if (pick.hit) {
+        showToast(`库位 ${pick.pickedMesh.metadata.code} · 状态:${pick.pickedMesh.metadata.status}`);
+      }
+    }
+    return;
+  }
+  // 射线投射到地面
+  const pick = scene.pick(scene.pointerX, scene.pointerY, m => m === groundMesh);
+  if (!pick.hit) return;
+  const x = Math.round(pick.pickedPoint.x);
+  const z = Math.round(pick.pickedPoint.z);
+  if (scope === 'park' && selectedType === 'warehouse') {
+    const opts = [{label:'1层',floors:1},{label:'2层',floors:2},{label:'3层',floors:3},{label:'4层',floors:4}];
+    pendingPlace = { x, z };
+    showModal('建造几层仓库？', opts, o => {
+      if (pendingPlace) {
+        const wh = makeWarehouse(pendingPlace.x, pendingPlace.z, o.floors);
+        spawnParticles(new BABYLON.Vector3(pendingPlace.x, 1, pendingPlace.z));
+        showToast(`${o.floors}层仓库建造成功`);
+        pendingPlace = null;
+        selectedType = null;
+        document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+        setHand(null); rebuildPreview();
+      }
+    });
+  } else if (scope === 'warehouse') {
+    let mesh;
+    if (selectedType === 'rack') mesh = makeRack(x, z);
+    else if (selectedType === 'pillar') mesh = makePillar(x, z);
+    else if (selectedType === 'obstacle') mesh = makeObstacle(x, z);
+    else return;
+    spawnParticles(new BABYLON.Vector3(x, (currentFloor-1)*FLOOR_H + 1, z));
+    const names = { rack:'货架', pillar:'石柱', obstacle:'障碍物' };
+    showToast(`${names[selectedType]} 放置成功`);
+    selectedType = null;
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+    setHand(null); rebuildPreview();
+  }
+});
+
+// ===== 渲染循环 =====
+buildPark();
+
+engine.runRenderLoop(() => {
+  // 漫游模式 WASD
+  if (mode === 'walk' && started) {
+    // 设置相机朝向（自定义 yaw/pitch，clamp 过的）
+    walkCam.rotation.set(walkPitch, walkYaw, 0);
+    const speed = 0.3;
+    // 基于朝向计算前向/右向（水平面）
+    const fwd = new BABYLON.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
+    const right = new BABYLON.Vector3(Math.cos(walkYaw), 0, -Math.sin(walkYaw));
+    let move = BABYLON.Vector3.Zero();
+    if (keysDown.KeyW) move.addInPlace(fwd.scale(-speed));
+    if (keysDown.KeyS) move.addInPlace(fwd.scale(speed));
+    if (keysDown.KeyA) move.addInPlace(right.scale(-speed));
+    if (keysDown.KeyD) move.addInPlace(right.scale(speed));
+    if (move.lengthSquared() > 0) walkCam.moveWithCollisions(move);
+    // 锁定高度
+    const fixedY = scope === 'warehouse' ? (currentFloor - 1) * FLOOR_H + 3 : 3;
+    walkCam.position.y = fixedY;
+    // 检测附近仓库（按E进入）
+    nearWarehouse = null;
+    if (scope === 'park') {
+      for (const m of placedMeshes) {
+        if (m.metadata && m.metadata.isWarehouse) {
+          if (BABYLON.Vector3.Distance(walkCam.position, m.position) < 8) { nearWarehouse = m; break; }
+        }
+      }
+    }
+    document.getElementById('interact').classList.toggle('show', !!nearWarehouse);
+  }
+  // 预览跟随
+  if (previewMesh && selectedType && selectedType !== 'inspect' && groundMesh) {
+    const pick = scene.pick(scene.pointerX, scene.pointerY, m => m === groundMesh);
+    if (pick.hit) {
+      previewMesh.position.x = Math.round(pick.pickedPoint.x);
+      previewMesh.position.z = Math.round(pick.pickedPoint.z);
+      previewMesh.position.y = (scope === 'warehouse' ? (currentFloor-1)*FLOOR_H : 0) + previewMesh.scaling.y * (previewMesh.metadata?.h || 2);
+      previewMesh.isVisible = true;
+    } else previewMesh.isVisible = false;
+  } else if (previewMesh) previewMesh.isVisible = false;
+  // 小地图
+  drawMinimap();
+  scene.render();
+});
+
+// 小地图
+const miniCanvas = document.getElementById('miniCanvas');
+const miniCtx = miniCanvas.getContext('2d');
+function drawMinimap() {
+  miniCanvas.width = 154; miniCanvas.height = 110;
+  const ctx = miniCtx;
+  ctx.fillStyle = '#0a0e14'; ctx.fillRect(0, 0, 154, 110);
+  const cx = 77, cy = 55, scale = 1.5;
+  const camPos = scene.activeCamera.position;
+  // 仓库点
+  placedMeshes.forEach(m => {
+    if (m.metadata && m.metadata.isWarehouse) {
+      const mx = cx + (m.position.x - camPos.x) * scale;
+      const my = cy + (m.position.z - camPos.z) * scale;
+      ctx.fillStyle = '#5af'; ctx.fillRect(mx-4, my-3, 8, 6);
+    }
+  });
+  // 玩家
+  ctx.fillStyle = '#fa3'; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+}
+
+window.addEventListener('resize', () => engine.resize());
+</script>
+</body>
+</html>

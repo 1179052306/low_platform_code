@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>仓库建造者</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Microsoft YaHei',sans-serif; background:#000; color:#fff; overflow:hidden; height:100vh; user-select:none; }
+  canvas { display:block; width:100%; height:100%; }
+  .hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  .panel { background:rgba(8,12,18,.85); border:1px solid rgba(80,160,255,.3); border-radius:8px; backdrop-filter:blur(8px); }
+
+  /* 准星 */
+  .crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:24px; height:24px; opacity:.7; }
+  .crosshair::before, .crosshair::after { content:''; position:absolute; background:#fff; }
+  .crosshair::before { top:50%; left:2px; right:2px; height:2px; transform:translateY(-50%); }
+  .crosshair::after { left:50%; top:2px; bottom:2px; width:2px; transform:translateX(-50%); }
+
+  /* 顶部面包屑 */
+  .breadcrumb { position:absolute; top:14px; left:50%; transform:translateX(-50%); padding:8px 20px; display:flex; align-items:center; gap:10px; font-size:14px; }
+  .crumb { color:#8aa; cursor:pointer; pointer-events:auto; }
+  .crumb:hover { color:#5af; }
+  .crumb.cur { color:#fff; font-weight:600; }
+  .sep { color:#445; }
+
+  /* 左侧物品栏 */
+  .palette { position:absolute; left:16px; top:50%; transform:translateY(-50%); padding:14px; width:190px; pointer-events:auto; }
+  .palette h3 { font-size:12px; color:#5af; letter-spacing:2px; margin-bottom:12px; text-align:center; }
+  .item { display:flex; align-items:center; gap:10px; padding:11px; margin-bottom:8px; background:rgba(30,36,48,.7); border:2px solid #234; border-radius:6px; cursor:pointer; transition:all .12s; position:relative; }
+  .item:hover { border-color:#5af; background:rgba(80,160,255,.12); }
+  .item.active { border-color:#fa3; background:rgba(255,170,50,.18); box-shadow:0 0 14px rgba(255,170,50,.35); }
+  .item .ic { font-size:24px; }
+  .item .nm { font-size:13px; font-weight:600; }
+  .item .mt { font-size:11px; color:#789; }
+  .item .key { position:absolute; top:4px; right:6px; font-size:10px; color:#5af; font-weight:700; opacity:.6; }
+
+  /* 底部提示 */
+  .hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); padding:8px 22px; font-size:13px; }
+  .hint b { color:#fa3; }
+
+  /* 右下信息 */
+  .info { position:absolute; bottom:18px; right:18px; padding:10px 16px; font-size:12px; min-width:200px; }
+  .info .t { color:#5af; font-size:11px; letter-spacing:1px; }
+  .info .n { font-size:16px; font-weight:700; margin:4px 0; }
+  .info .d { color:#8aa; line-height:1.5; }
+
+  /* toast */
+  .toast { position:absolute; top:60px; left:50%; transform:translateX(-50%); padding:10px 26px; background:rgba(255,170,50,.95); color:#112; border-radius:24px; font-size:14px; font-weight:600; box-shadow:0 6px 24px rgba(0,0,0,.5); opacity:0; transition:opacity .25s; }
+  .toast.show { opacity:1; }
+
+  /* 弹出选择框（楼层数/进入楼层） */
+  .modal { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); padding:24px 30px; pointer-events:auto; text-align:center; min-width:260px; }
+  .modal h4 { font-size:16px; margin-bottom:16px; color:#fff; }
+  .modal .opts { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .modal .opt { padding:12px 22px; background:rgba(80,160,255,.15); border:2px solid #5af; color:#fff; border-radius:8px; cursor:pointer; font-size:16px; font-weight:700; transition:all .12s; }
+  .modal .opt:hover { background:#5af; color:#112; }
+  .modal .cancel { margin-top:14px; padding:6px 18px; background:transparent; border:1px solid #555; color:#888; border-radius:6px; cursor:pointer; font-size:12px; }
+  .modal .cancel:hover { color:#aaa; }
+
+  /* 开场 */
+  .intro { position:fixed; inset:0; background:radial-gradient(ellipse at center,#1a2030,#000); z-index:100; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer; }
+  .intro h1 { font-size:44px; font-weight:800; letter-spacing:6px; background:linear-gradient(90deg,#5af,#fa3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .intro p { color:#8aa; margin-top:12px; font-size:16px; }
+  .intro .keys { margin-top:30px; display:flex; gap:24px; }
+  .intro .k { text-align:center; }
+  .intro .kk { display:inline-block; padding:6px 14px; background:#1a2030; border:1px solid #5af; border-radius:6px; font-weight:700; color:#5af; font-size:13px; }
+  .intro .kd { font-size:12px; color:#8aa; margin-top:6px; }
+  .intro .start { margin-top:34px; padding:14px 48px; background:linear-gradient(90deg,#fa3,#fc5); color:#112; border-radius:30px; font-size:20px; font-weight:700; box-shadow:0 0 40px rgba(255,170,50,.5); }
+  .intro.hide { display:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="crosshair"></div>
+  <div class="panel breadcrumb" id="breadcrumb"></div>
+  <div class="panel palette" id="palette"></div>
+  <div class="panel hint" id="hint"></div>
+  <div class="panel info" id="info"></div>
+  <div class="toast" id="toast"></div>
+  <div id="modalSlot"></div>
+</div>
+
+<div class="intro" id="intro">
+  <h1>WAREHOUSE BUILDER</h1>
+  <p>从空地开始，像玩游戏一样搭建你的仓库</p>
+  <div class="keys">
+    <div class="k"><span class="kk">W A S D</span><div class="kd">移动</div></div>
+    <div class="k"><span class="kk">左键拖</span><div class="kd">转视角</div></div>
+    <div class="k"><span class="kk">滚轮</span><div class="kd">缩放</div></div>
+    <div class="k"><span class="kk">左键点</span><div class="kd">放置</div></div>
+    <div class="k"><span class="kk">双击</span><div class="kd">进入仓库</div></div>
+  </div>
+  <div class="start">点击进入</div>
+</div>
+
+<script src="./three.min.js"></script>
+<script>
+const canvas = document.getElementById('c');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8aa8c8);
+scene.fog = new THREE.FogExp2(0x8aa8c8, 0.003);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 800);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.0));
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+dir.position.set(40, 60, 30);
+dir.castShadow = true;
+dir.shadow.mapSize.set(2048, 2048);
+dir.shadow.camera.left = -80; dir.shadow.camera.right = 80;
+dir.shadow.camera.top = 80; dir.shadow.camera.bottom = -80;
+scene.add(dir);
+
+// ===== 全局状态 =====
+let scope = 'park'; // park | warehouse
+let currentWarehouse = null;
+let currentFloor = 1;
+const FLOOR_H = 4;
+let isLocked = false;
+let selectedType = 'warehouse';
+let previewRotY = 0; // 预览旋转角度
+let placedObjects = []; // {mesh, type, data}
+let groundMesh = null;
+let floorPlaneMesh = null; // 当前楼层的半透明地面
+let interiorMeshes = [];
+let pendingPlace = null; // 待放置位置（选楼层数后用）
+
+// ===== 相机 =====
+let camDist = 30, camYaw = 0.6, camPitch = 0.6;
+const camTarget = new THREE.Vector3(0, 2, 0);
+function updateCamera() {
+  camPitch = Math.max(0.1, Math.min(1.4, camPitch));
+  camDist = Math.max(5, Math.min(120, camDist));
+  camera.position.set(
+    camTarget.x + camDist * Math.cos(camPitch) * Math.sin(camYaw),
+    camTarget.y + camDist * Math.sin(camPitch),
+    camTarget.z + camDist * Math.cos(camPitch) * Math.cos(camYaw)
+  );
+  camera.lookAt(camTarget);
+}
+
+// ===== 场景清理/构建 =====
+function clearAll() {
+  placedObjects.forEach(o => scene.remove(o.mesh));
+  placedObjects = [];
+  interiorMeshes.forEach(m => scene.remove(m));
+  interiorMeshes = [];
+  if (groundMesh) { scene.remove(groundMesh); groundMesh = null; }
+  if (floorPlaneMesh) { scene.remove(floorPlaneMesh); floorPlaneMesh = null; }
+}
+
+function buildPark() {
+  clearAll();
+  scope = 'park';
+  currentWarehouse = null;
+  // 工厂园区地面（深灰沥青/水泥，非土坑）
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 300),
+    new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.95 })
+  );
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  floor.userData = { isGround: true };
+  scene.add(floor);
+  groundMesh = floor;
+  // 淡辅助网格（工厂区划线感）
+  const grid = new THREE.GridHelper(300, 60, 0x6a6a6a, 0x5a5a5a);
+  grid.material.opacity = 0.25;
+  grid.material.transparent = true;
+  grid.position.y = 0.01;
+  scene.add(grid);
+  interiorMeshes.push(grid);
+  // 道路标识线（白色车道线）
+  const roadMat = new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.4 });
+  for (let i = -100; i <= 100; i += 40) {
+    if (i === 0) continue;
+    const pts1 = [new THREE.Vector3(i, 0.02, -100), new THREE.Vector3(i, 0.02, 100)];
+    const g1 = new THREE.BufferGeometry().setFromPoints(pts1);
+    const l1 = new THREE.Line(g1, roadMat); scene.add(l1); interiorMeshes.push(l1);
+  }
+
+  camTarget.set(0, 2, 0);
+  camDist = 35; camYaw = 0.6; camPitch = 0.6;
+  updateCamera();
+  setBreadcrumb(['空地']);
+  setLevel('园区空地', '一片空地，放置仓库吧');
+  setHint('点左侧 <b>仓库</b> 选中 → 点地面放置 · 左键拖动转视角 · 滚轮缩放');
+  // 空地只有仓库物品，默认不选中
+  setPalette([
+    { type:'warehouse', icon:'🏢', name:'仓库', meta:'放置到地面', key:'1' }
+  ], null);
+  selectedType = null;
+  rebuildPreview();
+}
+
+function buildFloor(wh, floor) {
+  clearAll();
+  scope = 'warehouse';
+  currentWarehouse = wh;
+  currentFloor = floor;
+  const yBase = (floor - 1) * FLOOR_H;
+  const yCeiling = yBase + FLOOR_H; // 楼顶板高度
+  // 白色环氧地坪漆地面（200×200 无限空间）
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e0, roughness: 0.4, metalness: 0.1 });
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), floorMat);
+  fl.rotation.x = -Math.PI/2;
+  fl.position.y = yBase;
+  fl.receiveShadow = true;
+  fl.userData = { isGround: true };
+  scene.add(fl);
+  groundMesh = fl;
+  // 楼顶板（实体天花板 + 梁，能清楚看到）
+  const ceilMat = new THREE.MeshStandardMaterial({ color: 0xd0d0c8, roughness: 0.7, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), ceilMat);
+  ceil.rotation.x = Math.PI/2;
+  ceil.position.y = yCeiling;
+  ceil.receiveShadow = true;
+  scene.add(ceil);
+  interiorMeshes.push(ceil);
+  // 楼顶板边框
+  const ceilEdgeMat = new THREE.LineBasicMaterial({ color: 0x5a5a50 });
+  const ceilEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(60, 60)), ceilEdgeMat);
+  ceilEdge.rotation.x = Math.PI/2;
+  ceilEdge.position.y = yCeiling + 0.02;
+  scene.add(ceilEdge);
+  interiorMeshes.push(ceilEdge);
+  // 楼顶横梁（井字梁）
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x8a8a80, roughness: 0.7 });
+  for (let i = -20; i <= 20; i += 10) {
+    const b1 = new THREE.Mesh(new THREE.BoxGeometry(60, 0.3, 0.4), beamMat);
+    b1.position.set(0, yCeiling - 0.15, i); b1.castShadow = true;
+    scene.add(b1); interiorMeshes.push(b1);
+    const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 60), beamMat);
+    b2.position.set(i, yCeiling - 0.15, 0); b2.castShadow = true;
+    scene.add(b2); interiorMeshes.push(b2);
+  }
+  // 淡分区引导线
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xc8b84a, transparent: true, opacity: 0.35 });
+  for (let i = -50; i <= 50; i += 10) {
+    if (i === 0) continue;
+    const pts1 = [new THREE.Vector3(i, yBase+0.02, -50), new THREE.Vector3(i, yBase+0.02, 50)];
+    const g1 = new THREE.BufferGeometry().setFromPoints(pts1);
+    const l1 = new THREE.Line(g1, lineMat); scene.add(l1); interiorMeshes.push(l1);
+    const pts2 = [new THREE.Vector3(-50, yBase+0.02, i), new THREE.Vector3(50, yBase+0.02, i)];
+    const g2 = new THREE.BufferGeometry().setFromPoints(pts2);
+    const l2 = new THREE.Line(g2, lineMat); scene.add(l2); interiorMeshes.push(l2);
+  }
+
+  camTarget.set(0, yBase + 2, 0);
+  camDist = 25; camYaw = 0.6; camPitch = 0.5;
+  updateCamera();
+  setBreadcrumb(['空地', wh.name, floor + 'F']);
+  setLevel(wh.name + ' · ' + floor + 'F', '无限空间，放置货架/石柱/障碍物');
+  setHint('选物品→点地面放置 · <b>拖动物品</b>可移动 · <b>R</b>旋转 · 双击货架查看 · Esc返回');
+  setPalette([
+    { type:'rack', icon:'🗄️', name:'货架', meta:'8m 3层8格', key:'1' },
+    { type:'pillar', icon:'🟫', name:'石柱', meta:'0.6×4m', key:'2' },
+    { type:'obstacle', icon:'🚧', name:'障碍物', meta:'2×2m', key:'3' },
+    { type:'inspect', icon:'🔍', name:'查看', meta:'看库位物料', key:'4' }
+  ], null);
+  selectedType = null;
+  rebuildPreview();
+}
+
+// ===== 物品创建 =====
+function makeWarehouse(x, z, floors) {
+  const g = new THREE.Group();
+  const w = 20, d = 15, fh = 4;
+  const totalH = floors * fh;
+  // 材质：现代工业风
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xd8d4cc, roughness: 0.75, metalness: 0.05 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x3a4a5a, roughness: 0.5, metalness: 0.3 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x4a5560, roughness: 0.6, metalness: 0.4 });
+  const windowMat = new THREE.MeshStandardMaterial({ color: 0x6a8caa, roughness: 0.2, metalness: 0.7, transparent: true, opacity: 0.75, emissive: 0x2a4a6a, emissiveIntensity: 0.15 });
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x5a6a78, roughness: 0.4, metalness: 0.5 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: 0xe08a3a, roughness: 0.5, metalness: 0.2 });
+  const wallT = 0.25;
+
+  // 四面墙
+  [[0,totalH/2,-d/2,w,totalH,wallT],[0,totalH/2,d/2,w,totalH,wallT],
+   [-w/2,totalH/2,0,wallT,totalH,d],[w/2,totalH/2,0,wallT,totalH,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(pw,ph,pd), wallMat);
+    wall.position.set(px,py,pz); wall.castShadow=true; wall.receiveShadow=true; g.add(wall);
+  });
+
+  // 顶部装饰压条 + 踢脚线
+  [[0,totalH-0.15,-d/2,w,0.3,wallT+0.04],[0,totalH-0.15,d/2,w,0.3,wallT+0.04],
+   [-w/2,totalH-0.15,0,wallT+0.04,0.3,d],[w/2,totalH-0.15,0,wallT+0.04,0.3,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+    const t=new THREE.Mesh(new THREE.BoxGeometry(pw,ph,pd), trimMat); t.position.set(px,py,pz); g.add(t);
+  });
+  [[0,0.2,-d/2,w,0.4,wallT+0.04],[0,0.2,d/2,w,0.4,wallT+0.04],
+   [-w/2,0.2,0,wallT+0.04,0.4,d],[w/2,0.2,0,wallT+0.04,0.4,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+    const t=new THREE.Mesh(new THREE.BoxGeometry(pw,ph,pd), trimMat); t.position.set(px,py,pz); g.add(t);
+  });
+
+  // 楼层分隔线（橙色装饰带）
+  for (let i=1;i<floors;i++) {
+    const y=i*fh;
+    [[0,y,-d/2,w,0.15,wallT+0.03],[0,y,d/2,w,0.15,wallT+0.03],
+     [-w/2,y,0,wallT+0.03,0.15,d],[w/2,y,0,wallT+0.03,0.15,d]].forEach(([px,py,pz,pw,ph,pd])=>{
+      const ln=new THREE.Mesh(new THREE.BoxGeometry(pw,ph,pd), accentMat); ln.position.set(px,py,pz); g.add(ln);
+    });
+  }
+
+  // 精致窗户（带窗框 + 玻璃）
+  const winW=1.8, winH=1.6, winSp=3.2;
+  for (let f=0;f<floors;f++) {
+    const wy=f*fh+fh*0.55;
+    const cnt=Math.floor((w-2)/winSp);
+    for (let i=0;i<cnt;i++) {
+      const wx=-w/2+1+i*winSp+winW/2;
+      [d/2+wallT/2+0.02,-d/2-wallT/2-0.02].forEach(wz=>{
+        const win=new THREE.Mesh(new THREE.BoxGeometry(winW,winH,0.08), windowMat);
+        win.position.set(wx,wy,wz); g.add(win);
+        const frame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(winW+0.1,winH+0.1,0.08)),new THREE.LineBasicMaterial({color:0x2a3a4a}));
+        frame.position.copy(win.position); g.add(frame);
+        const mullion=new THREE.Mesh(new THREE.BoxGeometry(0.05,winH,0.05),trimMat);
+        mullion.position.set(wx,wy,wz); g.add(mullion);
+      });
+    }
+    const cnt2=Math.floor((d-2)/winSp);
+    for (let i=0;i<cnt2;i++) {
+      const wz=-d/2+1+i*winSp+winW/2;
+      [w/2+wallT/2+0.02,-w/2-wallT/2-0.02].forEach(wx=>{
+        const win=new THREE.Mesh(new THREE.BoxGeometry(0.08,winH,winW), windowMat);
+        win.position.set(wx,wy,wz); g.add(win);
+        const frame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.08,winH+0.1,winW+0.1)),new THREE.LineBasicMaterial({color:0x2a3a4a}));
+        frame.position.copy(win.position); g.add(frame);
+      });
+    }
+  }
+
+  // 波纹铁皮屋顶（带坡度）
+  const roofGroup = new THREE.Group();
+  const roofBase = new THREE.Mesh(new THREE.BoxGeometry(w+1, 0.2, d+1), roofMat);
+  roofBase.position.y = totalH + 0.1; roofBase.castShadow = true; roofGroup.add(roofBase);
+  // 屋顶波纹装饰条
+  for (let i = 0; i < 8; i++) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(w+1, 0.06, 0.15), new THREE.MeshStandardMaterial({ color: 0x3a4550, roughness: 0.6 }));
+    rib.position.set(0, totalH + 0.22, -d/2 - 0.3 + i * (d+0.6)/7);
+    roofGroup.add(rib);
+  }
+  g.add(roofGroup);
+
+  // 入口：大卷帘门 + 雨棚 + 门框
+  const doorW = 4.5, doorH = 3.5;
+  const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.18), doorMat);
+  door.position.set(0, doorH/2, d/2 + 0.05); g.add(door);
+  // 门框
+  const doorFrame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(doorW+0.2, doorH+0.2, 0.2)), new THREE.LineBasicMaterial({ color: 0x2a3a4a }));
+  doorFrame.position.copy(door.position); g.add(doorFrame);
+  // 卷帘横条纹
+  for (let i = 0; i < 10; i++) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(doorW-0.1, 0.05, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a4550, roughness: 0.5 }));
+    stripe.position.set(0, 0.25 + i * 0.32, d/2 + 0.12); g.add(stripe);
+  }
+  // 雨棚
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(doorW + 1.5, 0.15, 1.8), trimMat);
+  canopy.position.set(0, doorH + 0.15, d/2 + 0.9); canopy.castShadow = true; g.add(canopy);
+  // 雨棚支撑柱
+  [-doorW/2 - 0.4, doorW/2 + 0.4].forEach(cx => {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, doorH, 12), trimMat);
+    col.position.set(cx, doorH/2, d/2 + 0.9); g.add(col);
+  });
+
+  // 角部装饰柱（四角）
+  [[-w/2, -d/2], [w/2, -d/2], [-w/2, d/2], [w/2, d/2]].forEach(([cx, cz]) => {
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.4, totalH + 0.3, 0.4), trimMat);
+    col.position.set(cx, (totalH + 0.3)/2, cz); col.castShadow = true; g.add(col);
+  });
+
+  g.position.set(x, 0, z);
+  const name = `仓库${placedObjects.filter(o=>o.data.type==='warehouse').length+1}`;
+  g.userData = { type:'warehouse', isWarehouse:true, w, d, floors, name, id:Date.now() };
+  scene.add(g);
+  placedObjects.push({ mesh:g, type:'warehouse', data:g.userData });
+  return g;
+}
+
+function makeRack(x, z) {
+  const g = new THREE.Group();
+  const postMat = new THREE.MeshStandardMaterial({ color:0x4a4f5a, roughness:0.5, metalness:0.6 });
+  const shelfMat = new THREE.MeshStandardMaterial({ color:0x6a6a70, roughness:0.8 });
+  const W=8, D=1.2, H=4.8, levels=3;
+  for (let i=0;i<=levels;i++) {
+    const s=new THREE.Mesh(new THREE.BoxGeometry(W,0.08,D),shelfMat);
+    s.position.y=(H/levels)*i; s.castShadow=true; g.add(s);
+  }
+  for (const px of [-W/2,W/2]) for (const pz of [-D/2,D/2]) {
+    const p=new THREE.Mesh(new THREE.BoxGeometry(0.14,H,0.14),postMat);
+    p.position.set(px,H/2,pz); p.castShadow=true; g.add(p);
+  }
+  const bays=8;
+  const cols={full:0x66bb6a,partial:0xffca28,empty:0x4a5060,locked:0xef5350};
+  for (let l=0;l<levels;l++) for (let b=0;b<bays;b++) {
+    const r=Math.abs(Math.sin(x*0.3+z*0.2+l*2+b*1.7));
+    const st=r<0.3?'empty':r<0.5?'partial':r<0.85?'full':'locked';
+    const bw=W/bays;
+    const box=new THREE.Mesh(new THREE.BoxGeometry(bw*0.82,0.65,D*0.65),
+      new THREE.MeshStandardMaterial({color:cols[st],transparent:true,opacity:0.5,emissive:cols[st],emissiveIntensity:0.12}));
+    box.position.set(-W/2+bw*(b+0.5),(H/levels)*(l+0.5),0);
+    box.castShadow=true; box.userData={isLocation:true,status:st,code:`R${l+1}-${b+1}`}; g.add(box);
+  }
+  g.position.set(x, 0, z);
+  g.userData={type:'rack'};
+  scene.add(g);
+  placedObjects.push({mesh:g,type:'rack',data:g.userData});
+  return g;
+}
+
+function makePillar(x, z) {
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,4,16),
+    new THREE.MeshStandardMaterial({color:0x6a5a4a,roughness:0.85}));
+  m.position.set(x,2,z); m.castShadow=true; m.receiveShadow=true;
+  m.userData={type:'pillar'};
+  scene.add(m); placedObjects.push({mesh:m,type:'pillar',data:m.userData});
+  return m;
+}
+
+function makeObstacle(x, z) {
+  const m=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),
+    new THREE.MeshStandardMaterial({color:0x8a6a3a,roughness:0.8}));
+  m.position.set(x,1,z); m.castShadow=true; m.receiveShadow=true;
+  m.userData={type:'obstacle'};
+  scene.add(m); placedObjects.push({mesh:m,type:'obstacle',data:m.userData});
+  return m;
+}
+
+// ===== 预览 =====
+const previewGroup = new THREE.Group();
+scene.add(previewGroup);
+function rebuildPreview() {
+  previewGroup.clear();
+  if (!selectedType || selectedType === 'inspect') return;
+  let geo, yOff;
+  if (selectedType === 'warehouse') { geo=new THREE.BoxGeometry(20,12,15); yOff=6; }
+  else if (selectedType === 'rack') { geo=new THREE.BoxGeometry(8,4.8,1.2); yOff=2.4; }
+  else if (selectedType === 'pillar') { geo=new THREE.CylinderGeometry(0.3,0.3,4,16); yOff=2; }
+  else { geo=new THREE.BoxGeometry(2,2,2); yOff=1; }
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:0x5af}));
+  edges.position.y=yOff; previewGroup.add(edges);
+  const sz = selectedType==='warehouse'?[20,15]:selectedType==='rack'?[8,1.2]:selectedType==='pillar'?[0.6,0.6]:[2,2];
+  const base=new THREE.Mesh(new THREE.PlaneGeometry(sz[0],sz[1]),new THREE.MeshBasicMaterial({color:0x5af,transparent:true,opacity:0.25,side:THREE.DoubleSide}));
+  base.rotation.x=-Math.PI/2; previewGroup.add(base);
+}
+
+// ===== UI 辅助 =====
+function setBreadcrumb(crumbs) {
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+  crumbs.forEach((c, i) => {
+    const span = document.createElement('span');
+    span.className = 'crumb' + (i === crumbs.length - 1 ? ' cur' : '');
+    span.textContent = c;
+    span.addEventListener('click', () => {
+      if (i === 0 && scope === 'warehouse') buildPark();
+    });
+    bc.appendChild(span);
+    if (i < crumbs.length - 1) {
+      const s = document.createElement('span'); s.className = 'sep'; s.textContent = ' / '; bc.appendChild(s);
+    }
+  });
+}
+function setLevel(name, desc) {
+  document.getElementById('info').innerHTML = `<div class="t">当前层级</div><div class="n">${name}</div><div class="d">${desc}</div>`;
+}
+function setHint(html) {
+  document.getElementById('hint').innerHTML = html;
+}
+function setPalette(items, activeType) {
+  const pal = document.getElementById('palette');
+  pal.innerHTML = '<h3>建造物品</h3>';
+  items.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'item' + (it.type === activeType ? ' active' : '');
+    el.dataset.type = it.type;
+    el.innerHTML = `<span class="ic">${it.icon}</span><div><div class="nm">${it.name}</div><div class="mt">${it.meta}</div></div><span class="key">${it.key}</span>`;
+    el.addEventListener('click', () => {
+      pal.querySelectorAll('.item').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      selectedType = it.type;
+      rebuildPreview();
+    });
+    pal.appendChild(el);
+  });
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+function showModal(title, options, onSelect) {
+  const slot = document.getElementById('modalSlot');
+  const m = document.createElement('div');
+  m.className = 'panel modal';
+  let optsHtml = '';
+  options.forEach((o, i) => { optsHtml += `<div class="opt" data-i="${i}">${o.label}</div>`; });
+  m.innerHTML = `<h4>${title}</h4><div class="opts">${optsHtml}</div><div class="cancel">取消</div>`;
+  slot.innerHTML = '';
+  slot.appendChild(m);
+  m.querySelectorAll('.opt').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = parseInt(b.dataset.i);
+      slot.innerHTML = '';
+      onSelect(options[i]);
+    });
+  });
+  m.querySelector('.cancel').addEventListener('click', () => { slot.innerHTML = ''; });
+}
+function clearModal() { document.getElementById('modalSlot').innerHTML = ''; }
+
+// ===== 交互 =====
+const keys = {};
+const intro = document.getElementById('intro');
+intro.addEventListener('click', () => { isLocked = true; intro.classList.add('hide'); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape') {
+    if (document.getElementById('modalSlot').children.length) { clearModal(); return; }
+    if (scope === 'warehouse') buildPark();
+    else { isLocked = false; intro.classList.remove('hide'); }
+  }
+  keys[e.code] = true;
+  // R 键旋转预览
+  if (e.code === 'KeyR') {
+    previewRotY += Math.PI / 2;
+    previewGroup.rotation.y = previewRotY;
+  }
+  // 数字快捷键选物品
+  const pal = document.getElementById('palette');
+  const items = pal.querySelectorAll('.item');
+  for (let i = 0; i < items.length; i++) {
+    if (e.code === 'Digit' + (i + 1)) items[i].click();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+const raycaster = new THREE.Raycaster();
+const mouseNDC = new THREE.Vector2();
+let dragging = false, dragMoved = false, lastX = 0, lastY = 0;
+let hoverPoint = null;
+let lastClickTime = 0, lastClickObj = null;
+let moveTarget = null; // 拖拽移动的物品
+
+canvas.addEventListener('mousedown', (e) => {
+  if (!isLocked) return;
+  if (document.getElementById('modalSlot').children.length) return;
+  // 先检测是否点中已放置物品（仓库内可拖拽移动）
+  if (scope === 'warehouse' && e.button === 0) {
+    raycaster.setFromCamera(mouseNDC, camera);
+    const objHits = raycaster.intersectObjects(placedObjects.map(o => o.mesh), true);
+    if (objHits.length && objHits[0].distance < 50) {
+      let hit = objHits[0].object;
+      while (hit && !placedObjects.find(o => o.mesh === hit)) hit = hit.parent;
+      if (hit) {
+        moveTarget = hit;
+        dragging = true; dragMoved = false; lastX = e.clientX; lastY = e.clientY;
+        return;
+      }
+    }
+  }
+  dragging = true; dragMoved = false; lastX = e.clientX; lastY = e.clientY;
+});
+document.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouseNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  if (dragging) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
+    if (dragMoved && moveTarget && groundMesh) {
+      // 拖拽物品跟随地面
+      raycaster.setFromCamera(mouseNDC, camera);
+      const hits = raycaster.intersectObject(groundMesh, false);
+      if (hits.length) {
+        moveTarget.position.x = Math.round(hits[0].point.x);
+        moveTarget.position.z = Math.round(hits[0].point.z);
+      }
+    } else {
+      camYaw -= dx * 0.005;
+      camPitch += dy * 0.005;
+    }
+    lastX = e.clientX; lastY = e.clientY;
+  }
+});
+document.addEventListener('mouseup', (e) => {
+  if (!dragging) return;
+  const wasMoved = dragMoved;
+  const wasMoveTarget = moveTarget;
+  dragging = false;
+  moveTarget = null;
+  if (wasMoved && wasMoveTarget) {
+    showToast('物品已移动');
+    return;
+  }
+  if (wasMoved) return;
+  if (document.getElementById('modalSlot').children.length) return;
+  raycaster.setFromCamera(mouseNDC, camera);
+
+  // 空地：点仓库进入 / 放仓库
+  if (scope === 'park') {
+    const whHits = raycaster.intersectObjects(placedObjects.filter(o=>o.data.isWarehouse).map(o=>o.mesh), true);
+    if (whHits.length && whHits[0].distance < 60) {
+      const now = Date.now();
+      const obj = whHits[0].object;
+      if (now - lastClickTime < 400 && lastClickObj === obj) {
+        // 双击进入：选楼层
+        let wh = obj; while (wh && !wh.userData.isWarehouse) wh = wh.parent;
+        if (wh) {
+          const whData = wh.userData;
+          const opts = [];
+          for (let f = 1; f <= whData.floors; f++) opts.push({ label: f + 'F', floor: f });
+          showModal('选择进入楼层', opts, (o) => buildFloor(whData, o.floor));
+        }
+        lastClickTime = 0;
+        return;
+      }
+      lastClickTime = now; lastClickObj = obj;
+      showToast('双击仓库进入楼层搭建');
+      return;
+    }
+    // 放仓库：先选楼层数
+    if (hoverPoint && selectedType === 'warehouse') {
+      const opts = [
+        { label: '1层', floors: 1 },
+        { label: '2层', floors: 2 },
+        { label: '3层', floors: 3 },
+        { label: '4层', floors: 4 }
+      ];
+      pendingPlace = { x: hoverPoint.x, z: hoverPoint.z };
+      showModal('建造几层仓库？', opts, (o) => {
+        if (pendingPlace) {
+          makeWarehouse(pendingPlace.x, pendingPlace.z, o.floors);
+          showToast(`${o.floors}层仓库建造成功`);
+          pendingPlace = null;
+          // 置空：取消选中，需重新点物品栏才能再放
+          selectedType = null;
+          document.getElementById('palette').querySelectorAll('.item').forEach(x => x.classList.remove('active'));
+          rebuildPreview();
+        }
+      });
+    }
+    return;
+  }
+
+  // 仓库内：双击货架查看 / 放物品
+  if (scope === 'warehouse') {
+    // 查看库位
+    if (selectedType === 'inspect') {
+      const locHits = raycaster.intersectObjects(
+        placedObjects.filter(o=>o.data.type==='rack').flatMap(o=>o.mesh.children.filter(c=>c.userData.isLocation)), false);
+      if (locHits.length) {
+        const loc = locHits[0].object.userData;
+        const sm = { full:'满', partial:'部分', empty:'空', locked:'锁定' };
+        showToast(`库位 ${loc.code} · ${sm[loc.status]} · SKU00${loc.code.charCodeAt(2)%9+1} 螺丝M6 ×${100+loc.code.charCodeAt(4)%400}`);
+        return;
+      }
+    }
+    // 放置物品
+    if (hoverPoint && selectedType && selectedType !== 'inspect') {
+      const yBase = (currentFloor - 1) * FLOOR_H;
+      let mesh;
+      if (selectedType === 'rack') mesh = makeRack(hoverPoint.x, hoverPoint.z);
+      else if (selectedType === 'pillar') mesh = makePillar(hoverPoint.x, hoverPoint.z);
+      else if (selectedType === 'obstacle') mesh = makeObstacle(hoverPoint.x, hoverPoint.z);
+      else return;
+      // 放到当前楼层高度 + 应用旋转
+      mesh.position.y = yBase;
+      mesh.rotation.y = previewRotY;
+      // 落地动画
+      mesh.scale.set(0.01, 0.01, 0.01);
+      animateIn(mesh);
+      const names = { rack:'货架', pillar:'石柱', obstacle:'障碍物' };
+      showToast(`${names[selectedType]} 放置成功`);
+      // 置空：取消选中，需重新点物品栏才能再放
+      selectedType = null;
+      document.getElementById('palette').querySelectorAll('.item').forEach(x => x.classList.remove('active'));
+      rebuildPreview();
+    }
+    return;
+  }
+});
+canvas.addEventListener('wheel', (e) => {
+  if (!isLocked) return;
+  camDist += e.deltaY * 0.02;
+  e.preventDefault();
+}, { passive: false });
+
+// 落地动画
+function animateIn(mesh) {
+  let t = 0;
+  const tick = () => {
+    t += 0.08;
+    const s = Math.min(1, t);
+    const ease = 1 - Math.pow(1 - s, 3);
+    mesh.scale.set(ease, ease, ease);
+    if (s < 1) requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+// ===== 初始化 =====
+buildPark();
+
+// ===== 渲染 =====
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (isLocked) {
+    const speed = 18 * dt;
+    const fwd = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
+    const rgt = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
+    if (keys.KeyW) camTarget.addScaledVector(fwd, speed);
+    if (keys.KeyS) camTarget.addScaledVector(fwd, -speed);
+    if (keys.KeyD) camTarget.addScaledVector(rgt, speed);
+    if (keys.KeyA) camTarget.addScaledVector(rgt, -speed);
+    updateCamera();
+  }
+  // 预览跟随
+  if (isLocked && selectedType && selectedType !== 'inspect' && groundMesh && !document.getElementById('modalSlot').children.length) {
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObject(groundMesh, false);
+    if (hits.length && hits[0].distance < 150) {
+      hoverPoint = hits[0].point;
+      hoverPoint.x = Math.round(hoverPoint.x);
+      hoverPoint.z = Math.round(hoverPoint.z);
+      const yBase = scope === 'warehouse' ? (currentFloor - 1) * FLOOR_H : 0;
+      previewGroup.position.set(hoverPoint.x, yBase, hoverPoint.z);
+      previewGroup.visible = true;
+    } else { previewGroup.visible = false; hoverPoint = null; }
+  } else { previewGroup.visible = false; }
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

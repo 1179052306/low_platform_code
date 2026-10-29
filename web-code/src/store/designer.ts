@@ -1,5 +1,5 @@
 import { reactive, computed, ref } from 'vue'
-import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule, PageRule } from '@/types/schema'
+import type { ComponentSchema, PageSchema, PageCss, NodeCss, DefaultChildNode, BizSchemas, PageType, QueryConfig, MasterDetailConfig, FieldBChangeEventRule, MetaLayer, ComputeRule, PageRule, PluginBinding } from '@/types/schema'
 
 import { httpRequest, extractPayload, setDebugPageIdProvider } from '@/utils/request'
 import {
@@ -140,6 +140,8 @@ export const designerStore = reactive({
   computeRules: undefined as ComputeRule[] | undefined,
   /** 页面规则（对应 PageSchema.pageRules，字段变化触发动作列表） */
   pageRules: undefined as PageRule[] | undefined,
+  /** 页面绑定的后端插件列表 */
+  plugins: undefined as PluginBinding[] | undefined,
   /** 分层继承：当前编辑层（方向一，默认 CUSTOMER） */
   currentLayer: 'CUSTOMER' as MetaLayer,
   /** 分层继承：是否显示合并预览（true=看合并后 schema，false=看当前层） */
@@ -1291,6 +1293,7 @@ export function exportSchema(): PageSchema {
     fieldChangeEvents: designerStore.fieldChangeEvents,
     computeRules: designerStore.computeRules,
     pageRules: designerStore.pageRules,
+    plugins: designerStore.plugins,
   }
   // 业务形态：同步当前 schema 到槽位，并输出三份独立内容
   if (designerStore.mode === 'biz') {
@@ -1436,6 +1439,7 @@ export function importSchema(page: PageSchema): boolean {
   designerStore.fieldChangeEvents = page.fieldChangeEvents
   designerStore.computeRules = page.computeRules
   designerStore.pageRules = page.pageRules
+  designerStore.plugins = page.plugins
   // 业务形态：加载三份独立内容，当前 schema 指向当前模式槽位
   if (designerStore.mode === 'biz') {
     // 恢复上次使用的子模式（持久化）
@@ -1587,6 +1591,14 @@ export function setComputeRules(rules: ComputeRule[]): void {
 export function setPageRules(rules: PageRule[]): void {
   pushHistory()
   designerStore.pageRules = rules
+}
+
+// ================ 页面插件绑定 ================
+
+/** 整体替换页面插件绑定列表 */
+export function setPluginBindings(plugins: PluginBinding[]): void {
+  pushHistory()
+  designerStore.plugins = plugins
 }
 // ================ FE-S3：分层继承（方向一） ================
 

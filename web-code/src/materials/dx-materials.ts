@@ -438,6 +438,7 @@ export const dxMaterialConfigs: MaterialConfig[] = [
       remoteMethod: 'POST',
       dataSource: [],
       keyExpr: '',
+      keyStrategy: 'SNOWFLAKE',
       tableName: '',
       tableComment: '',
 
@@ -512,6 +513,10 @@ export const dxMaterialConfigs: MaterialConfig[] = [
         s('tableName', '明细表名', 'input'),
         s('tableComment', '明细表说明', 'input'),
         s('keyExpr', '主键字段', 'input'),
+        s('keyStrategy', '主键策略', 'select', [
+          { label: '雪花ID (Snowflake)', value: 'SNOWFLAKE' },
+          { label: 'UUID', value: 'UUID' },
+        ]),
         s('parentType', '上级类型', 'select', [
           { label: '页面', value: 'page' },
           { label: '表格', value: 'table' },

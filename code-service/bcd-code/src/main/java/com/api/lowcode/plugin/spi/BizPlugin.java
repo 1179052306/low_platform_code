@@ -21,7 +21,11 @@ import java.util.Set;
  *       protected void register() {
  *           before("create", "update", this::beforeSave);    // 保存前
  *           after("create", this::afterCreate);              // 保存后
- *           after("approve", this::onApprove);               // 自定义按钮
+ *           afterCommit("create", this::notifyOnCreate);     // 事务提交后
+ *           beforeQuery(this::filterDataScope);              // 查询前（数据权限）
+ *           afterQuery(this::maskSensitiveFields);           // 查询后（数据脱敏）
+ *           onValidate(this::validateItem);                  // 保存前校验
+ *           action("approve", this::onApprove);               // 自定义按钮
  *       }
  *
  *       private void beforeSave(ActionContext ac) throws Exception { ... }
@@ -94,6 +98,31 @@ public abstract class BizPlugin implements MultiHook {
     /** 自定义按钮 action（CRUD 执行之后触发） */
     protected void action(String action, Handler h) {
         entries.add(new HookEntry(HookPhase.POST, new HashSet<>(Arrays.asList(action)), h));
+    }
+
+    /** 事务提交后钩子（适合发消息/通知，失败不影响主操作） */
+    protected void afterCommit(String action, Handler h) {
+        afterCommit(new String[]{action}, h);
+    }
+
+    /** 事务提交后钩子（匹配多个 action） */
+    protected void afterCommit(String[] actions, Handler h) {
+        entries.add(new HookEntry(HookPhase.AFTER_COMMIT, new HashSet<>(Arrays.asList(actions)), h));
+    }
+
+    /** 查询前钩子（可修改 payload 添加过滤条件做数据权限） */
+    protected void beforeQuery(Handler h) {
+        before("query", h);
+    }
+
+    /** 查询后钩子（可修改 ac.getResult() 做数据脱敏） */
+    protected void afterQuery(Handler h) {
+        after("query", h);
+    }
+
+    /** 保存前校验（create + update 共用，抛异常即拦截保存） */
+    protected void onValidate(Handler h) {
+        before(new String[]{"create", "update"}, h);
     }
 
     /** 子类实现：在此方法中用 before()/after()/action() 注册各 handler */

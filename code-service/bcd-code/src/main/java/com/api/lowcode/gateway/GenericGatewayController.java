@@ -94,14 +94,15 @@ public class GenericGatewayController {
         ctx.setPayload(payload);
         ctx.setContext(context);
 
-        JSONArray pluginBindings = null;
+        JSONArray pluginBindingsTemp = null;
         if (meta.getPlugins() != null && !meta.getPlugins().isEmpty()) {
             try {
-                pluginBindings = JSONArray.parse(meta.getPlugins());
+                pluginBindingsTemp = JSONArray.parse(meta.getPlugins());
             } catch (Exception e) {
                 log.warn("[Gateway] plugins JSON 解析失败: {}", e.getMessage());
             }
         }
+        final JSONArray pluginBindings = pluginBindingsTemp;
 
         long startTime = System.currentTimeMillis();
         boolean success = false;
@@ -124,14 +125,16 @@ public class GenericGatewayController {
                     eventBus.fireSync(event);
                     eventBus.fireAsync(event);
                 }
+                ac.setResult(crudResult);
                 if (pluginBindings != null) {
                     pluginContainer.invokeBoundHooks(bizCode, action, ac, pluginBindings, HookPhase.POST);
                 }
+                Object finalResult = ac.getResult();
                 JSONObject combined = new JSONObject();
-                if (crudResult instanceof JSONObject) {
-                    combined.putAll((JSONObject) crudResult);
+                if (finalResult instanceof JSONObject) {
+                    combined.putAll((JSONObject) finalResult);
                 } else {
-                    combined.put("data", crudResult);
+                    combined.put("data", finalResult);
                 }
                 if (!stateEvents.isEmpty()) {
                     combined.put("stateChanged", true);
@@ -144,6 +147,14 @@ public class GenericGatewayController {
             r.setData(result);
             success = true;
             log.info("[Gateway] bizCode={} action={} 成功", bizCode, action);
+            if (pluginBindings != null) {
+                try {
+                    ctx.setResult(result);
+                    pluginContainer.invokeBoundHooks(bizCode, action, ctx, pluginBindings, HookPhase.AFTER_COMMIT);
+                } catch (Exception ace) {
+                    log.warn("[Gateway] afterCommit 钩子执行失败（不影响主操作）: bizCode={} action={} error={}", bizCode, action, ace.getMessage());
+                }
+            }
             try {
                 String bizId = payload.getString("id");
                 if (bizId == null && context != null) bizId = context.getString("bizId");

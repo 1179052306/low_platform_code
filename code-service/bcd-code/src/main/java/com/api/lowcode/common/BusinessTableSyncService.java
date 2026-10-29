@@ -663,7 +663,8 @@ public class BusinessTableSyncService {
           }
 
           if (!tableExists(jdbc, dt.tableName, dialect)) {
-            createTable(jdbc, dt.tableName, fields, dialect, dt.primaryKeyField, false, dt.tableComment);
+            boolean dtUseSnowflake = "SNOWFLAKE".equalsIgnoreCase(dt.keyStrategy);
+            createTable(jdbc, dt.tableName, fields, dialect, dt.primaryKeyField, dtUseSnowflake, dt.tableComment);
             sqlFieldValidator.evictCache(DB_NAME, dt.tableName);
             msg.append("已创建明细表 ").append(dt.tableName).append("，字段数 ").append(fields.size()).append("；");
           } else {
@@ -709,6 +710,8 @@ public class BusinessTableSyncService {
           dt.tableComment = props.getString("tableComment");
           String pkField = props.getString("keyExpr");
           dt.primaryKeyField = (pkField != null && !pkField.trim().isEmpty()) ? pkField.trim() : "id";
+          String keyStrategy = props.getString("keyStrategy");
+          dt.keyStrategy = (keyStrategy != null && !keyStrategy.trim().isEmpty()) ? keyStrategy.trim() : "SNOWFLAKE";
           dt.parentType = props.getString("parentType");
           dt.parentRef = props.getString("parentRef");
 
@@ -862,6 +865,7 @@ public class BusinessTableSyncService {
     String tableName;
     String tableComment;
     String primaryKeyField = "id";
+    String keyStrategy = "SNOWFLAKE";
     String parentType;
     String parentRef;
     List<ColumnDef> columns = new ArrayList<>();

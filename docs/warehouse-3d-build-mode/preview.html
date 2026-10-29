@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>3D仓库搭建模式 - 效果预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:#0f1115; color:#e8edf2; overflow:hidden; height:100vh; }
+  .app { display:flex; flex-direction:column; height:100vh; }
+
+  /* 顶部工具栏 */
+  .toolbar { display:flex; align-items:center; gap:6px; padding:8px 14px; background:#1a1d24; border-bottom:1px solid #2a2d34; }
+  .btn { padding:6px 14px; background:#2a2d34; border:1px solid #3a3d44; color:#b0b8c4; border-radius:4px; cursor:pointer; font-size:13px; }
+  .btn:hover { background:#3a3d44; }
+  .btn.active { background:#4a90d9; color:#fff; border-color:#4a90d9; }
+  .btn.build { background:#ff9800; color:#1a1d24; border-color:#ff9800; font-weight:600; }
+  .sep { width:1px; height:20px; background:#3a3d44; margin:0 4px; }
+  .toolbar .right { margin-left:auto; display:flex; gap:6px; align-items:center; }
+  .label { color:#78909c; font-size:12px; }
+
+  /* 主体 */
+  .main { flex:1; display:flex; min-height:0; }
+
+  /* 左侧积木抽屉 */
+  .palette { width:200px; background:#1a1d24; border-right:1px solid #2a2d34; padding:12px; overflow-y:auto; flex-shrink:0; }
+  .palette h3 { font-size:13px; color:#78909c; margin-bottom:10px; font-weight:500; }
+  .block-item { display:flex; align-items:center; gap:10px; padding:10px; margin-bottom:6px; background:#252830; border:1px solid #2a2d34; border-radius:4px; cursor:pointer; transition:all .15s; }
+  .block-item:hover { border-color:#4a90d9; }
+  .block-item.selected { border-color:#ff9800; background:rgba(255,152,0,.12); }
+  .block-icon { width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .block-name { font-size:13px; color:#e8edf2; }
+  .block-meta { font-size:11px; color:#78909c; }
+  .palette .info { margin-top:14px; padding:10px; background:#252830; border-radius:4px; font-size:12px; color:#b0b8c4; }
+  .palette .info b { color:#ff9800; }
+
+  /* 中间3D场景 */
+  .scene-wrap { flex:1; position:relative; min-width:0; display:flex; flex-direction:column; }
+  .breadcrumb { display:flex; align-items:center; gap:8px; padding:8px 14px; background:#1a1d24; border-bottom:1px solid #2a2d34; font-size:13px; }
+  .crumb { color:#78909c; cursor:pointer; }
+  .crumb:hover { color:#4a90d9; }
+  .crumb.current { color:#e8edf2; }
+  .crumb-sep { color:#4a4d54; }
+  .back-btn { margin-left:auto; padding:4px 10px; background:#2a2d34; border:1px solid #3a3d44; color:#b0b8c4; border-radius:3px; cursor:pointer; font-size:12px; }
+
+  .scene { flex:1; position:relative; background:linear-gradient(180deg,#1e2330 0%,#0f1115 100%); overflow:hidden; }
+  canvas { display:block; width:100%; height:100%; }
+
+  /* 浮动提示 */
+  .hint-tip { position:absolute; top:14px; left:50%; transform:translateX(-50%); padding:8px 16px; background:rgba(255,152,0,.95); color:#1a1d24; border-radius:20px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,.4); }
+  .crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(255,255,255,.5); font-size:24px; pointer-events:none; }
+
+  /* 图例 */
+  .legend { position:absolute; bottom:14px; left:14px; padding:10px 12px; background:rgba(26,29,36,.92); border:1px solid #2a2d34; border-radius:4px; font-size:12px; backdrop-filter:blur(8px); }
+  .legend-row { display:flex; align-items:center; gap:8px; margin:4px 0; color:#b0b8c4; }
+  .legend-dot { width:12px; height:12px; border-radius:2px; }
+
+  /* 状态栏 */
+  .statusbar { display:flex; gap:18px; padding:5px 14px; background:#1a1d24; border-top:1px solid #2a2d34; font-size:12px; color:#78909c; }
+  .statusbar .tag-build { color:#ff9800; font-weight:600; }
+
+  /* 右侧面板 */
+  .side { width:300px; background:#252830; border-left:1px solid #2a2d34; display:flex; flex-direction:column; flex-shrink:0; }
+  .side-tabs { display:flex; background:#1a1d24; }
+  .side-tab { flex:1; padding:10px; text-align:center; font-size:13px; color:#78909c; cursor:pointer; border-bottom:2px solid transparent; }
+  .side-tab.active { color:#e8edf2; border-bottom-color:#4a90d9; }
+  .side-content { flex:1; padding:14px; overflow-y:auto; }
+  .stock-panel { background:#1a1d24; border:1px solid #2a2d34; border-radius:4px; padding:12px; }
+  .stock-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #2a2d34; }
+  .stock-code { font-size:15px; font-weight:600; color:#e8edf2; }
+  .stock-status { padding:2px 8px; border-radius:3px; font-size:11px; }
+  .stock-status.full { background:rgba(102,187,106,.2); color:#66bb6a; }
+  .stock-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .stock-table th { text-align:left; padding:6px 4px; color:#78909c; font-weight:500; border-bottom:1px solid #2a2d34; }
+  .stock-table td { padding:6px 4px; color:#b0b8c4; border-bottom:1px solid rgba(42,45,52,.5); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 顶部工具栏 -->
+  <div class="toolbar">
+    <button class="btn">只读</button>
+    <button class="btn build">✦ 搭建</button>
+    <div class="sep"></div>
+    <span class="label">视角</span>
+    <button class="btn active">透视</button>
+    <button class="btn">俯视</button>
+    <div class="sep"></div>
+    <span class="label">楼层</span>
+    <button class="btn">2F ▼</button>
+    <div class="right">
+      <button class="btn">适应</button>
+      <button class="btn active">网格</button>
+      <button class="btn active">标签</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- 左侧积木抽屉 -->
+    <div class="palette">
+      <h3>积木抽屉</h3>
+      <div class="block-item">
+        <div class="block-icon">🏢</div><div><div class="block-name">仓库楼</div><div class="block-meta">30×20m 3层</div></div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon">📦</div><div><div class="block-name">库区框</div><div class="block-meta">15×10m</div></div>
+      </div>
+      <div class="block-item selected">
+        <div class="block-icon">🗄️</div><div><div class="block-name">货架</div><div class="block-meta">3层×10格</div></div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon">🚧</div><div><div class="block-name">障碍物</div><div class="block-meta">柱/墙</div></div>
+      </div>
+      <div class="info">
+        已选中：<b>货架</b><br>
+        鼠标移到地面投射预览<br>
+        点击放置 · Esc 取消
+      </div>
+    </div>
+
+    <!-- 中间3D场景 -->
+    <div class="scene-wrap">
+      <div class="breadcrumb">
+        <span class="crumb">园区A</span><span class="crumb-sep">/</span>
+        <span class="crumb">仓库W1</span><span class="crumb-sep">/</span>
+        <span class="crumb current">2F · E区</span>
+        <button class="back-btn">← 返回上级</button>
+      </div>
+      <div class="scene">
+        <canvas id="c"></canvas>
+        <div class="hint-tip">选中"货架" · 点击地面放置</div>
+        <div class="crosshair">+</div>
+        <div class="legend">
+          <div class="legend-row"><span class="legend-dot" style="background:#66bb6a"></span>满</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#ffca28"></span>部分</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#78909c"></span>空</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#ef5350"></span>锁定</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#42a5f5"></span>预览(可放)</div>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span>FPS: 60</span><span>楼层: 2F/3F</span><span>库位: 120</span>
+        <span>选中: R-E01-2-3</span><span class="tag-build">● 搭建中</span>
+      </div>
+    </div>
+
+    <!-- 右侧库位物料面板 -->
+    <div class="side">
+      <div class="side-tabs">
+        <div class="side-tab">库位详情</div>
+        <div class="side-tab active">库位物料</div>
+        <div class="side-tab">库区列表</div>
+      </div>
+      <div class="side-content">
+        <div class="stock-panel">
+          <div class="stock-head">
+            <span class="stock-code">R-E01-2-3</span>
+            <span class="stock-status full">满 · 100%</span>
+          </div>
+          <table class="stock-table">
+            <tr><th>物料编码</th><th>名称</th><th>数量</th><th>入库</th></tr>
+            <tr><td>SKU001</td><td>螺丝M6</td><td>500</td><td>10-20</td></tr>
+            <tr><td>SKU002</td><td>垫片D6</td><td>200</td><td>10-21</td></tr>
+            <tr><td>SKU008</td><td>螺母M6</td><td>300</td><td>10-22</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+const canvas = document.getElementById('c');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e2330);
+scene.fog = new THREE.Fog(0x1e2330, 80, 250);
+
+const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth/canvas.clientHeight, 0.1, 1000);
+camera.position.set(35, 30, 35);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.target.set(15, 2, 10);
+controls.maxPolarAngle = Math.PI/2 - 0.05;
+
+// 灯光
+scene.add(new THREE.HemisphereLight(0xe8edf2, 0x3a3d44, 0.7));
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+dir.position.set(30, 50, 20);
+scene.add(dir);
+
+// 地面
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 40),
+  new THREE.MeshStandardMaterial({ color: 0x252830, roughness: 0.9 })
+);
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
+
+// 网格
+const grid = new THREE.GridHelper(60, 60, 0x3a3d44, 0x2a2d34);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// 库区边框
+const areaGeo = new THREE.BoxGeometry(20, 0.1, 12);
+const areaEdges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(areaGeo),
+  new THREE.LineBasicMaterial({ color: 0x4a90d9 })
+);
+areaEdges.position.set(15, 0.05, 10);
+scene.add(areaEdges);
+
+// 货架函数
+function makeRack(x, z, label) {
+  const g = new THREE.Group();
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x555863, roughness: 0.6, metalness: 0.4 });
+  const shelfMat = new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.8 });
+  const W = 8, D = 1.2, H = 4.5, levels = 3;
+  for (let i = 0; i <= levels; i++) {
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(W, 0.08, D), shelfMat);
+    shelf.position.y = (H/levels) * i;
+    g.add(shelf);
+  }
+  for (const px of [-W/2, W/2]) for (const pz of [-D/2, D/2]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, H, 0.12), postMat);
+    post.position.set(px, H/2, pz);
+    g.add(post);
+  }
+  // 库位格子
+  const bays = 8;
+  const statusColors = { full: 0x66bb6a, partial: 0xffca28, empty: 0x78909c, locked: 0xef5350 };
+  const statuses = ['full','full','partial','full','empty','full','partial','locked'];
+  for (let l = 0; l < levels; l++) for (let b = 0; b < bays; b++) {
+    const bw = W/bays;
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(bw*0.85, 0.7, D*0.7),
+      new THREE.MeshStandardMaterial({ color: statusColors[statuses[b]], transparent: true, opacity: 0.55, roughness: 0.7 })
+    );
+    box.position.set(-W/2 + bw*(b+0.5), (H/levels)*(l+0.5), 0);
+    g.add(box);
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+  return g;
+}
+makeRack(15, 6, 'R-E01');
+makeRack(15, 14, 'R-E02');
+
+// 半透明绿色预览货架（跟随鼠标）
+const previewMat = new THREE.MeshStandardMaterial({ color: 0x42a5f5, transparent: true, opacity: 0.4, roughness: 0.5 });
+const preview = new THREE.Mesh(new THREE.BoxGeometry(8, 4.5, 1.2), previewMat);
+preview.position.set(15, 2.25, 22);
+scene.add(preview);
+const previewEdges = new THREE.LineSegments(new THREE.EdgesGeometry(preview.geometry), new THREE.LineBasicMaterial({ color: 0x42a5f5 }));
+preview.add(previewEdges);
+
+// 标签
+function makeLabel(text, x, y, z, color = '#ffffff') {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(20,23,30,0.9)';
+  ctx.fillRect(0, 0, 256, 64);
+  ctx.strokeStyle = 'rgba(100,116,139,0.5)';
+  ctx.strokeRect(1, 1, 254, 62);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+  sp.scale.set(5, 1.25, 1);
+  sp.position.set(x, y, z);
+  scene.add(sp);
+}
+makeLabel('E区', 15, 6, 4, '#4a90d9');
+makeLabel('R-E01', 15, 5.2, 5, '#e8edf2');
+makeLabel('R-E02', 15, 5.2, 13, '#e8edf2');
+makeLabel('预览', 15, 5.2, 22, '#42a5f5');
+
+// 鼠标移动预览跟随
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const plane = new THREE.Mesh(new THREE.PlaneGeometry(60, 40), new THREE.MeshBasicMaterial({ visible: false }));
+plane.rotation.x = -Math.PI/2;
+scene.add(plane);
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(plane);
+  if (hits.length) {
+    const p = hits[0].point;
+    preview.position.x = Math.round(p.x);
+    preview.position.z = Math.round(p.z);
+    preview.position.y = 2.25;
+  }
+});
+
+function animate() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+window.addEventListener('resize', () => {
+  camera.aspect = canvas.clientWidth / canvas.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+});
+</script>
+</body>
+</html>

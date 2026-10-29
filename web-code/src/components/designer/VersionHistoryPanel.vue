@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { ElDrawer, ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { ElDrawer, ElButton, ElMessage, ElMessageBox, ElTag, vLoading } from 'element-plus'
 import LcTable from '@/materials/components/LcTable.vue'
 import { t } from '@/store/lang'
 import { useVersionHistory } from '@/composables/useVersionHistory'

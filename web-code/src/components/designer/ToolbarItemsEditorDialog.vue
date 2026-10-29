@@ -4,9 +4,10 @@ import EventCodeDialog from './EventCodeDialog.vue'
 import PageSelectDialog from './PageSelectDialog.vue'
 import { designerStore } from '@/store/designer'
 import { t } from '@/store/lang'
-import { ElSelect, ElOption } from 'element-plus'
+import { ElSelect, ElOption, ElMessage } from 'element-plus'
 import { useDialogDragAndMax } from './useDialogDragAndMax'
 import DialogMaxButton from './DialogMaxButton.vue'
+import { apiCall } from '@/api'
 
 export interface ToolbarItemConfig {
   name: string
@@ -17,6 +18,7 @@ export interface ToolbarItemConfig {
   permCode?: string
   isCustom?: boolean
   onClick?: string
+  action?: string
   type?: 'default' | 'normal' | 'success' | 'danger' | 'warning'
   stylingMode?: 'contained' | 'outlined' | 'text'
   showIcon?: boolean
@@ -138,6 +140,24 @@ const childExpandedIdx = ref<string | null>(null)
 const dragIdx = ref<number | null>(null)
 const dragOverIdx = ref<number | null>(null)
 
+const actionOptions = ref<{ label: string; value: string }[]>([])
+async function fetchActions() {
+  const bizCode = designerStore.tableName
+  if (!bizCode) return
+  try {
+    const res = await apiCall('metaActionList', { params: { bizCode } })
+    const data = res.data as { res?: boolean; data?: Array<{ action?: string; actionName?: string }> }
+    if (data?.data) {
+      actionOptions.value = data.data.map(a => ({
+        label: a.actionName || a.action || '',
+        value: a.action || '',
+      })).filter(a => a.value)
+    }
+  } catch {
+    actionOptions.value = []
+  }
+}
+
 // 事件代码编辑弹窗
 const eventDialogVisible = ref(false)
 const eventDialogValue = ref('')
@@ -207,6 +227,7 @@ watch(
           permCode: p.permCode ? String(p.permCode) : String(p.name ?? ''),
           isCustom: Boolean(p.isCustom),
           onClick: p.onClick !== undefined ? String(p.onClick) : undefined,
+          action: p.action !== undefined ? String(p.action) : undefined,
           type: p.type as ToolbarItemConfig['type'],
           stylingMode: p.stylingMode as ToolbarItemConfig['stylingMode'],
           bgColor: p.bgColor ? String(p.bgColor) : undefined,
@@ -540,6 +561,7 @@ function onConfirm() {
     permCode: i.permCode || undefined,
     isCustom: i.isCustom,
     onClick: i.onClick || undefined,
+    action: i.action || undefined,
     type: i.type,
     stylingMode: i.stylingMode,
     bgColor: i.bgColor || undefined,
@@ -560,6 +582,7 @@ function onCancel() {
 
 const { isMaximized, isDragging, dragStyle, onHeaderMouseDown, toggleMaximize, resetDialog } = useDialogDragAndMax()
 watch(() => props.visible, (v) => { if (!v) resetDialog() })
+watch(() => props.visible, (v) => { if (v) fetchActions() })
 </script>
 
 <template>
@@ -1006,6 +1029,29 @@ watch(() => props.visible, (v) => { if (!v) resetDialog() })
                           </label>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- 绑定后端动作 -->
+                <template v-if="item.isCustom">
+                  <div class="section-header">{{ t('后端动作 (action)') }}</div>
+                  <div class="event-section">
+                    <ElSelect
+                      v-model="item.action"
+                      :placeholder="t('选择后端动作（触发插件钩子）')"
+                      clearable
+                      style="width: 100%"
+                    >
+                      <ElOption
+                        v-for="opt in actionOptions"
+                        :key="opt.value"
+                        :label="opt.label"
+                        :value="opt.value"
+                      />
+                    </ElSelect>
+                    <div v-if="!actionOptions.length" class="event-empty-tip">
+                      {{ t('暂无已注册动作，可在业务元数据中配置') }}
                     </div>
                   </div>
                 </template>

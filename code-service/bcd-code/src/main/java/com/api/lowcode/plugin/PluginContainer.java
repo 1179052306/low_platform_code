@@ -45,6 +45,7 @@ public class PluginContainer {
     private final ConcurrentMap<String, PluginEntry> plugins = new ConcurrentHashMap<>();
     private final List<ActionHook> preHooks = new CopyOnWriteArrayList<>();
     private final List<ActionHook> postHooks = new CopyOnWriteArrayList<>();
+    private final List<ActionHook> afterCommitHooks = new CopyOnWriteArrayList<>();
     private final List<StateChangeListener> stateListeners = new CopyOnWriteArrayList<>();
 
     public void load(String pluginId, String version) throws Exception {
@@ -108,6 +109,9 @@ public class PluginContainer {
         if (hook.phase() == HookPhase.PRE) {
             preHooks.add(hook);
             log.info("[PluginContainer] 注册前置钩子: {}", hook.getClass().getName());
+        } else if (hook.phase() == HookPhase.AFTER_COMMIT) {
+            afterCommitHooks.add(hook);
+            log.info("[PluginContainer] 注册事务提交后钩子: {}", hook.getClass().getName());
         } else {
             postHooks.add(hook);
             log.info("[PluginContainer] 注册后置钩子: {}", hook.getClass().getName());
@@ -147,6 +151,7 @@ public class PluginContainer {
         }
         preHooks.removeIf(h -> h.pluginId().equals(pluginId));
         postHooks.removeIf(h -> h.pluginId().equals(pluginId));
+        afterCommitHooks.removeIf(h -> h.pluginId().equals(pluginId));
         stateListeners.removeIf(l -> l.pluginId().equals(pluginId));
         try {
             entry.classLoader.close();
@@ -182,7 +187,14 @@ public class PluginContainer {
      * 按 pluginId 查找已加载的钩子。
      */
     public ActionHook findHookById(String pluginId, HookPhase phase) {
-        List<ActionHook> hooks = phase == HookPhase.PRE ? preHooks : postHooks;
+        List<ActionHook> hooks;
+        if (phase == HookPhase.PRE) {
+            hooks = preHooks;
+        } else if (phase == HookPhase.AFTER_COMMIT) {
+            hooks = afterCommitHooks;
+        } else {
+            hooks = postHooks;
+        }
         for (ActionHook hook : hooks) {
             if (hook.pluginId().equals(pluginId)) {
                 return hook;

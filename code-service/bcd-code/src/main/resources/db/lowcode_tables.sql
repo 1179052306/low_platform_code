@@ -235,6 +235,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 兼容已有表：补充 plugins 列（页面绑定的插件列表 JSON）
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lc_biz_meta' AND column_name='plugins') THEN
+    ALTER TABLE lc_biz_meta ADD COLUMN plugins TEXT;
+  END IF;
+END $$;
+
 -- 字段元数据
 CREATE TABLE IF NOT EXISTS lc_field_meta (
     id                VARCHAR(64) PRIMARY KEY,

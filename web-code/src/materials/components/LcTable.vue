@@ -1806,7 +1806,7 @@ const toolbarConfig = computed(() => {
   return { buttons }
 })
 
-function handleToolbarClick({ code }: any) {
+async function handleToolbarClick({ code }: any) {
   if (code === 'add' || code === 'addRow') addRow()
   else if (code === 'deleteRows') deleteSelectedRows()
   else if (code === 'sortAsc') sortAsc()
@@ -1835,6 +1835,20 @@ function handleToolbarClick({ code }: any) {
         const fn = new Function('e', 'api', 'grid', item.onClick)
         fn({}, {}, instance)
       } catch (e) { console.error('[LcTable] toolbar onClick error:', e) }
+    } else if (item?.action && props.bizCode) {
+      const selectedRows = getSelectedRowsData()
+      const payload: Record<string, unknown> = {}
+      if (selectedRows && selectedRows.length > 0) {
+        payload.ids = selectedRows.map((r: any) => r.id)
+        payload.data = selectedRows[0]
+      }
+      try {
+        await gatewayCall(props.bizCode, item.action, payload)
+        ElMessage.success('操作成功')
+        loadData()
+      } catch (e) {
+        ElMessage.error((e as Error).message || '操作失败')
+      }
     }
     emit('toolbar-item-click', { name: code })
   }

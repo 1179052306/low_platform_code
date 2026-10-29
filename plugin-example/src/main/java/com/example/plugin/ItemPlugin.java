@@ -11,12 +11,13 @@ import com.api.lowcode.plugin.spi.BizPlugin;
  *   - 保存前：校验 + 自动填充审计字段 + 查重
  *   - 保存后（新增）：联动写库存初始化 + 操作日志
  *   - 保存后（修改）：写操作日志
+ *   - 事务提交后（新增）：发通知（失败不影响主操作）
  *   - 自定义按钮"审批"：onApprove
  */
 public class ItemPlugin extends BizPlugin {
 
     public ItemPlugin() {
-        super("item-plugin", "B_ITEM");
+        super("item-plugin");
     }
 
     @Override
@@ -24,6 +25,7 @@ public class ItemPlugin extends BizPlugin {
         before(new String[]{"create", "update"}, this::beforeSave);
         after("create", this::afterCreate);
         after("update", this::afterUpdate);
+        afterCommit("create", this::notifyOnCreate);
         action("approve", this::onApprove);
     }
 
@@ -89,6 +91,15 @@ public class ItemPlugin extends BizPlugin {
         JSONObject payload = ac.getPayload();
         writeOpLog("update", payload.getString("id"),
                 "修改物料: " + payload.getString("item_name"), ac.getUserId());
+    }
+
+    // ================ 事务提交后 ================
+
+    private void notifyOnCreate(ActionContext ac) throws Exception {
+        JSONObject payload = ac.getPayload();
+        String itemId = payload.getString("id");
+        String itemName = payload.getString("item_name");
+        ctx.logger().info("[事务已提交] 发送新增物料通知: id={}, name={}", itemId, itemName);
     }
 
     // ================ 自定义按钮：审批 ================

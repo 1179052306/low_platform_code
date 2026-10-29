@@ -232,7 +232,8 @@ public class CrudExecutor {
         JSONArray uniqueChecks = payload.getJSONArray(UNIQUE_CHECKS_KEY);
         data.remove(UNIQUE_CHECKS_KEY);
         String pk = getPk(meta);
-        if (isSystemPk(meta, pk) && data.getString(pk) == null) {
+        String pkVal = data.getString(pk);
+        if (pkVal == null || pkVal.isEmpty()) {
             if ("SNOWFLAKE".equalsIgnoreCase(meta.getKeyStrategy())) {
                 data.put(pk, SnowflakeIdGenerator.nextId());
             } else {

@@ -212,6 +212,20 @@ export interface PageSchema {
   computeRules?: ComputeRule[]
   /** 页面规则（字段变化触发条件后执行动作列表，可视化配置替代事件代码） */
   pageRules?: PageRule[]
+  /** 页面绑定的后端插件列表 */
+  plugins?: PluginBinding[]
+}
+
+/** 页面插件绑定（一个页面可绑定多个后端插件，按 sortOrder 执行） */
+export interface PluginBinding {
+  /** 插件标识（对应 jar 里 plugin.yml 的 pluginId） */
+  pluginId: string
+  /** 显示名（从后端查，只读展示） */
+  pluginName?: string
+  /** 执行顺序（小的先执行） */
+  sortOrder: number
+  /** 是否启用 */
+  enabled: boolean
 }
 
 /** 计算规则目标字段（一个目标字段 + 其计算表达式） */

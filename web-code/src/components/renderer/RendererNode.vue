@@ -490,6 +490,7 @@ const gridToolbarItems = computed(() => {
         location?: string
         isCustom?: boolean
         onClick?: string
+        action?: string
         type?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'normal'
         stylingMode?: 'contained' | 'outlined' | 'text'
         showIcon?: boolean
@@ -552,6 +553,27 @@ const gridToolbarItems = computed(() => {
         } catch (err) {
           console.error(`[工具栏按钮事件] ${item.name} 代码语法错误:`, err)
           onClick = () => {}
+        }
+      } else if ((item as Record<string, unknown>).action) {
+        const actionName = (item as Record<string, unknown>).action as string
+        onClick = async () => {
+          const bizCode = designerStore.tableName
+          if (!bizCode) { ElMessage.warning(t('未配置业务表')); return }
+          const grid = getGridInstance()
+          const selectedRows = grid && typeof grid.getSelectedRows === 'function' ? grid.getSelectedRows() : []
+          const payload: Record<string, unknown> = {}
+          if (selectedRows && selectedRows.length > 0) {
+            payload.ids = selectedRows.map((r: Record<string, unknown>) => r.id)
+            payload.data = selectedRows[0]
+          }
+          try {
+            const res = await gatewayCall(bizCode, actionName, payload)
+            ElMessage.success(t('操作成功'))
+            if (typeof grid?.refresh === 'function') grid.refresh()
+            return res
+          } catch (err) {
+            ElMessage.error((err as Error).message || t('操作失败'))
+          }
         }
       } else {
         // 预设按钮行为
@@ -1603,13 +1625,15 @@ const boundProps = computed<Record<string, unknown>>(() => {
       const remoteBody = props.node.props.remoteBody as string | undefined
       const firstLoad = props.node.props.firstLoad === true
 
-      // url 为空时走网关
-      const gwTableName = store.tableName || designerStore.tableName
+      // url 为空时走网关（data-grid 有自己的 tableName 时优先用，如明细表）
+      const gridTableName = (props.node.props.tableName as string) || ''
+      const gwTableName = gridTableName || store.tableName || designerStore.tableName
       const useGateway = !url && !!gwTableName
       const gatewayBizCode = gwTableName
 
       // 缓存签名：只在数据源配置变化时重建 dataSource，避免 schemaRevision 变化导致重复请求
-      const dsSig = JSON.stringify({ serviceId, url, method, remoteBody, firstLoad, gwTableName })
+      const _masterId = gridTableName ? pageModal.getParams()?.masterId : undefined
+      const dsSig = JSON.stringify({ serviceId, url, method, remoteBody, firstLoad, gwTableName, _masterId })
       if (_dsCacheSig === dsSig && _cachedRemoteDataSource) {
         base.dataSource = _cachedRemoteDataSource
       } else {
@@ -1897,6 +1921,24 @@ const boundProps = computed<Record<string, unknown>>(() => {
             }
           }
         }
+        // 明细表自动过滤：data-grid 有 tableName（明细表）且上级为页面时，按主键自动过滤
+        if (gridTableName && dataSourceType === 'remote') {
+          const parentType = (props.node.props.parentType as string) || 'page'
+          if (parentType === 'page') {
+            const modalParams = pageModal.getParams()
+            const mId = modalParams?.masterId
+            const fkField = store.primaryKeyField || designerStore.primaryKeyField || 'id'
+            if (mId !== undefined && mId !== null && mId !== '') {
+              allFilterData.push({ Symbol: 'and' })
+              allFilterData.push({
+                Id: fkField,
+                Symbol: '=',
+                Val: mId,
+                TableAlias: getColumnTableAlias(fkField),
+              })
+            }
+          }
+        }
         if (loadOptions.filter) {
           allFilterData = allFilterData.concat(convertFilter(loadOptions.filter))
         }
@@ -2077,15 +2119,46 @@ const boundProps = computed<Record<string, unknown>>(() => {
             throw err
           }
         },
-        // update/insert/remove：如果用户配置了事件则调用，否则空实现避免 E4011
+        // update/insert/remove：如果用户配置了事件则调用，否则明细表走网关默认 CRUD
         update: async (key: unknown, values: Record<string, unknown>) => {
           if (storeUpdateFn) return await storeUpdateFn(key, values)
+          if (gridTableName && useGateway) {
+            const pk = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
+            const upd: Record<string, unknown> = { ...values }
+            upd[pk] = key
+            await httpRequest('/api/lowcode/gateway', {
+              method: 'POST',
+              body: JSON.stringify({ bizCode: gridTableName, action: 'update', payload: upd }),
+            })
+          }
         },
         insert: async (values: Record<string, unknown>) => {
           if (storeInsertFn) return await storeInsertFn(values)
+          if (gridTableName && useGateway) {
+            const ins: Record<string, unknown> = { ...values }
+            const parentType = (props.node.props.parentType as string) || 'page'
+            if (parentType === 'page') {
+              const fkField = store.primaryKeyField || designerStore.primaryKeyField || 'id'
+              const mId = pageModal.getParams()?.masterId
+              if (mId !== undefined && mId !== null && mId !== '') {
+                ins[fkField] = mId
+              }
+            }
+            await httpRequest('/api/lowcode/gateway', {
+              method: 'POST',
+              body: JSON.stringify({ bizCode: gridTableName, action: 'create', payload: ins }),
+            })
+          }
         },
         remove: async (key: unknown) => {
           if (storeRemoveFn) return await storeRemoveFn(key)
+          if (gridTableName && useGateway) {
+            const pk = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
+            await httpRequest('/api/lowcode/gateway', {
+              method: 'POST',
+              body: JSON.stringify({ bizCode: gridTableName, action: 'delete', payload: { [pk]: key } }),
+            })
+          }
         },
       }
       _cachedRemoteDataSource = base.dataSource as Record<string, unknown>
@@ -3350,7 +3423,7 @@ const wrapperStyle = computed(() => {
   align-items: center;
   gap: 0;
   min-height: 40px;
-  padding: 4px 12px;
+  padding: 4px 2px;
   border-bottom: 1px solid #e4e7ed;
   background-color: #ffffff;
   box-sizing: border-box;

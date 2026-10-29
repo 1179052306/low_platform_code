@@ -18,6 +18,7 @@ import PropertyPanel from '@/components/designer/PropertyPanel.vue'
 import FieldEventRuleDialog from '@/components/designer/FieldEventRuleDialog.vue'
 import ComputeRuleDialog from '@/components/designer/ComputeRuleDialog.vue'
 import PageRuleDialog from '@/components/designer/PageRuleDialog.vue'
+import PluginBindingDialog from '@/components/designer/PluginBindingDialog.vue'
 import LayerDiffDialog from '@/components/designer/LayerDiffDialog.vue'
 import VersionHistoryPanel from '@/components/designer/VersionHistoryPanel.vue'
 import { LAYER_OPTIONS } from '@/composables/useLayer'
@@ -50,6 +51,7 @@ import {
   validateFormBeforeSave,
   setComputeRules,
   setPageRules,
+  setPluginBindings,
 } from '@/store/designer'
 import { getConfig } from '@/materials'
 import { savePage, loadLatestPage, loadPage } from '@/store/persistence'
@@ -403,6 +405,7 @@ function onPreview(): void {
     computeRules: designerStore.computeRules,
     fieldChangeEvents: designerStore.fieldChangeEvents,
     pageRules: designerStore.pageRules,
+    plugins: designerStore.plugins,
     pageType: designerStore.pageType,
     bizSchemas: designerStore.bizSchemas,
     lastBizMode: designerStore.bizMode,
@@ -422,6 +425,8 @@ const showFieldEventRuleDialog = ref(false)
 const showComputeRuleDialog = ref(false)
 /** 页面规则弹窗显隐 */
 const showPageRuleDialog = ref(false)
+/** 插件绑定弹窗显隐 */
+const showPluginBindingDialog = ref(false)
 /** 表单字段名列表（供计算规则选择触发字段和目标字段） */
 const formFieldNames = computed(() => {
   return collectAllNodes(designerStore.schema)
@@ -1230,6 +1235,11 @@ watch(
               plain
               @click="showPageRuleDialog = true"
             >{{ t('页面规则') }}</ElButton>
+            <ElButton
+              v-if="!isTableMode"
+              plain
+              @click="showPluginBindingDialog = true"
+            >{{ t('插件') }}</ElButton>
           </div>
         </div>
         <CanvasPanel />
@@ -1247,6 +1257,11 @@ watch(
         :fields="formFieldNames"
         :rules="designerStore.pageRules ?? []"
         @confirm="(rules) => setPageRules(rules)"
+      />
+      <PluginBindingDialog
+        v-model="showPluginBindingDialog"
+        :bindings="designerStore.plugins ?? []"
+        @confirm="(plugins) => setPluginBindings(plugins)"
       />
       <LayerDiffDialog v-model:visible="showLayerDiffDialog" />
       <VersionHistoryPanel v-model:visible="showVersionHistory" :meta-key="designerStore.pageName" :page-id="designerStore.pageId" />

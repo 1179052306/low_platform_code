@@ -530,6 +530,7 @@ async function previewPage(
         computeRules: page.computeRules,
         fieldChangeEvents: page.fieldChangeEvents,
         pageRules: page.pageRules,
+        plugins: page.plugins,
         pageType: page.pageType,
         bizSchemas: page.bizSchemas,
         lastBizMode: bizMode || page.lastBizMode,

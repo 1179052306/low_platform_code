@@ -133,6 +133,7 @@ async function loadPageData(): Promise<void> {
         computeRules: previewData.computeRules,
         fieldChangeEvents: previewData.fieldChangeEvents,
         pageRules: previewData.pageRules,
+        plugins: previewData.plugins,
         pageType: previewData.pageType,
         bizSchemas: previewData.bizSchemas,
         lastBizMode: previewData.lastBizMode,

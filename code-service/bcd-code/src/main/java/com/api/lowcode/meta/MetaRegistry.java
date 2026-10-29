@@ -48,6 +48,20 @@ public class MetaRegistry {
         }
     }
 
+    /** 确保 lc_biz_meta 表有 plugins 列（兼容已建表的老数据库） */
+    private void ensurePluginsColumn() {
+        try {
+            MultiDataSourceHolder.setDatasource("lowcode");
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            jdbc.execute("ALTER TABLE lc_biz_meta ADD COLUMN plugins TEXT");
+            log.info("[MetaRegistry] lc_biz_meta 已添加 plugins 列");
+        } catch (Exception e) {
+            // 列已存在或语法不兼容，忽略
+        } finally {
+            MultiDataSourceHolder.clearDataSource();
+        }
+    }
+
     /** 确保 lc_field_meta 表有 unique_group 列（组合唯一字段列表，兼容已建表的老数据库） */
     private void ensureUniqueGroupColumn() {
         try {

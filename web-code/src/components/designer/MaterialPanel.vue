@@ -114,12 +114,42 @@ function onDragStart(e: DragEvent, type: string): void {
 
 // ---------- 字段绑定 tab ----------
 
-/** 当前表单 schema 中有 dbField 的控件列表 */
+/** 当前表单 schema 中有 dbField 的控件列表（含表格列字段） */
 const dbFieldNodes = computed<ComponentSchema[]>(() => {
   if (!isFormMode.value) return []
-  return collectAllNodes(designerStore.schema).filter(
+  const nodes = collectAllNodes(designerStore.schema).filter(
     (n) => n.dbField && n.dbField.trim(),
   )
+  const seen = new Set(nodes.map((n) => n.dbField))
+  const addColField = (dataField: string, caption?: string) => {
+    if (dataField && !seen.has(dataField)) {
+      seen.add(dataField)
+      nodes.push({
+        id: `col-${dataField}`,
+        type: 'data-grid-column',
+        props: {},
+        children: [],
+        dbField: dataField,
+        fieldName: caption || '',
+      })
+    }
+  }
+  for (const n of collectAllNodes(designerStore.schema)) {
+    if (n.type === 'data-grid' || n.type === 'dx-data-grid') {
+      const cols = (n.props.columns ?? []) as Record<string, unknown>[]
+      for (const col of cols) {
+        addColField(col.dataField as string, col.caption as string)
+      }
+    }
+  }
+  const tableSchema = designerStore.bizSchemas.table?.[0]
+  const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
+  if (Array.isArray(tableProps.columns)) {
+    for (const col of tableProps.columns as Record<string, unknown>[]) {
+      addColField(col.dataField as string, col.caption as string)
+    }
+  }
+  return nodes
 })
 
 /** 点击字段绑定项：选中画布中的控件 */
@@ -208,6 +238,28 @@ function toggleTreeNode(id: string): void {
 function isTreeExpanded(id: string): boolean {
   return expandedTreeNodes.value.has(id)
 }
+
+/** 拍平控件树为带深度的列表（支持任意层级递归） */
+interface FlatTreeNode {
+  node: ComponentSchema
+  depth: number
+  hasChildren: boolean
+}
+
+const flatTreeNodes = computed<FlatTreeNode[]>(() => {
+  const result: FlatTreeNode[] = []
+  const walk = (nodes: ComponentSchema[], depth: number) => {
+    for (const node of nodes) {
+      const hasChildren = !!(node.children && node.children.length)
+      result.push({ node, depth, hasChildren })
+      if (hasChildren && isTreeExpanded(node.id)) {
+        walk(node.children!, depth + 1)
+      }
+    }
+  }
+  walk(designerStore.schema, 0)
+  return result
+})
 </script>
 
 <template>
@@ -325,71 +377,25 @@ function isTreeExpanded(id: string): boolean {
       <!-- 控件树 tab -->
       <div v-if="panelTab === 'tree'" class="tab-content">
         <div v-if="designerStore.schema.length" class="tree-list">
-          <template v-for="node in designerStore.schema" :key="node.id">
-            <div
-              class="tree-item"
-              :class="{
-                'tree-selected': designerStore.selectedId === node.id,
-              }"
-              :style="{ paddingLeft: '8px' }"
-              @click="onTreeNodeClick(node)"
+          <div
+            v-for="item in flatTreeNodes"
+            :key="item.node.id"
+            class="tree-item"
+            :class="{
+              'tree-selected': designerStore.selectedId === item.node.id,
+            }"
+            :style="{ paddingLeft: 8 + item.depth * 16 + 'px' }"
+            @click="onTreeNodeClick(item.node)"
+          >
+            <span
+              v-if="item.hasChildren"
+              class="tree-expand"
+              @click.stop="toggleTreeNode(item.node.id)"
+              >{{ isTreeExpanded(item.node.id) ? '▼' : '▶' }}</span
             >
-              <span
-                v-if="node.children?.length"
-                class="tree-expand"
-                @click.stop="toggleTreeNode(node.id)"
-                >{{ isTreeExpanded(node.id) ? '▼' : '▶' }}</span
-              >
-              <span v-else class="tree-expand-placeholder"></span>
-              <span class="tree-label">{{ nodeLabel(node) }}</span>
-            </div>
-            <!-- 递归子节点（每个 child 紧跟其 grandchild 一起渲染） -->
-            <template
-              v-if="node.children?.length && isTreeExpanded(node.id)"
-            >
-              <template
-                v-for="child in node.children"
-                :key="child.id"
-              >
-                <div
-                  class="tree-item"
-                  :class="{
-                    'tree-selected': designerStore.selectedId === child.id,
-                  }"
-                  :style="{ paddingLeft: '24px' }"
-                  @click="onTreeNodeClick(child)"
-                >
-                  <span
-                    v-if="child.children?.length"
-                    class="tree-expand"
-                    @click.stop="toggleTreeNode(child.id)"
-                    >{{ isTreeExpanded(child.id) ? '▼' : '▶' }}</span
-                  >
-                  <span v-else class="tree-expand-placeholder"></span>
-                  <span class="tree-label">{{ nodeLabel(child) }}</span>
-                </div>
-                <!-- 三层嵌套：紧跟该 child 的子节点 -->
-                <template
-                  v-if="child.children?.length && isTreeExpanded(child.id)"
-                >
-                  <div
-                    v-for="grandchild in child.children"
-                    :key="grandchild.id"
-                    class="tree-item"
-                    :class="{
-                      'tree-selected':
-                        designerStore.selectedId === grandchild.id,
-                    }"
-                    :style="{ paddingLeft: '40px' }"
-                    @click="onTreeNodeClick(grandchild)"
-                  >
-                    <span class="tree-expand-placeholder"></span>
-                    <span class="tree-label">{{ nodeLabel(grandchild) }}</span>
-                  </div>
-                </template>
-              </template>
-            </template>
-          </template>
+            <span v-else class="tree-expand-placeholder"></span>
+            <span class="tree-label">{{ nodeLabel(item.node) }}</span>
+          </div>
         </div>
         <div v-else class="panel-empty" style="padding: 40px 0">
           {{ t('画布上暂无控件') }}

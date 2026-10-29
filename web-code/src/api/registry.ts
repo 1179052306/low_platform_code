@@ -175,10 +175,22 @@ export function registerDefaultApis(): void {
       description: '统一业务网关（bizCode+action+payload）',
     },
     {
+      id: 'lowcodePluginList',
+      url: '/api/lowcode/plugin/list',
+      method: 'GET',
+      description: '查询已上传的插件列表',
+    },
+    {
       id: 'metaMerged',
       url: '/api/lowcode/meta/merged',
       method: 'POST',
       description: '合并后 schema 查询（分层继承）',
+    },
+    {
+      id: 'metaActionList',
+      url: '/api/lowcode/meta/action/list',
+      method: 'GET',
+      description: '查询业务已注册的 action 列表',
     },
     {
       id: 'metaList',

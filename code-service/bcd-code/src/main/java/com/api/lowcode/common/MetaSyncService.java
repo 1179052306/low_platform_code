@@ -99,6 +99,10 @@ public class MetaSyncService {
             bizMeta.put("version", 1);
             bizMeta.put("remark", "由页面保存自动生成");
             bizMeta.put("created_at", now);
+            Object plugins = schema.get("plugins");
+            if (plugins != null) {
+                bizMeta.put("plugins", plugins instanceof String ? plugins : com.alibaba.fastjson2.JSON.toJSONString(plugins));
+            }
             helper.upsert("lc_biz_meta", bizMeta, helper.eq("biz_code", bizCode));
 
             List<FieldDef> fields = extractFormFields(schema);
@@ -158,8 +162,142 @@ public class MetaSyncService {
 
             metaRegistry.reload();
             log.info("[MetaSync] 同步元数据成功:F: bizCode={}, table={}, fields={}", bizCode, tableName, fields.size());
+
+            syncDetailMeta(schema, now);
         } catch (Exception e) {
             log.error("[MetaSync] 同步元数据失败: bizCode={}, {}", bizCode, e.getMessage(), e);
+        }
+    }
+
+    /** 同步明细表（data-grid with tableName）的元数据到 lc_biz_meta */
+    private void syncDetailMeta(JSONObject schema, String now) {
+        JSONArray formRoot = null;
+        JSONObject bizSchemas = schema.getJSONObject("bizSchemas");
+        if (bizSchemas != null) {
+            formRoot = bizSchemas.getJSONArray("form");
+        }
+        if (formRoot == null) formRoot = schema.getJSONArray("root");
+        if (formRoot == null) return;
+
+        List<JSONObject> detailGrids = new ArrayList<>();
+        collectDetailGrids(formRoot, detailGrids);
+
+        String pagePkField = schema.getString("primaryKeyField");
+        if (pagePkField == null || pagePkField.trim().isEmpty()) pagePkField = "id";
+
+        for (JSONObject grid : detailGrids) {
+            String dtTable = grid.getString("tableName");
+            if (dtTable == null || dtTable.trim().isEmpty()) continue;
+            dtTable = dtTable.trim();
+            if (dtTable.startsWith("sys_")) continue;
+
+            String dtKeyExpr = grid.getString("keyExpr");
+            if (dtKeyExpr == null || dtKeyExpr.trim().isEmpty()) dtKeyExpr = "id";
+            String dtKeyStrategy = grid.getString("keyStrategy");
+            if (dtKeyStrategy == null || dtKeyStrategy.trim().isEmpty()) dtKeyStrategy = "SNOWFLAKE";
+            String dtComment = grid.getString("tableComment");
+            if (dtComment == null || dtComment.trim().isEmpty()) dtComment = dtTable;
+
+            try {
+                JSONObject dtBizMeta = new JSONObject();
+                dtBizMeta.put("id", "meta_" + dtTable);
+                dtBizMeta.put("biz_code", dtTable);
+                dtBizMeta.put("biz_name", dtComment);
+                dtBizMeta.put("main_table", dtTable);
+                dtBizMeta.put("main_table_alias", "T");
+                dtBizMeta.put("logic_delete_field", "deleted");
+                dtBizMeta.put("status_field", "status");
+                dtBizMeta.put("primary_key_field", dtKeyExpr);
+                dtBizMeta.put("key_strategy", dtKeyStrategy);
+                dtBizMeta.put("version", 1);
+                dtBizMeta.put("remark", "由明细表同步自动生成");
+                dtBizMeta.put("created_at", now);
+                helper.upsert("lc_biz_meta", dtBizMeta, helper.eq("biz_code", dtTable));
+
+                JSONArray columns = grid.getJSONArray("columns");
+                int sortNo = 1;
+                if (columns != null) {
+                    for (int i = 0; i < columns.size(); i++) {
+                        JSONObject col = columns.getJSONObject(i);
+                        String dataField = col.getString("dataField");
+                        if (dataField == null || dataField.trim().isEmpty()) continue;
+                        String dataType = col.getString("dataType");
+                        String colType = mapDetailColumnType(dataType);
+                        JSONObject fieldMeta = new JSONObject();
+                        fieldMeta.put("id", "field_" + dtTable + "_" + dataField);
+                        fieldMeta.put("biz_code", dtTable);
+                        fieldMeta.put("field_name", dataField);
+                        fieldMeta.put("column_type", "BUSINESS");
+                        fieldMeta.put("data_type", colType);
+                        fieldMeta.put("is_required", col.getBooleanValue("required"));
+                        fieldMeta.put("is_unique", false);
+                        fieldMeta.put("is_system_field", false);
+                        fieldMeta.put("sort_no", sortNo++);
+                        fieldMeta.put("unique_group", "");
+                        fieldMeta.put("created_at", now);
+                        helper.upsert("lc_field_meta", fieldMeta, helper.eq("id", fieldMeta.getString("id")));
+                    }
+                }
+                JSONObject fkFieldMeta = new JSONObject();
+                fkFieldMeta.put("id", "field_" + dtTable + "_" + pagePkField);
+                fkFieldMeta.put("biz_code", dtTable);
+                fkFieldMeta.put("field_name", pagePkField);
+                fkFieldMeta.put("column_type", "SYSTEM");
+                fkFieldMeta.put("data_type", "VARCHAR");
+                fkFieldMeta.put("is_required", true);
+                fkFieldMeta.put("is_unique", false);
+                fkFieldMeta.put("is_system_field", true);
+                fkFieldMeta.put("sort_no", 0);
+                fkFieldMeta.put("unique_group", "");
+                fkFieldMeta.put("created_at", now);
+                helper.upsert("lc_field_meta", fkFieldMeta, helper.eq("id", fkFieldMeta.getString("id")));
+
+                String[] defaultActions = {"query", "create", "update", "delete"};
+                for (String action : defaultActions) {
+                    JSONObject actionMeta = new JSONObject();
+                    actionMeta.put("id", "action_" + dtTable + "_" + action);
+                    actionMeta.put("biz_code", dtTable);
+                    actionMeta.put("action", action);
+                    actionMeta.put("strategy_type", "SINGLE");
+                    actionMeta.put("enabled", true);
+                    actionMeta.put("created_at", now);
+                    helper.upsert("lc_action_meta", actionMeta, helper.eq("id", actionMeta.getString("id")));
+                }
+                log.info("[MetaSync] 明细表元数据同步成功: bizCode={}, pk={}, strategy={}", dtTable, dtKeyExpr, dtKeyStrategy);
+            } catch (Exception e) {
+                log.error("[MetaSync] 明细表元数据同步失败: {}, {}", dtTable, e.getMessage());
+            }
+        }
+        if (!detailGrids.isEmpty()) {
+            metaRegistry.reload();
+        }
+    }
+
+    private void collectDetailGrids(JSONArray nodes, List<JSONObject> result) {
+        if (nodes == null) return;
+        for (int i = 0; i < nodes.size(); i++) {
+            JSONObject node = nodes.getJSONObject(i);
+            if ("data-grid".equals(node.getString("type"))) {
+                String tn = node.getString("tableName");
+                if (tn != null && !tn.trim().isEmpty()) {
+                    result.add(node);
+                }
+            }
+            JSONArray children = node.getJSONArray("children");
+            if (children != null) {
+                collectDetailGrids(children, result);
+            }
+        }
+    }
+
+    private String mapDetailColumnType(String dataType) {
+        if (dataType == null) return "VARCHAR";
+        switch (dataType) {
+            case "number": return "DECIMAL";
+            case "date": return "TIMESTAMP";
+            case "datetime": return "TIMESTAMP";
+            case "boolean": return "BOOLEAN";
+            default: return "VARCHAR";
         }
     }
 

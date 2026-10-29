@@ -25,7 +25,7 @@ const RESERVED_PATHS = new Set([
 
   '/page-lang-manage', '/lang-list-manage', '/theme-manage', '/meta-manage',
   '/biz-meta', '/data-dict', '/package-manage', '/workflow-designer',
-  '/biz-flow-designer', '/todo',
+  '/biz-flow-designer', '/todo', '/warehouse-3d',
 ])
 
 interface MenuNode {
@@ -180,6 +180,12 @@ const router = createRouter({
           path: '/todo',
           name: 'todo',
           component: () => import('@/views/TodoView.vue'),
+        },
+        {
+          // 数字孪生3D可视化仓库
+          path: '/warehouse-3d',
+          name: 'warehouse-3d',
+          component: () => import('@/views/Warehouse3DView.vue'),
         },
       ],
     },

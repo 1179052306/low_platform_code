@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import LcTable from '@/materials/components/LcTable.vue'
 import type { LcColumn } from '@/materials/components/LcTable.vue'
-import { ElButton } from 'element-plus'
+import { ElButton, vLoading } from 'element-plus'
 import { httpRequest } from '@/utils/request'
 import { t, loadModule } from '@/store/lang'
 

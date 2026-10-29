@@ -8,6 +8,7 @@ import { gatewayCall } from '@/api'
 import { t } from '@/store/lang'
 import { getValidator, type ValidationRuleConfig } from '@/materials/dx-validation'
 import type { ComponentSchema } from '@/types/schema'
+import { httpRequest } from '@/utils/request'
 
 const props = defineProps<{
   modal: PageModalInstance
@@ -92,12 +93,86 @@ function collectFormValues(node: ComponentSchema, data: Record<string, unknown>)
   }
 }
 
-// 修改模式：填充表单数据
+// 修改模式：从后端查询完整记录再填充表单
 const rowData = props.modal.params?.rowData as Record<string, unknown> | undefined
-if (rowData) {
-  for (const node of store.schema) {
-    fillFormValues(node, rowData)
+const masterId = ref<unknown>(undefined)
+
+/** 明细表原始数据（保存时用于先删后插） */
+const detailOriginalData = new Map<string, Record<string, unknown>[]>()
+
+/** 查找 schema 中所有有 tableName 的 data-grid 节点 */
+function findDetailGrids(nodes: ComponentSchema[]): ComponentSchema[] {
+  const result: ComponentSchema[] = []
+  for (const node of nodes) {
+    if (node.type === 'data-grid' && (node.props.tableName as string)) {
+      result.push(node)
+    }
+    if (node.children) {
+      result.push(...findDetailGrids(node.children))
+    }
   }
+  return result
+}
+
+/** 加载明细表数据并填充到 data-grid */
+async function loadDetailData(mId: unknown) {
+  const pk = store.primaryKeyField || 'id'
+  const detailGrids = findDetailGrids(store.schema)
+  for (const grid of detailGrids) {
+    const detailTable = grid.props.tableName as string
+    const gridKeyExpr = (grid.props.keyExpr as string) || pk
+    try {
+      const filterData = [
+        { Symbol: 'and' },
+        { Id: pk, Symbol: '=', Val: mId, TableAlias: 'T' },
+      ]
+      const res = await gatewayCall(detailTable, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 9999 })
+      const rows = (res as { data?: Record<string, unknown>[] })?.data || []
+      detailOriginalData.set(detailTable, rows.map(r => ({ ...r })))
+      grid.props.dataSource = rows
+      grid.props.dataSourceType = 'static'
+    } catch (err) {
+      console.error(`[明细数据加载失败] ${detailTable}`, err)
+      grid.props.dataSource = []
+      detailOriginalData.set(detailTable, [])
+    }
+  }
+}
+
+async function loadFullRecordAndFill() {
+  if (!rowData) return
+  const pk = store.primaryKeyField || 'id'
+  const pkVal = getField(rowData, pk)
+  if (pkVal == null) {
+    for (const node of store.schema) { fillFormValues(node, rowData) }
+    return
+  }
+  masterId.value = pkVal
+  if (props.modal.params) { props.modal.params.masterId = pkVal }
+  try {
+    const filterData = [
+      { Symbol: 'and' },
+      { Id: pk, Symbol: '=', Val: pkVal, TableAlias: 'T' },
+    ]
+    const res = await gatewayCall(tableName.value, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 1 })
+    const rows = (res as { data?: Record<string, unknown>[] })?.data
+    if (rows && rows.length > 0) {
+      const fullData = rows[0]
+      masterId.value = getField(fullData, pk) ?? pkVal
+      if (props.modal.params) { props.modal.params.masterId = masterId.value }
+      for (const node of store.schema) { fillFormValues(node, fullData) }
+    } else {
+      for (const node of store.schema) { fillFormValues(node, rowData) }
+    }
+  } catch {
+    for (const node of store.schema) { fillFormValues(node, rowData) }
+  }
+  await loadDetailData(masterId.value)
+  initialFormValues.value = snapshotFormValues()
+}
+
+if (rowData) {
+  loadFullRecordAndFill()
 }
 
 /** 收集当前全部表单控件值并序列化，用于脏检测 */
@@ -219,6 +294,47 @@ async function validateUnique(data: Record<string, unknown>): Promise<string[]> 
   return errors
 }
 
+/** 保存明细表数据（先删后插策略） */
+async function saveDetailData(masterData: Record<string, unknown>) {
+  const pk = store.primaryKeyField || 'id'
+  const mId = masterData[pk] ?? masterId.value
+  if (mId == null) return
+  const detailGrids = findDetailGrids(store.schema)
+  for (const grid of detailGrids) {
+    const detailTable = grid.props.tableName as string
+    const gridKeyExpr = (grid.props.keyExpr as string) || pk
+    const currentRows = (grid.props.dataSource as Record<string, unknown>[]) || []
+    const originalRows = detailOriginalData.get(detailTable) || []
+    for (const orig of originalRows) {
+      const origPk = orig[gridKeyExpr] ?? orig[gridKeyExpr.toLowerCase()] ?? orig[gridKeyExpr.toUpperCase()]
+      if (origPk != null) {
+        try {
+          await httpRequest('/api/lowcode/gateway', {
+            method: 'POST',
+            body: JSON.stringify({ bizCode: detailTable, action: 'delete', payload: { [gridKeyExpr]: origPk } }),
+          })
+        } catch (err) {
+          console.error(`[明细删除失败] ${detailTable}`, err)
+        }
+      }
+    }
+    for (const row of currentRows) {
+      const ins: Record<string, unknown> = { ...row }
+      ins[pk] = mId
+      delete ins.__op
+      try {
+        await httpRequest('/api/lowcode/gateway', {
+          method: 'POST',
+          body: JSON.stringify({ bizCode: detailTable, action: 'create', payload: ins }),
+        })
+      } catch (err) {
+        console.error(`[明细新增失败] ${detailTable}`, err)
+      }
+    }
+    detailOriginalData.set(detailTable, currentRows.map(r => ({ ...r })))
+  }
+}
+
 async function onSave() {
   if (!tableName.value) {
     ElMessage.warning(t('未配置数据表名'))
@@ -265,7 +381,24 @@ async function onSave() {
       const pkVal = currentRow?.[pk] ?? currentRow?.[pk.toLowerCase()] ?? currentRow?.[pk.toUpperCase()]
       if (pkVal != null) data[pk] = pkVal
     }
-    await gatewayCall(tableName.value, action, data)
+    // create 时剔除空主键，让后端自动生成（Snowflake/UUID）
+    if (action === 'create') {
+      const pk = store.primaryKeyField || 'id'
+      const pkVal = data[pk]
+      if (pkVal == null || pkVal === '') {
+        delete data[pk]
+      }
+    }
+    const saveRes = await gatewayCall(tableName.value, action, data)
+    if (action === 'create') {
+      const pk = store.primaryKeyField || 'id'
+      const resData = saveRes.data as Record<string, unknown> | undefined
+      const newId = resData?.[pk]
+        ?? (saveRes.payload.data[0] as Record<string, unknown> | undefined)?.[pk]
+        ?? resData?.id
+      if (newId != null) { data[pk] = newId; masterId.value = newId }
+    }
+    await saveDetailData(data)
     ElMessage.success(t('保存成功'))
     if (isMultiEdit.value && editIndex.value < rowDataList!.length - 1) {
       nextRow()
