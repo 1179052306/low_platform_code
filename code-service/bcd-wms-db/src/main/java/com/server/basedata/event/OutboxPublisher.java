@@ -2,6 +2,7 @@ package com.server.basedata.event;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.common.returns.ResMsg;
 import com.server.sqlengine.SqlEngine;
 import com.server.sqlengine.executor.SqlExecutor;
 import com.server.sqlengine.model.CompiledSql;
@@ -165,10 +166,9 @@ public class OutboxPublisher {
         .where(Condition.eq("EVENT_ID", eventId))
         .build();
     CompiledSql compiled = sqlEngine.update(stmt, "lowcode");
-    try {
-      sqlExecutor.update("lowcode", compiled);
-    } catch (SQLException e) {
-      log.error("更新事件状态失败: eventId={}, status={}", eventId, status, e);
+    ResMsg r = sqlExecutor.update("lowcode", compiled);
+    if (!r.getRes()) {
+      log.error("更新事件状态失败: eventId={}, status={}, msg={}", eventId, status, r.getMsg());
     }
   }
 

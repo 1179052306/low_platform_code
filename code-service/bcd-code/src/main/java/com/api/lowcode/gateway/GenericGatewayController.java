@@ -120,6 +120,15 @@ public class GenericGatewayController {
                 } else {
                     crudResult = crudExecutor.execute(meta, action, ac);
                 }
+                // 检查 CRUD 结果：ResMsg.res=false 时抛异常让事务回滚
+                if (crudResult instanceof ResMsg) {
+                    ResMsg crudRes = (ResMsg) crudResult;
+                    if (!crudRes.getRes()) {
+                        throw new BizException(crudRes.getCode() != null ? crudRes.getCode() : "500",
+                                crudRes.getMsg());
+                    }
+                    crudResult = crudRes.getData();
+                }
                 List<StateChangeEvent> stateEvents = stateMachine.transitionIfNeed(meta, action, ac);
                 for (StateChangeEvent event : stateEvents) {
                     eventBus.fireSync(event);

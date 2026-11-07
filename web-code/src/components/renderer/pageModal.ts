@@ -110,12 +110,9 @@ export const pageModal = {
   closePage(result?: unknown): void {
     const top = modalStack.value[modalStack.value.length - 1]
     if (!top) return
-    top.visible = false
     top.resolve(result)
-    setTimeout(() => {
-      const idx = modalStack.value.findIndex((m) => m.id === top.id)
-      if (idx >= 0) modalStack.value.splice(idx, 1)
-    }, 300)
+    const idx = modalStack.value.findIndex((m) => m.id === top.id)
+    if (idx >= 0) modalStack.value.splice(idx, 1)
   },
 
   /** 获取当前（栈顶）弹窗的全部参数 */

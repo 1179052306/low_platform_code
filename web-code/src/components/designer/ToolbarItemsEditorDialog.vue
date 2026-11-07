@@ -25,6 +25,9 @@ export interface ToolbarItemConfig {
   bgColor?: string
   textColor?: string
   hoverColor?: string
+  badgeVisible?: boolean
+  badgeContent?: string | number
+  badgeType?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
   itemType?: 'button' | 'dropdown'
   children?: ToolbarItemConfig[]
   openPage?: {
@@ -233,6 +236,9 @@ watch(
           bgColor: p.bgColor ? String(p.bgColor) : undefined,
           textColor: p.textColor ? String(p.textColor) : undefined,
           hoverColor: p.hoverColor ? String(p.hoverColor) : undefined,
+          badgeVisible: p.badgeVisible === true,
+          badgeContent: p.badgeContent as string | number | undefined,
+          badgeType: p.badgeType as ToolbarItemConfig['badgeType'],
           showIcon: p.showIcon !== false,
           itemType: (p.itemType as 'button' | 'dropdown') || (p.children ? 'dropdown' : (!Boolean(p.isCustom) && defaultChildrenForPreset(String(p.name ?? '')) ? 'dropdown' : 'button')),
           children: (p.children as ToolbarItemConfig[])?.map((c) => ({ ...c, visible: c.visible !== false, showIcon: c.showIcon !== false })) ?? (!Boolean(p.isCustom) ? defaultChildrenForPreset(String(p.name ?? '')) : undefined),
@@ -509,6 +515,52 @@ function pageIdDisplay(pageId: string): string {
   return pageId === '__current__' ? t('当前页面') : pageId
 }
 
+function getCustomParamEntries(realIdx: number): [string, string][] {
+  const item = items.value[realIdx]
+  if (!item.openPage?.params) return []
+  return Object.entries(item.openPage.params).map(([k, v]) => [k, String(v ?? '')])
+}
+
+function addCustomParam(realIdx: number) {
+  const item = items.value[realIdx]
+  if (!item.openPage) item.openPage = {}
+  if (!item.openPage.params) item.openPage.params = {}
+  const base = 'customParam'
+  let i = 1
+  while (`${base}${i}` in item.openPage.params) i++
+  const key = `${base}${i}`
+  item.openPage.params[key] = ''
+}
+
+function setCustomParamKey(realIdx: number, pIdx: number, newKey: string) {
+  const item = items.value[realIdx]
+  if (!item.openPage?.params) return
+  const entries = Object.entries(item.openPage.params)
+  if (pIdx < 0 || pIdx >= entries.length) return
+  const [oldKey, val] = entries[pIdx]
+  if (newKey === oldKey) return
+  delete item.openPage.params[oldKey]
+  item.openPage.params[newKey] = val
+}
+
+function setCustomParamValue(realIdx: number, pIdx: number, val: string) {
+  const item = items.value[realIdx]
+  if (!item.openPage?.params) return
+  const entries = Object.entries(item.openPage.params)
+  if (pIdx < 0 || pIdx >= entries.length) return
+  const [key] = entries[pIdx]
+  item.openPage.params[key] = val
+}
+
+function removeCustomParam(realIdx: number, pIdx: number) {
+  const item = items.value[realIdx]
+  if (!item.openPage?.params) return
+  const entries = Object.entries(item.openPage.params)
+  if (pIdx < 0 || pIdx >= entries.length) return
+  const [key] = entries[pIdx]
+  delete item.openPage.params[key]
+}
+
 function addChild(realIdx: number) {
   const item = items.value[realIdx]
   if (!item.children) item.children = []
@@ -567,6 +619,9 @@ function onConfirm() {
     bgColor: i.bgColor || undefined,
     textColor: i.textColor || undefined,
     hoverColor: i.hoverColor || undefined,
+    badgeVisible: i.badgeVisible || undefined,
+    badgeContent: i.badgeContent || undefined,
+    badgeType: i.badgeType || undefined,
     showIcon: i.showIcon,
     itemType: i.itemType || 'button',
     children: i.children,
@@ -890,6 +945,32 @@ watch(() => props.visible, (v) => { if (v) fetchActions() })
                   />
                 </div>
 
+                <!-- 徽标 -->
+                <div class="section-header">{{ t('徽标 (Badge)') }}</div>
+                <div class="form-grid-2col">
+                  <div class="form-row">
+                    <label class="form-label">{{ t('显示徽标') }}</label>
+                    <select class="form-select" v-model="item.badgeVisible">
+                      <option :value="false">{{ t('否') }}</option>
+                      <option :value="true">{{ t('是') }}</option>
+                    </select>
+                  </div>
+                  <div class="form-row" v-if="item.badgeVisible">
+                    <label class="form-label">{{ t('徽标内容') }}</label>
+                    <input class="form-input" v-model="item.badgeContent" :placeholder="t('如：5 / 新')" />
+                  </div>
+                  <div class="form-row" v-if="item.badgeVisible">
+                    <label class="form-label">{{ t('徽标类型') }}</label>
+                    <select class="form-select" v-model="item.badgeType">
+                      <option value="primary">{{ t('主要') }}</option>
+                      <option value="success">{{ t('成功') }}</option>
+                      <option value="warning">{{ t('警告') }}</option>
+                      <option value="danger">{{ t('危险') }}</option>
+                      <option value="info">{{ t('信息') }}</option>
+                    </select>
+                  </div>
+                </div>
+
                 <!-- 子按钮（下拉时） -->
                 <template v-if="item.itemType === 'dropdown'">
                   <div class="section-header">{{ t('子按钮') }}</div>
@@ -1157,26 +1238,25 @@ watch(() => props.visible, (v) => { if (v) fetchActions() })
                           )
                         "
                       />
-                      <template v-if="item.name === 'edit'">
-                        <label class="open-page-label">{{ t('传行') }}</label>
-                        <select
-                          class="form-select page-mode-select"
-                          :value="
-                            item.openPage.passSelectedRow === false
-                              ? 'false'
-                              : 'true'
-                          "
-                          @change="
-                            togglePassSelectedRow(
-                              selectedIdx,
-                              ($event.target as HTMLSelectElement).value === 'true'
-                            )
+                      <label class="open-page-label">{{ t('传行') }}</label>
+                      <select
+                        class="form-select page-mode-select"
+                        :value="
+                          item.openPage.passSelectedRow === false
+                            ? 'false'
+                            : 'true'
+                        "
+                        @change="
+                          togglePassSelectedRow(
+                            selectedIdx,
+                            ($event.target as HTMLSelectElement).value === 'true'
+                          )
                           "
                         >
                           <option value="true">{{ t('是') }}</option>
                           <option value="false">{{ t('否') }}</option>
                         </select>
-                      </template>
+
                     </div>
                     <div class="open-page-row">
                       <label class="open-page-label">{{ t('宽') }}</label>
@@ -1235,6 +1315,29 @@ watch(() => props.visible, (v) => { if (v) fetchActions() })
                           <option value="%">%</option>
                         </select>
                       </template>
+                    </div>
+                    <div class="open-page-row">
+                      <label class="open-page-label">{{ t('自定义参数') }}</label>
+                      <button class="event-edit-btn" @click="addCustomParam(selectedIdx)">+ {{ t('添加') }}</button>
+                    </div>
+                    <div v-if="getCustomParamEntries(selectedIdx).length" class="custom-params-list">
+                      <div v-for="([k, v], pIdx) in getCustomParamEntries(selectedIdx)" :key="pIdx" class="custom-param-row">
+                        <input
+                          class="compact-input custom-param-key"
+                          type="text"
+                          :value="k"
+                          :placeholder="t('参数名')"
+                          @input="setCustomParamKey(selectedIdx, pIdx, ($event.target as HTMLInputElement).value)"
+                        />
+                        <input
+                          class="compact-input custom-param-val"
+                          type="text"
+                          :value="v"
+                          :placeholder="t('参数值')"
+                          @input="setCustomParamValue(selectedIdx, pIdx, ($event.target as HTMLInputElement).value)"
+                        />
+                        <button class="custom-param-del" @click="removeCustomParam(selectedIdx, pIdx)">×</button>
+                      </div>
                     </div>
                   </div>
                   <div v-else class="event-empty-tip">
@@ -1877,6 +1980,35 @@ watch(() => props.visible, (v) => { if (v) fetchActions() })
 .page-mode-select {
   flex: 1;
   min-width: 0;
+}
+.custom-params-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 58px;
+}
+.custom-param-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.custom-param-key {
+  width: 120px;
+  flex-shrink: 0;
+}
+.custom-param-val {
+  flex: 1;
+  min-width: 80px;
+}
+.custom-param-del {
+  padding: 2px 8px;
+  font-size: 14px;
+  color: #f56c6c;
+  background: #fef0f0;
+  border: 1px solid #fbc4c4;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .dialog-footer {

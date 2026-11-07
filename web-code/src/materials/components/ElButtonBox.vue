@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ElButton } from 'element-plus'
+import { ElButton, ElBadge } from 'element-plus'
 
 const props = defineProps<{
   text?: string
@@ -15,6 +15,9 @@ const props = defineProps<{
   bgColor?: string
   hoverColor?: string
   useSubmitBehavior?: boolean
+  badgeVisible?: boolean
+  badgeContent?: string | number
+  badgeType?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
 }>()
 
 const emit = defineEmits<{
@@ -38,7 +41,28 @@ const isText = computed(() => props.stylingMode === 'text')
 </script>
 
 <template>
+  <ElBadge
+    v-if="badgeVisible"
+    :value="badgeContent ?? ''"
+    :type="badgeType || 'danger'"
+    :hidden="!badgeContent"
+    class="el-btn-badge"
+  >
+    <ElButton
+      :type="btnType"
+      :plain="isPlain"
+      :text="isText"
+      :disabled="readOnly || disabled"
+      :native-type="useSubmitBehavior ? 'submit' : 'button'"
+      :style="btnStyle"
+      @click="(e: MouseEvent) => emit('click', e)"
+    >
+      <span v-if="icon" class="el-btn-icon">{{ icon }}</span>
+      <span v-if="text">{{ text }}</span>
+    </ElButton>
+  </ElBadge>
   <ElButton
+    v-else
     :type="btnType"
     :plain="isPlain"
     :text="isText"

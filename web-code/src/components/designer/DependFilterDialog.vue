@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElDialog, ElForm, ElButton, ElSelect, ElOption, ElInput, ElMessage } from 'element-plus'
 import { t } from '@/store/lang'
 import { useDialogDragAndMax } from './useDialogDragAndMax'
@@ -8,8 +8,10 @@ import DialogMaxHeader from './DialogMaxHeader.vue'
 export interface DependFilterCondition {
   field: string
   operator: string
-  valueType: 'depend' | 'fixed'
+  valueType: 'depend' | 'fixed' | 'rowField' | 'formControl'
   fixedValue?: string
+  rowField?: string
+  formControlField?: string
 }
 
 export interface DependFieldOption {
@@ -21,6 +23,10 @@ const props = defineProps<{
   visible: boolean
   conditions?: DependFilterCondition[]
   fields: DependFieldOption[]
+  rowFields?: DependFieldOption[]
+  formFields?: DependFieldOption[]
+  showRowField?: boolean
+  showFormControl?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -42,6 +48,16 @@ const OPERATORS = [
   { value: 'endswith', label: '结尾是' },
 ]
 
+const valueTypeOptions = computed(() => {
+  const opts = [
+    { value: 'fixed', label: '固定值' },
+  ]
+  if (props.showRowField) opts.push({ value: 'rowField', label: '当前行字段' })
+  if (props.showFormControl) opts.push({ value: 'formControl', label: '表单控件' })
+  opts.push({ value: 'depend', label: '父控件值' })
+  return opts
+})
+
 watch(
   () => props.visible,
   (v) => {
@@ -56,7 +72,7 @@ function addCondition() {
   localConditions.value.push({
     field: '',
     operator: '=',
-    valueType: 'depend',
+    valueType: 'fixed',
     fixedValue: '',
   })
 }
@@ -73,6 +89,14 @@ function onSave() {
     }
     if (c.valueType === 'fixed' && (c.fixedValue == null || c.fixedValue === '')) {
       ElMessage.warning(t('请填写固定值'))
+      return
+    }
+    if (c.valueType === 'rowField' && !c.rowField) {
+      ElMessage.warning(t('请选择行字段'))
+      return
+    }
+    if (c.valueType === 'formControl' && !c.formControlField) {
+      ElMessage.warning(t('请选择表单控件'))
       return
     }
   }
@@ -92,7 +116,7 @@ watch(() => props.visible, (v) => { if (!v) resetDialog() })
   <ElDialog
     :model-value="visible"
     @update:model-value="(v: boolean) => emit('update:visible', v)"
-    width="680px"
+    width="720px"
     append-to-body
     draggable
     :fullscreen="isMaximized"
@@ -103,7 +127,7 @@ watch(() => props.visible, (v) => { if (!v) resetDialog() })
     <ElForm label-width="90px">
       <div class="condition-list">
         <div v-for="(c, idx) in localConditions" :key="idx" class="condition-row">
-          <ElSelect v-model="c.field" :placeholder="t('字段')" style="width: 160px" filterable popper-class="dialog-inner-popper">
+          <ElSelect v-model="c.field" :placeholder="t('过滤字段')" style="width: 150px" filterable popper-class="dialog-inner-popper">
             <ElOption
               v-for="f in fields"
               :key="f.dbField"
@@ -111,7 +135,7 @@ watch(() => props.visible, (v) => { if (!v) resetDialog() })
               :label="f.displayText"
             />
           </ElSelect>
-          <ElSelect v-model="c.operator" style="width: 110px" popper-class="dialog-inner-popper">
+          <ElSelect v-model="c.operator" style="width: 100px" popper-class="dialog-inner-popper">
             <ElOption
               v-for="op in OPERATORS"
               :key="op.value"
@@ -120,15 +144,50 @@ watch(() => props.visible, (v) => { if (!v) resetDialog() })
             />
           </ElSelect>
           <ElSelect v-model="c.valueType" style="width: 120px" popper-class="dialog-inner-popper">
-            <ElOption value="depend" :label="t('父控件值')" />
-            <ElOption value="fixed" :label="t('固定值')" />
+            <ElOption
+              v-for="vt in valueTypeOptions"
+              :key="vt.value"
+              :value="vt.value"
+              :label="t(vt.label)"
+            />
           </ElSelect>
           <ElInput
             v-if="c.valueType === 'fixed'"
             v-model="c.fixedValue"
             :placeholder="t('固定值')"
-            style="width: 120px"
+            style="width: 130px"
           />
+          <ElSelect
+            v-else-if="c.valueType === 'rowField'"
+            v-model="c.rowField"
+            :placeholder="t('行字段')"
+            style="width: 130px"
+            filterable
+            popper-class="dialog-inner-popper"
+          >
+            <ElOption
+              v-for="f in (rowFields || [])"
+              :key="f.dbField"
+              :value="f.dbField"
+              :label="f.displayText"
+            />
+          </ElSelect>
+          <ElSelect
+            v-else-if="c.valueType === 'formControl'"
+            v-model="c.formControlField"
+            :placeholder="t('表单控件')"
+            style="width: 130px"
+            filterable
+            popper-class="dialog-inner-popper"
+          >
+            <ElOption
+              v-for="f in (formFields || [])"
+              :key="f.dbField"
+              :value="f.dbField"
+              :label="f.displayText"
+            />
+          </ElSelect>
+          <span v-else style="width: 130px" />
           <ElButton type="danger" link @click="removeCondition(idx)">{{ t('删除') }}</ElButton>
         </div>
         <ElButton type="primary" link @click="addCondition">+ {{ t('添加条件') }}</ElButton>

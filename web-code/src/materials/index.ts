@@ -13,6 +13,8 @@ import ElSplitter from './components/ElSplitter.vue'
 import ElSplitterPanel from './components/ElSplitterPanel.vue'
 import ElTabs from './components/ElTabs.vue'
 import ElTabPane from './components/ElTabPane.vue'
+import ElCollapse from './components/ElCollapse.vue'
+import ElCollapseItem from './components/ElCollapseItem.vue'
 import ImageView from './components/ImageView.vue'
 import LinkView from './components/LinkView.vue'
 import IframeView from './components/IframeView.vue'
@@ -283,6 +285,8 @@ export const materialComponents: Record<string, Component> = {
   'el-splitter-panel': ElSplitterPanel,
   'el-tabs': ElTabs,
   'el-tab-pane': ElTabPane,
+  'el-collapse': ElCollapse,
+  'el-collapse-item': ElCollapseItem,
   'approval-bar': ApprovalBarWidget,
 }
 
@@ -482,6 +486,22 @@ export const materialConfigs: MaterialConfig[] = [
       { type: 'el-tab-pane', props: { label: '标签二', name: 'tab2', padding: '0', background: '#ffffff' } },
     ],
   },
+  {
+    type: 'el-collapse',
+    title: '折叠面板',
+    enName: 'Collapse',
+    category: '布局',
+    icon: '☰',
+    isContainer: true,
+    defaultProps: { accordion: false },
+    propSetters: [
+      { prop: 'accordion', label: '手风琴模式', type: 'switch' },
+    ],
+    defaultChildren: [
+      { type: 'el-collapse-item', props: { title: '折叠项一', name: 'item1', padding: '8px', background: '#ffffff' } },
+      { type: 'el-collapse-item', props: { title: '折叠项二', name: 'item2', padding: '8px', background: '#ffffff' } },
+    ],
+  },
   // ---- 栅格列（el-row 子节点专用，不在物料面板展示） ----
   {
     type: 'el-col',
@@ -528,6 +548,22 @@ export const materialConfigs: MaterialConfig[] = [
     defaultProps: { label: '标签', name: '', padding: '0', background: '#ffffff' },
     propSetters: [
       { prop: 'label', label: '标签名称', type: 'input' },
+      { prop: 'name', label: '唯一标识', type: 'input' },
+      { prop: 'padding', label: '内边距', type: 'input' },
+      { prop: 'background', label: '背景色', type: 'color' },
+    ],
+  },
+  // ---- 折叠面板子项（el-collapse 子节点专用，不在物料面板展示） ----
+  {
+    type: 'el-collapse-item',
+    title: '折叠项',
+    enName: 'CollapseItem',
+    category: '布局',
+    icon: '▯',
+    isContainer: true,
+    defaultProps: { title: '折叠项', name: '', padding: '8px', background: '#ffffff' },
+    propSetters: [
+      { prop: 'title', label: '标题', type: 'input' },
       { prop: 'name', label: '唯一标识', type: 'input' },
       { prop: 'padding', label: '内边距', type: 'input' },
       { prop: 'background', label: '背景色', type: 'color' },

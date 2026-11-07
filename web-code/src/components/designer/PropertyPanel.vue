@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 
 import TextEditorDialog from './TextEditorDialog.vue'
 import EventCodeDialog from './EventCodeDialog.vue'
+import MobileEventDialog from './MobileEventDialog.vue'
 import JsonTableEditorDialog from './JsonTableEditorDialog.vue'
 import ColumnEditorDialog from './ColumnEditorDialog.vue'
 import ToolbarItemsEditorDialog from './ToolbarItemsEditorDialog.vue'
@@ -28,6 +29,7 @@ import {
   ElButton,
   ElCollapse,
   ElCollapseItem,
+  ElDatePicker,
 } from 'element-plus'
 import { listWorkflows } from '@/store/workflow'
 
@@ -762,6 +764,13 @@ const toolbarItemsDialogVisible = ref(false)
 const toolbarItemsDialogProp = ref('')
 const toolbarItemsDialogValue = ref('')
 
+const filterConditionsDialogVisible = ref(false)
+const filterConditionsDialogProp = ref('')
+const filterConditionsData = ref<any[]>([])
+const filterCondMultiValueVisible = ref(false)
+const filterCondMultiValueRows = ref<string[]>([])
+let _filterCondMultiTarget: any = null
+
 const summaryDialogVisible = ref(false)
 const summaryDialogValue = ref('')
 
@@ -920,6 +929,112 @@ function onToolbarItemsDialogConfirm(value: string) {
     updateProps(selectedNode.value.id, toolbarItemsDialogProp.value, value)
   }
   toolbarItemsDialogVisible.value = false
+}
+
+function openFilterConditionsDialog(prop: string, currentValue: unknown) {
+  filterConditionsDialogProp.value = prop
+  if (Array.isArray(currentValue)) {
+    filterConditionsData.value = currentValue.map((c: any) => ({ field: c.field || '', operator: c.operator || '=', value: c.value || '', value2: c.value2 || '' }))
+  } else if (typeof currentValue === 'string') {
+    try { filterConditionsData.value = JSON.parse(currentValue).map((c: any) => ({ field: c.field || '', operator: c.operator || '=', value: c.value || '', value2: c.value2 || '' })) } catch { filterConditionsData.value = [] }
+  } else {
+    filterConditionsData.value = []
+  }
+  filterConditionsDialogVisible.value = true
+}
+
+function onFilterConditionsDialogConfirm() {
+  if (!selectedNode.value) return
+  const val = filterConditionsData.value.filter((c: any) => {
+    if (!c.field) return false
+    if (c.value === '' || c.value == null) return false
+    if (c.operator === 'between' && (c.value2 === '' || c.value2 == null)) return false
+    return true
+  })
+  setEditable(filterConditionsDialogProp.value, val)
+  updateProps(selectedNode.value.id, filterConditionsDialogProp.value, val)
+  filterConditionsDialogVisible.value = false
+}
+
+function openFilterCondMultiValue(cond: any) {
+  _filterCondMultiTarget = cond
+  const existing = cond.value ? String(cond.value).split('\n').map((v: string) => v.trim()).filter((v: string) => v !== '') : []
+  const rows = [...existing]
+  while (rows.length < 100) rows.push('')
+  filterCondMultiValueRows.value = rows
+  filterCondMultiValueVisible.value = true
+}
+
+function confirmFilterCondMultiValue() {
+  const values = filterCondMultiValueRows.value.map((v: string) => v.trim()).filter((v: string) => v !== '')
+  if (_filterCondMultiTarget) {
+    _filterCondMultiTarget.value = values.join('\n')
+  }
+  filterCondMultiValueVisible.value = false
+}
+
+const FC_OP_LABELS: Record<string, string> = {
+  '=': '等于', '<>': '不等于', '>': '大于', '>=': '大于等于', '<': '小于', '<=': '小于等于',
+  'between': '之间', 'contains': '包含', 'notcontains': '不包含', 'startswith': '开头', 'endswith': '结尾',
+}
+
+function getFcColumns(): any[] {
+  return (selectedNode.value?.props?.columns as any[] | undefined) || []
+}
+
+function getFcColType(field: string): string {
+  const col = getFcColumns().find(c => c.dataField === field)
+  return col?.dataType || 'string'
+}
+
+function getFcColLookup(field: string): any | null {
+  const col = getFcColumns().find(c => c.dataField === field)
+  return col?.lookup || null
+}
+
+function getFcOperatorsForField(field: string): Array<{ label: string; value: string }> {
+  const lookup = getFcColLookup(field)
+  if (lookup) {
+    return [{ label: '等于', value: '=' }, { label: '不等于', value: '<>' }]
+  }
+  const dt = getFcColType(field)
+  switch (dt) {
+    case 'number':
+      return ['=', '<>', '>', '>=', '<', '<=', 'between'].map(v => ({ label: FC_OP_LABELS[v], value: v }))
+    case 'date':
+    case 'datetime':
+      return ['=', '<>', '>', '>=', '<', '<=', 'between'].map(v => ({ label: FC_OP_LABELS[v], value: v }))
+    case 'boolean':
+      return [{ label: '等于', value: '=' }, { label: '不等于', value: '<>' }]
+    default:
+      return ['contains', 'notcontains', '=', '<>', 'startswith', 'endswith'].map(v => ({ label: FC_OP_LABELS[v], value: v }))
+  }
+}
+
+function isFcMultiValueField(cond: any): boolean {
+  if (cond.operator !== '=' && cond.operator !== '<>') return false
+  if (getFcColLookup(cond.field)) return false
+  const dt = getFcColType(cond.field)
+  if (dt === 'date' || dt === 'datetime' || dt === 'boolean') return false
+  return true
+}
+
+function isFcMultiValueReadonly(cond: any): boolean {
+  return cond.value != null && String(cond.value).includes('\n')
+}
+
+function onFcFieldChange(cond: any) {
+  const ops = getFcOperatorsForField(cond.field)
+  if (!ops.some(o => o.value === cond.operator)) {
+    cond.operator = ops[0]?.value || '='
+  }
+  cond.value = ''
+  cond.value2 = ''
+}
+
+function onFcOperatorChange(cond: any) {
+  cond.value = ''
+  cond.value2 = ''
 }
 
 function openSummaryDialog(prop: string, currentValue: unknown) {
@@ -1888,7 +2003,7 @@ function nodeDisplayLabel(node: { type: string; fieldName?: string }): string {
 
 // ---------- 布局控件子项管理 (Row / Splitter / Container) ----------
 
-const LAYOUT_TYPES = new Set(['el-row', 'el-splitter', 'el-tabs'])
+const LAYOUT_TYPES = new Set(['el-row', 'el-splitter', 'el-tabs', 'el-collapse'])
 
 const isLayoutContainer = computed(() =>
   selectedNode.value ? LAYOUT_TYPES.has(selectedNode.value.type) : false
@@ -1905,6 +2020,11 @@ const isTableGrid = computed(
     designerStore.mode === 'biz' &&
     designerStore.bizMode === 'table' &&
     selectedNode.value?.type === 'data-grid',
+)
+
+/** 移动端模式：页面设置只显示布局相关属性，与表单/表格页面彻底区分 */
+const isMobileMode = computed(
+  () => designerStore.mode === 'biz' && designerStore.bizMode === 'mobile',
 )
 
 /** 是否显示尺寸区块（DX 控件且非表格模式的 data-grid） */
@@ -1935,6 +2055,15 @@ function addLayoutChild(): void {
     defaultProps = {
       label: t('标签') + idx,
       name: `tab${idx}`,
+      padding: '0',
+      background: '#ffffff',
+    }
+  } else if (node.type === 'el-collapse') {
+    childType = 'el-collapse-item'
+    const idx = node.children.length + 1
+    defaultProps = {
+      title: t('面板') + idx,
+      name: `panel${idx}`,
       padding: '0',
       background: '#ffffff',
     }
@@ -1984,6 +2113,10 @@ const isElSplitter = computed(() => selectedNode.value?.type === 'el-splitter')
 // ---- 标签页编辑 ----
 
 const isElTabs = computed(() => selectedNode.value?.type === 'el-tabs')
+
+// ---- 折叠面板编辑 ----
+
+const isElCollapse = computed(() => selectedNode.value?.type === 'el-collapse')
 
 // ---- 事件配置 ----
 
@@ -2197,7 +2330,7 @@ function onAddRuleSelect(e: Event) {
           :placeholder="t('请输入页面名称')"
         />
       </div>
-      <div class="prop-item">
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('数据表名') }}</div>
         <input
           v-model="designerStore.tableName"
@@ -2206,7 +2339,7 @@ function onAddRuleSelect(e: Event) {
           @input="onTableNameInput"
         />
       </div>
-      <div class="prop-item">
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('主键字段') }}</div>
         <input
           v-model="designerStore.primaryKeyField"
@@ -2214,25 +2347,57 @@ function onAddRuleSelect(e: Event) {
           :placeholder="t('请输入主键字段名，如 id')"
         />
       </div>
-      <div class="prop-item">
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('主键策略') }}</div>
         <select v-model="designerStore.keyStrategy" class="page-input">
           <option value="UUID">UUID 字符串</option>
           <option value="SNOWFLAKE">Snowflake 数字</option>
         </select>
       </div>
-      <div class="prop-item">
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('页面唯一标识') }}</div>
         <input :value="designerStore.pageId" class="page-input" readonly />
       </div>
-      <div class="prop-item">
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('页面背景') }}</div>
         <ElColorPicker
           :model-value="designerStore.pageCss.background"
           @update:model-value="(v) => onPageBackgroundChange({ value: v })"
         />
       </div>
-      <div class="prop-item">
+      <template v-if="isMobileMode">
+        <div class="prop-item">
+          <div class="prop-label">{{ t('布局方式') }}</div>
+          <select
+            class="page-input"
+            :value="designerStore.pageCss.mobileLayout || 'vertical'"
+            @change="(e) => updatePageCss({ mobileLayout: (e.target as HTMLSelectElement).value as any })"
+          >
+            <option value="vertical">纵向排列</option>
+            <option value="horizontal">横向排列</option>
+            <option value="free">自由定位</option>
+          </select>
+        </div>
+        <div class="prop-item">
+          <div class="prop-label">{{ t('子控件间距') }}</div>
+          <input
+            type="number"
+            class="page-input"
+            :value="designerStore.pageCss.mobileGap ?? 8"
+            @input="(e) => updatePageCss({ mobileGap: Number((e.target as HTMLInputElement).value) || 0 })"
+          />
+        </div>
+        <div class="prop-item">
+          <div class="prop-label">{{ t('内边距') }}</div>
+          <input
+            type="number"
+            class="page-input"
+            :value="designerStore.pageCss.mobilePadding ?? 0"
+            @input="(e) => updatePageCss({ mobilePadding: Number((e.target as HTMLInputElement).value) || 0 })"
+          />
+        </div>
+      </template>
+      <div v-if="!isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('页面主题') }}</div>
         <button
           class="page-input"
@@ -2248,8 +2413,8 @@ function onAddRuleSelect(e: Event) {
           {{ currentThemeName || t('未选择') }}
         </button>
       </div>
-      <!-- 审批流绑定（仅单据页面显示） -->
-      <div v-if="designerStore.pageType === 'document'" class="prop-item">
+      <!-- 审批流绑定（仅单据页面显示，移动端不显示） -->
+      <div v-if="designerStore.pageType === 'document' && !isMobileMode" class="prop-item">
         <div class="prop-label">{{ t('绑定审批流') }}</div>
         <ElSelect
           :model-value="designerStore.workflowId"
@@ -3046,11 +3211,23 @@ function onAddRuleSelect(e: Event) {
               ($event.target as HTMLTextAreaElement).value ) "
               />
             </div>
-          </div>
+            <!-- 预设过滤条件编辑器 -->
+            <div
+              v-else-if="setter.type === 'filterConditions' && selectedNode"
+              class="columns-setter"
+            >
+              <button
+                class="column-edit-btn"
+                @click="openFilterConditionsDialog(setter.prop, getEditable(setter.prop))"
+              >
+                {{ t('▦ 编辑过滤条件') }}
+              </button>
             </div>
           </div>
-        </div>
-      </div>
+             </div>
+           </div>
+         </div>
+       </div>
 
       <!-- ====== CSS 样式标签页（DevExtreme 控件不显示） ====== -->
       <div
@@ -3403,6 +3580,81 @@ function onAddRuleSelect(e: Event) {
             @click="addLayoutChild"
           >{{ t('＋ 添加标签') }}</ElButton>
         </div>
+
+        <!-- 折叠面板：面板管理 -->
+        <div v-if="isElCollapse" class="prop-section">
+          <div class="prop-section-title">
+            {{ t('折叠项配置') }} ({{ layoutChildren.length }} {{ t('个') }})
+          </div>
+          <div class="items-tip">
+            {{
+              t(
+                '每个折叠项可配置标题和标识，点击标题可展开/折叠内容区域。'
+              )
+            }}
+          </div>
+          <div
+            v-for="(panel, i) in layoutChildren"
+            :key="panel.id"
+            class="item-row"
+          >
+            <div class="item-header">
+              <button
+                class="item-select-btn"
+                :class="{ active: designerStore.selectedId === panel.id }"
+                @click="selectSingleNode(panel.id)"
+              >
+                <span class="item-index">#{{ i + 1 }}</span>
+                {{ panel.props.title || t('面板') }}
+              </button>
+              <button
+                class="item-remove-btn"
+                :title="t('移除')"
+                @click="removeLayoutChild(i)"
+              >
+                ✕
+              </button>
+            </div>
+            <div class="item-props">
+              <div class="item-prop-row">
+                <span class="item-prop-label">{{ t('标题') }}</span>
+                <input
+                  class="item-prop-input"
+                  type="text"
+                  :value="panel.props.title ?? ''"
+                  @input="onChildPropText(panel.id, 'title', $event)"
+                />
+              </div>
+              <div class="item-prop-row">
+                <span class="item-prop-label">{{ t('唯一标识') }}</span>
+                <input
+                  class="item-prop-input"
+                  type="text"
+                  :value="panel.props.name ?? ''"
+                  @input="onChildPropText(panel.id, 'name', $event)"
+                />
+              </div>
+              <div class="item-prop-row">
+                <span class="item-prop-label">{{ t('内容高度') }}</span>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <input
+                    class="item-prop-input"
+                    type="number"
+                    :value="panel.props.height ?? ''"
+                    :placeholder="t('如 300')"
+                    @input="onChildPropText(panel.id, 'height', $event)"
+                  />
+                  <span style="flex-shrink:0;color:#909399">px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ElButton
+            plain
+            style="width: 130px"
+            @click="addLayoutChild"
+          >{{ t('＋ 添加面板') }}</ElButton>
+        </div>
       </div>
 
       <!-- ====== 字段变更事件（页面级，FE-S1） ====== -->
@@ -3433,8 +3685,11 @@ function onAddRuleSelect(e: Event) {
         <div class="prop-section">
           <div class="prop-section-title">{{ t('事件配置') }}</div>
           <div class="events-tip">
-            {{ t('为控件事件编写 JavaScript 处理代码。参数') }} <code>e</code>
-            {{ t('为事件对象。') }}
+            <template v-if="isMobileMode">{{ t('为移动端事件选择动作，点击编辑后保存到页面 Schema。') }}</template>
+            <template v-else>
+              {{ t('为控件事件编写 JavaScript 处理代码。参数') }} <code>e</code>
+              {{ t('为事件对象。') }}
+            </template>
           </div>
           <div
             v-for="evt in availableEvents"
@@ -3462,6 +3717,7 @@ function onAddRuleSelect(e: Event) {
               >✕</ElButton>
             </div>
             <textarea
+              v-if="!isMobileMode"
               class="json-editor event-code-editor"
               :value="getEventCode(evt.name)"
               :placeholder="t('// JavaScript 代码，参数 e 为事件对象')"
@@ -3628,11 +3884,190 @@ function onAddRuleSelect(e: Event) {
       :columns="selectedNode?.type === 'data-grid' ? (selectedNode.props.columns as unknown[] | undefined) : undefined"
       @update:model-value="onSummaryDialogConfirm"
     />
+
+    <div v-if="filterConditionsDialogVisible" class="prop-dialog-overlay" @click.self="filterConditionsDialogVisible = false">
+      <div class="dialog-container" style="width: 750px; max-height: 80vh">
+        <div class="dialog-header">
+          <span class="dialog-title">{{ t('预设过滤条件') }}</span>
+          <button class="dialog-close" @click="filterConditionsDialogVisible = false">x</button>
+        </div>
+        <div class="dialog-body" style="padding: 12px">
+          <div style="margin-bottom: 8px; color: #909399; font-size: 12px">{{ t('页面加载时自动应用这些过滤条件') }}</div>
+          <div
+            v-for="(cond, idx) in filterConditionsData"
+            :key="idx"
+            style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap"
+          >
+            <ElSelect
+              :model-value="cond.field"
+              @update:model-value="(v: any) => { cond.field = v; onFcFieldChange(cond) }"
+              size="small"
+              style="width: 140px; flex-shrink: 0"
+              :placeholder="t('选择字段')"
+            >
+              <ElOption
+                v-for="c in getFcColumns()"
+                :key="c.dataField"
+                :value="c.dataField"
+                :label="c.caption || c.dataField"
+              />
+            </ElSelect>
+            <ElSelect
+              :model-value="cond.operator"
+              @update:model-value="(v: any) => { cond.operator = v; onFcOperatorChange(cond) }"
+              size="small"
+              style="width: 90px; flex-shrink: 0"
+            >
+              <ElOption
+                v-for="op in getFcOperatorsForField(cond.field)"
+                :key="op.value"
+                :value="op.value"
+                :label="op.label"
+              />
+            </ElSelect>
+            <template v-if="getFcColLookup(cond.field)">
+              <ElSelect
+                :model-value="cond.value"
+                @update:model-value="(v: any) => cond.value = v"
+                size="small"
+                style="flex: 1; min-width: 120px"
+                :placeholder="t('值')"
+              >
+                <ElOption
+                  v-for="opt in (getFcColLookup(cond.field).dataSource as any[])"
+                  :key="opt[getFcColLookup(cond.field).valueExpr]"
+                  :value="opt[getFcColLookup(cond.field).valueExpr]"
+                  :label="opt[getFcColLookup(cond.field).displayExpr]"
+                />
+              </ElSelect>
+            </template>
+            <template v-else-if="getFcColType(cond.field) === 'date'">
+              <ElDatePicker
+                :model-value="cond.value"
+                @update:model-value="(v: any) => cond.value = v || ''"
+                type="date"
+                value-format="YYYY-MM-DD"
+                size="small"
+                style="flex: 1; min-width: 120px"
+                :placeholder="t('值')"
+              />
+            </template>
+            <template v-else-if="getFcColType(cond.field) === 'datetime'">
+              <ElDatePicker
+                :model-value="cond.value"
+                @update:model-value="(v: any) => cond.value = v || ''"
+                type="datetime"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                size="small"
+                style="flex: 1; min-width: 120px"
+                :placeholder="t('值')"
+              />
+            </template>
+            <template v-else>
+              <ElInput
+                :model-value="cond.value"
+                @update:model-value="(v: any) => cond.value = v"
+                size="small"
+                :type="getFcColType(cond.field) === 'number' ? 'number' : 'text'"
+                :readonly="isFcMultiValueReadonly(cond)"
+                :placeholder="isFcMultiValueReadonly(cond) ? String(cond.value).split('\n').filter((v: string) => v.trim()).slice(0, 3).join(', ') + (String(cond.value).split('\n').filter((v: string) => v.trim()).length > 3 ? '...' : '') : (cond.operator === 'between' ? t('开始') : t('值'))"
+                style="flex: 1; min-width: 120px"
+              />
+            </template>
+            <ElButton
+              v-if="isFcMultiValueField(cond)"
+              size="small"
+              @click="openFilterCondMultiValue(cond)"
+            >多值</ElButton>
+            <template v-if="cond.operator === 'between'">
+              <span style="flex-shrink: 0; color: #909399">~</span>
+              <template v-if="getFcColType(cond.field) === 'date'">
+                <ElDatePicker
+                  :model-value="cond.value2"
+                  @update:model-value="(v: any) => cond.value2 = v || ''"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  size="small"
+                  style="flex: 1; min-width: 120px"
+                  :placeholder="t('结束')"
+                />
+              </template>
+              <template v-else-if="getFcColType(cond.field) === 'datetime'">
+                <ElDatePicker
+                  :model-value="cond.value2"
+                  @update:model-value="(v: any) => cond.value2 = v || ''"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  size="small"
+                  style="flex: 1; min-width: 120px"
+                  :placeholder="t('结束')"
+                />
+              </template>
+              <template v-else>
+                <ElInput
+                  :model-value="cond.value2"
+                  @update:model-value="(v: any) => cond.value2 = v"
+                  size="small"
+                  :type="getFcColType(cond.field) === 'number' ? 'number' : 'text'"
+                  style="flex: 1; min-width: 120px"
+                  :placeholder="t('结束')"
+                />
+              </template>
+            </template>
+            <button
+              type="button"
+              class="writeback-del-btn"
+              @click="filterConditionsData.splice(idx, 1)"
+            >✕</button>
+          </div>
+          <button
+            class="writeback-add-btn"
+            type="button"
+            @click="filterConditionsData.push({ field: '', operator: '=', value: '', value2: '' })"
+          >+ {{ t('添加条件') }}</button>
+        </div>
+        <div class="dialog-footer">
+          <button class="dialog-btn dialog-btn-cancel" @click="filterConditionsDialogVisible = false">{{ t('取消') }}</button>
+          <button class="dialog-btn dialog-btn-confirm" @click="onFilterConditionsDialogConfirm">{{ t('确定') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="filterCondMultiValueVisible" class="prop-dialog-overlay" style="z-index: 10001" @click.self="filterCondMultiValueVisible = false">
+      <div class="dialog-container" style="width: 420px; max-height: 80vh">
+        <div class="dialog-header">
+          <span class="dialog-title">{{ t('多值输入') }}</span>
+          <button class="dialog-close" @click="filterCondMultiValueVisible = false">x</button>
+        </div>
+        <div class="dialog-body" style="padding: 8px">
+          <div style="max-height: 50vh; overflow-y: auto">
+            <div v-for="(_, rowIdx) in filterCondMultiValueRows" :key="rowIdx" style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px">
+              <input v-model="filterCondMultiValueRows[rowIdx]" class="form-input" style="flex: 1" :placeholder="t('值')" />
+              <button type="button" style="flex-shrink: 0; border: none; background: none; cursor: pointer; color: #f56c6c; font-size: 16px; padding: 0 4px" @click="filterCondMultiValueRows[rowIdx] = ''" title="清空">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="dialog-btn dialog-btn-cancel" @click="filterCondMultiValueRows = filterCondMultiValueRows.map(() => '')">{{ t('清空全部') }}</button>
+          <button class="dialog-btn dialog-btn-cancel" @click="filterCondMultiValueVisible = false">{{ t('取消') }}</button>
+          <button class="dialog-btn dialog-btn-confirm" @click="confirmFilterCondMultiValue">{{ t('确定') }}</button>
+        </div>
+      </div>
+    </div>
     <EventCodeDialog
+      v-if="!isMobileMode"
       v-model:model-value="eventDialogValue"
       v-model:visible="eventDialogVisible"
       :title="t('事件代码编辑 - ') + eventDialogName"
       @update:model-value="onEventDialogConfirm"
+    />
+    <MobileEventDialog
+      v-else
+      v-model:model-value="eventDialogValue"
+      v-model:visible="eventDialogVisible"
+      :event-name="eventDialogName"
+      :events="availableEvents"
+      @confirm="onEventDialogConfirm"
     />
     <PageSelectDialog
       v-model:visible="pageSelectDialogVisible"
@@ -4741,6 +5176,128 @@ function onAddRuleSelect(e: Event) {
 .dict-select-table tr.is-selected .dict-select-pick {
   background: #e6a23c;
   cursor: default;
+}
+
+/* ===================== 预设过滤条件弹窗 ===================== */
+.prop-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.dialog-container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e4e7ed;
+}
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+.dialog-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #909399;
+  padding: 0;
+  line-height: 1;
+}
+.dialog-close:hover {
+  color: #303133;
+}
+.dialog-body {
+  padding: 12px 16px;
+  flex: 1;
+  overflow: auto;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e4e7ed;
+}
+.dialog-btn {
+  padding: 6px 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.dialog-btn-cancel {
+  background: #fff;
+  color: #606266;
+}
+.dialog-btn-cancel:hover {
+  border-color: #1976d2;
+  color: #1976d2;
+}
+.dialog-btn-confirm {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+.dialog-btn-confirm:hover {
+  background: #1565c0;
+  border-color: #1565c0;
+}
+.form-input {
+  flex: 1;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  min-width: 0;
+  background: #fff;
+  color: #303133;
+}
+.form-input:focus {
+  border-color: #1976d2;
+}
+.writeback-del-btn {
+  border: none;
+  background: none;
+  color: #f56c6c;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.writeback-add-btn {
+  border: 1px dashed #1976d2;
+  background: none;
+  color: #1976d2;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 2px;
+  align-self: flex-start;
+}
+.writeback-add-btn:hover {
+  background: rgba(25, 118, 210, 0.06);
 }
 
 </style>

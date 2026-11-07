@@ -2,6 +2,8 @@ package com.server.sqlengine.executor;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.common.returns.ResMsg;
+import com.common.returns.ResRow;
 import com.server.db.DbConfig;
 import com.server.sqlengine.model.CompiledSql;
 import com.server.sqlengine.model.SqlParam;
@@ -17,8 +19,10 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * SQL 执行器 —— 全新引擎自有的 JDBC 执行层，不依赖旧 {@code DbHelp}。
@@ -172,9 +176,10 @@ public class SqlExecutor {
     // ==================== 单条更新 ====================
 
     /**
-     * 参数化更新（INSERT/UPDATE/DELETE），返回影响行数。
+     * 参数化更新（INSERT/UPDATE/DELETE），返回 ResMsg（data=影响行数）。
+     * 异常不抛出，写入 ResMsg 集中管理。
      */
-    public int update(@Nullable String dbName, CompiledSql compiled) throws SQLException {
+    public ResMsg update(@Nullable String dbName, CompiledSql compiled) {
         Connection conn = null;
         PreparedStatement ps = null;
         try {
@@ -185,7 +190,17 @@ public class SqlExecutor {
             int rows = ps.executeUpdate();
             long duration = System.currentTimeMillis() - start;
             warnSlowSql(duration, compiled.sql());
-            return rows;
+            ResMsg r = new ResMsg();
+            r.setData(rows);
+            checkZeroRows(r, compiled.sql(), rows, 0);
+            return r;
+        } catch (Exception e) {
+            log.error("SQL执行失败: {} - {}", compiled.sql(), e.getMessage());
+            ResMsg r = new ResMsg();
+            r.setRes(false);
+            r.setCode("500");
+            r.setMsg(e.getMessage());
+            return r;
         } finally {
             closeQuietly(ps);
             releaseConnection(conn, dbName);
@@ -207,8 +222,8 @@ public class SqlExecutor {
      * @param batchParams 每组参数列表，每组对应一行
      * @return 每行影响行数数组
      */
-    public int[] batch(@Nullable String dbName, CompiledSql compiled,
-            List<List<SqlParam>> batchParams) throws SQLException {
+    public ResMsg batch(@Nullable String dbName, CompiledSql compiled,
+            List<List<SqlParam>> batchParams) {
         Connection conn = null;
         PreparedStatement ps = null;
         boolean selfManagedTx = true;
@@ -231,17 +246,20 @@ public class SqlExecutor {
             if (selfManagedTx) {
                 conn.commit();
             }
-            return result;
-        } catch (SQLException e) {
+            ResMsg r = new ResMsg();
+            r.setData(result);
+            collectRowErrors(r, compiled.sql(), result);
+            return r;
+        } catch (Exception e) {
             if (selfManagedTx) {
                 rollbackQuietly(conn);
             }
-            throw e;
-        } catch (RuntimeException e) {
-            if (selfManagedTx) {
-                rollbackQuietly(conn);
-            }
-            throw e;
+            log.error("SQL批量执行失败: {} - {}", compiled.sql(), e.getMessage());
+            ResMsg r = new ResMsg();
+            r.setRes(false);
+            r.setCode("500");
+            r.setMsg(e.getMessage());
+            return r;
         } finally {
             closeQuietly(ps);
             releaseConnection(conn, dbName);
@@ -256,15 +274,19 @@ public class SqlExecutor {
      * <p>
      * 对应旧 {@code DbHelp.executeSqlTran(List)}。
      * </p>
+     * <p>
+     * 性能优化：按 SQL 模板（{@code sql()} 文本）分组，相同模板的多条 SQL 使用 JDBC batch
+     * （{@code addBatch} + {@code executeBatch}）一次提交，避免逐条 {@code prepareStatement}。
+     * 典型场景：1 万条同构 INSERT 只需 1 次 prepare + 1 次 executeBatch。
+     * </p>
      *
      * @param dbName  数据源名称
      * @param sqlList 多条编译后的 SQL（INSERT/UPDATE/DELETE 混合）
-     * @return 总影响行数
+     * @return 每条 SQL 影响行数数组，长度与 sqlList 相同，顺序与 sqlList 对应
      */
-    public int executeInTransaction(@Nullable String dbName, List<CompiledSql> sqlList) throws SQLException {
+    public ResMsg executeInTransaction(@Nullable String dbName, List<CompiledSql> sqlList) {
         Connection conn = null;
-        PreparedStatement ps = null;
-        int totalRows = 0;
+        int[] rowCounts = new int[sqlList.size()];
         boolean selfManagedTx = true;
         try {
             selfManagedTx = !isBoundToSpringTx(dbName);
@@ -272,33 +294,63 @@ public class SqlExecutor {
             if (selfManagedTx) {
                 conn.setAutoCommit(false);
             }
-            for (CompiledSql compiled : sqlList) {
-                ps = conn.prepareStatement(compiled.sql());
-                bindParams(ps, compiled.params());
-                long start = System.currentTimeMillis();
-                int rows = ps.executeUpdate();
-                long duration = System.currentTimeMillis() - start;
-                warnSlowSql(duration, compiled.sql());
-                totalRows += rows;
-                closeQuietly(ps);
-                ps = null;
+
+            Map<String, List<Integer>> templateGroups = new LinkedHashMap<>();
+            for (int i = 0; i < sqlList.size(); i++) {
+                String sql = sqlList.get(i).sql();
+                templateGroups.computeIfAbsent(sql, k -> new ArrayList<>()).add(i);
             }
+
+            for (Map.Entry<String, List<Integer>> entry : templateGroups.entrySet()) {
+                String sqlTemplate = entry.getKey();
+                List<Integer> indices = entry.getValue();
+                PreparedStatement ps = null;
+                try {
+                    ps = conn.prepareStatement(sqlTemplate);
+                    if (indices.size() == 1) {
+                        int idx = indices.get(0);
+                        bindParams(ps, sqlList.get(idx).params());
+                        long start = System.currentTimeMillis();
+                        int rows = ps.executeUpdate();
+                        long duration = System.currentTimeMillis() - start;
+                        warnSlowSql(duration, sqlTemplate);
+                        rowCounts[idx] = rows;
+                    } else {
+                        for (int idx : indices) {
+                            bindParams(ps, sqlList.get(idx).params());
+                            ps.addBatch();
+                        }
+                        long start = System.currentTimeMillis();
+                        int[] batchResult = ps.executeBatch();
+                        long duration = System.currentTimeMillis() - start;
+                        warnSlowSql(duration, sqlTemplate);
+                        for (int j = 0; j < batchResult.length; j++) {
+                            rowCounts[indices.get(j)] = batchResult[j];
+                        }
+                    }
+                } finally {
+                    closeQuietly(ps);
+                }
+            }
+
             if (selfManagedTx) {
                 conn.commit();
             }
-            return totalRows;
-        } catch (SQLException e) {
+            ResMsg r = new ResMsg();
+            r.setData(rowCounts);
+            collectTxRowErrors(r, sqlList, rowCounts);
+            return r;
+        } catch (Exception e) {
             if (selfManagedTx) {
                 rollbackQuietly(conn);
             }
-            throw e;
-        } catch (RuntimeException e) {
-            if (selfManagedTx) {
-                rollbackQuietly(conn);
-            }
-            throw e;
+            log.error("SQL事务执行失败: {}", e.getMessage());
+            ResMsg r = new ResMsg();
+            r.setRes(false);
+            r.setCode("500");
+            r.setMsg(e.getMessage());
+            return r;
         } finally {
-            closeQuietly(ps);
             releaseConnection(conn, dbName);
         }
     }
@@ -385,9 +437,17 @@ public class SqlExecutor {
                 return java.sql.Timestamp.valueOf(strValue);
             } catch (IllegalArgumentException e) {
                 try {
-                    return java.sql.Timestamp.valueOf(strValue + " 00:00:00");
-                } catch (IllegalArgumentException e2) {
-                    return value;
+                    return java.sql.Timestamp.from(java.time.Instant.parse(strValue));
+                } catch (Exception e2) {
+                    try {
+                        return java.sql.Timestamp.valueOf(strValue.replace("T", " ").replaceAll("\\+\\d{2}:\\d{2}$", "").replaceAll("\\+\\d{4}$", ""));
+                    } catch (IllegalArgumentException e3) {
+                        try {
+                            return java.sql.Timestamp.valueOf(strValue + " 00:00:00");
+                        } catch (IllegalArgumentException e4) {
+                            return value;
+                        }
+                    }
                 }
             }
         }
@@ -532,6 +592,74 @@ public class SqlExecutor {
             } catch (Exception e) {
                 log.error("事务回滚失败", e);
             }
+        }
+    }
+
+    // ==================== 0 行检查 ====================
+
+    /**
+     * 判断 SQL 操作类型：INSERT/UPDATE 0 行视为失败，DELETE 0 行正常。
+     */
+    private static boolean shouldCheckZeroRows(String sql) {
+        String upper = sql.trim().toUpperCase(Locale.ROOT);
+        return upper.startsWith("INSERT") || upper.startsWith("UPDATE");
+    }
+
+    /**
+     * 单条 update 的 0 行检查：INSERT/UPDATE 0 行 → res=false。
+     */
+    private static void checkZeroRows(ResMsg r, String sql, int rows, int rowIndex) {
+        if (rows == 0 && shouldCheckZeroRows(sql)) {
+            r.setRes(false);
+            String op = sql.trim().toUpperCase(Locale.ROOT).startsWith("INSERT") ? "INSERT" : "UPDATE";
+            r.setMsg(op + " 未影响任何行" + (rowIndex > 0 ? "（第 " + (rowIndex + 1) + " 行）" : ""));
+        }
+    }
+
+    /**
+     * 批量同构执行的 0 行检查：收集所有 0 行到 List<ResRow>，不全成功则 res=false。
+     */
+    private static void collectRowErrors(ResMsg r, String sql, int[] rowCounts) {
+        if (!shouldCheckZeroRows(sql)) {
+            return;
+        }
+        List<ResRow> errors = null;
+        for (int i = 0; i < rowCounts.length; i++) {
+            if (rowCounts[i] == 0) {
+                if (errors == null) {
+                    errors = new ArrayList<>();
+                }
+                errors.add(new ResRow("第 " + (i + 1) + " 行未影响任何行"));
+            }
+        }
+        if (errors != null) {
+            r.setRes(false);
+            r.setMsg("批量执行有 " + errors.size() + " 行未影响任何行");
+            r.setRowResults(errors);
+        }
+    }
+
+    /**
+     * 混合事务的 0 行检查：跳过 DELETE，收集所有 0 行到 List<ResRow>。
+     */
+    private static void collectTxRowErrors(ResMsg r, List<CompiledSql> sqlList, int[] rowCounts) {
+        List<ResRow> errors = null;
+        for (int i = 0; i < rowCounts.length; i++) {
+            String sql = sqlList.get(i).sql();
+            if (!shouldCheckZeroRows(sql)) {
+                continue;
+            }
+            if (rowCounts[i] == 0) {
+                if (errors == null) {
+                    errors = new ArrayList<>();
+                }
+                errors.add(new ResRow("第 " + (i + 1) + " 条SQL未影响任何行"));
+            }
+        }
+        if (errors != null) {
+            r.setRes(false);
+            r.setMsg("事务中有 " + errors.size() + " 条SQL未影响任何行");
+            r.setRowResults(errors);
         }
     }
 }

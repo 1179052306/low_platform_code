@@ -11,9 +11,11 @@ import {
 import type { ComponentSchema } from '@/types/schema'
 import { ElButton } from 'element-plus'
 import { MATERIAL_TYPES } from '@/materials/dx-materials'
+import { isFreePositionContainer } from '@/constants/container-types'
 
 import MaterialPanel from '@/components/designer/MaterialPanel.vue'
 import CanvasPanel from '@/components/designer/CanvasPanel.vue'
+import MobileCanvasPanel from '@/components/designer/MobileCanvasPanel.vue'
 import PropertyPanel from '@/components/designer/PropertyPanel.vue'
 import FieldEventRuleDialog from '@/components/designer/FieldEventRuleDialog.vue'
 import ComputeRuleDialog from '@/components/designer/ComputeRuleDialog.vue'
@@ -80,6 +82,11 @@ const isTableMode = computed(
   () => designerStore.mode === 'biz' && designerStore.bizMode === 'table',
 )
 
+/** 当前是否为移动端模式（使用独立移动端画布组件） */
+const isMobileMode = computed(
+  () => designerStore.mode === 'biz' && designerStore.bizMode === 'mobile',
+)
+
 /** 切到表格模式且画布为空时，自动生成数据表格骨架（远程数据源、宽高100%） */
 watch(
   () => designerStore.bizMode,
@@ -132,9 +139,10 @@ function isEditing(): boolean {
   return false
 }
 
-/** 判断是否有弹窗打开（Element Plus ElDialog 或自定义 dialog-overlay） */
+/** 判断是否有弹窗打开（Element Plus ElDialog 或自定义 dialog-overlay/modal-overlay） */
 function isAnyDialogOpen(): boolean {
   if (document.querySelector('.dialog-overlay')) return true
+  if (document.querySelector('.modal-overlay')) return true
   const wrappers = document.querySelectorAll<HTMLElement>('.el-dialog')
   for (const w of wrappers) {
     if (w.offsetParent !== null) return true
@@ -202,11 +210,7 @@ function handleKeydown(e: KeyboardEvent): void {
       // 根级节点可移动
       if (!found.parent) return true
       // 自由定位容器内的子节点可移动
-      const FREE_POSITION_CONTAINERS = new Set([
-        'el-splitter-panel',
-        'el-tab-pane',
-      ])
-      return FREE_POSITION_CONTAINERS.has(found.parent.type)
+      return isFreePositionContainer(found.parent)
     })
     if (movableIds.length) {
       // 获取画布基础尺寸（不含控件扩展），用于边界检查
@@ -400,8 +404,11 @@ function onPreview(): void {
     schema: designerStore.schema,
     pageName: designerStore.pageName,
     tableName: designerStore.tableName,
+    primaryKeyField: designerStore.primaryKeyField,
+    keyStrategy: designerStore.keyStrategy,
     pageCss: designerStore.pageCss,
     pageId: designerStore.pageId,
+    themeId: designerStore.themeId,
     computeRules: designerStore.computeRules,
     fieldChangeEvents: designerStore.fieldChangeEvents,
     pageRules: designerStore.pageRules,
@@ -436,6 +443,20 @@ const formFieldNames = computed(() => {
       return c?.category === '表单'
     })
     .map((n) => n.fieldName as string)
+})
+const targetFieldOptions = computed(() => {
+  const nodes = collectAllNodes(designerStore.schema)
+  const result: { value: string; label: string }[] = []
+  for (const n of nodes) {
+    const c = getConfig(n.type)
+    if (n.fieldName && c?.category === '表单') {
+      result.push({ value: n.fieldName as string, label: n.fieldName as string })
+    } else if (n.type === 'data-grid' || n.type === 'tree-list') {
+      const name = (n.fieldName as string) || (n.props.tableName as string) || c?.title || n.type
+      result.push({ value: n.id, label: name })
+    }
+  }
+  return result
 })
 /** 层间 diff 弹窗显隐（FE-S3） */
 const showLayerDiffDialog = ref(false)
@@ -1004,7 +1025,13 @@ ${
 function closeDialogs(): void {
   showSchema.value = false
   showVueCode.value = false
+  showFieldEventRuleDialog.value = false
+  showComputeRuleDialog.value = false
+  showPageRuleDialog.value = false
+  showPluginBindingDialog.value = false
 }
+
+watch(() => designerStore.bizMode, () => { closeDialogs() })
 
 /** 加载指定 pageId 的页面到设计器 */
 async function loadPageById(pageId: string): Promise<boolean> {
@@ -1040,6 +1067,9 @@ async function restoreLastPage(): Promise<void> {
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
   document.body.classList.add('designer-page')
+  document.addEventListener('dragstart', onDebugDragEvent, true)
+  document.addEventListener('dragend', onDebugDragEvent, true)
+  document.addEventListener('drop', onDebugDragEvent, true)
   await loadAllTranslations()
   restoreLastPage()
   if (import.meta.env.DEV) {
@@ -1051,7 +1081,19 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('designer-page')
+  document.removeEventListener('dragstart', onDebugDragEvent, true)
+  document.removeEventListener('dragend', onDebugDragEvent, true)
+  document.removeEventListener('drop', onDebugDragEvent, true)
 })
+
+/** [drag-debug] 临时调试探针：捕获阶段监听全局拖拽事件，用于定位拖拽链路断点（排查完成后移除） */
+function onDebugDragEvent(e: Event): void {
+  const target = e.target as HTMLElement | null
+  console.debug(
+    '[drag-debug] document', e.type,
+    'target=', target ? `${target.tagName}.${(target.className || '').toString().slice(0, 40)}` : String(target),
+  )
+}
 
 // Tab 页签场景（keep-alive）：停用时卸载全局键盘监听，激活时重新挂载，
 // 避免切到其他 Tab 后 Delete/Ctrl 组合键仍操作设计器
@@ -1121,11 +1163,11 @@ watch(
       </div>
       <div v-else class="header-biz-mode-placeholder"></div>
       <div class="header-tools">
-        <ElButton @click="onSave">{{ t('保存') }}</ElButton>
+        <ElButton @click="onSave">⤓ {{ t('保存') }}</ElButton>
         <ElButton
           plain
           @click="importInput?.click()"
-        >{{ t('导入') }}</ElButton>
+        >↤ {{ t('导入') }}</ElButton>
         <input
           ref="importInput"
           type="file"
@@ -1136,11 +1178,11 @@ watch(
         <ElButton
           plain
           @click="onExport"
-        >{{ t('导出') }}</ElButton>
+        >↦ {{ t('导出') }}</ElButton>
         <ElButton
           type="primary"
           @click="onPreview"
-        >{{ t('预览') }}</ElButton>
+        >◉ {{ t('预览') }}</ElButton>
       </div>
       <!-- FE-S3：分层继承层选择器 + 合并预览切换 + 层 diff -->
       <div class="header-layer-tools">
@@ -1200,49 +1242,50 @@ watch(
             <ElButton
               :disabled="!canUndo"
               @click="undo()"
-            >{{ t('撤销') }}</ElButton>
+            >↶ {{ t('撤销') }}</ElButton>
             <ElButton
               :disabled="!canRedo"
               @click="redo()"
-            >{{ t('重做') }}</ElButton>
+            >↷ {{ t('重做') }}</ElButton>
             <ElButton
               v-if="!isTableMode"
               plain
               @click="onClear"
-            >{{ t('清空') }}</ElButton>
+            >✕ {{ t('清空') }}</ElButton>
           </div>
           <div class="canvas-toolbar-right">
             <ElButton
               plain
               @click="openVueCodeDialog()"
-            >{{ t('源码') }}</ElButton>
+            >&lt;/&gt; {{ t('源码') }}</ElButton>
             <ElButton
               plain
               @click="openSchemaDialog"
-            >Schema</ElButton>
+            >{} Schema</ElButton>
             <ElButton
               v-if="!isTableMode"
               plain
               @click="showFieldEventRuleDialog = true"
-            >{{ t('字段事件') }}</ElButton>
+            >⚡ {{ t('字段事件') }}</ElButton>
             <ElButton
               v-if="!isTableMode"
               plain
               @click="showComputeRuleDialog = true"
-            >{{ t('计算规则') }}</ElButton>
+            >Σ {{ t('计算规则') }}</ElButton>
             <ElButton
               v-if="!isTableMode"
               plain
               @click="showPageRuleDialog = true"
-            >{{ t('页面规则') }}</ElButton>
+            >§ {{ t('页面规则') }}</ElButton>
             <ElButton
               v-if="!isTableMode"
               plain
               @click="showPluginBindingDialog = true"
-            >{{ t('插件') }}</ElButton>
+            >⊞ {{ t('插件') }}</ElButton>
           </div>
         </div>
-        <CanvasPanel />
+        <CanvasPanel v-if="!isMobileMode" />
+        <MobileCanvasPanel v-else />
       </div>
       <PropertyPanel v-if="showPropertyPanel" />
       <FieldEventRuleDialog v-model:visible="showFieldEventRuleDialog" />
@@ -1255,6 +1298,7 @@ watch(
       <PageRuleDialog
         v-model="showPageRuleDialog"
         :fields="formFieldNames"
+        :target-fields="targetFieldOptions"
         :rules="designerStore.pageRules ?? []"
         @confirm="(rules) => setPageRules(rules)"
       />
@@ -1431,8 +1475,12 @@ watch(
 .header-tools {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex-shrink: 0;
+}
+.header-tools :deep(.el-button) {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 .tool-divider {
   width: 1px;
@@ -1468,26 +1516,27 @@ watch(
 .header-layer-tools {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: 12px;
+  gap: 2px;
+  margin-left: 6px;
 }
 .layer-select {
-  height: 28px;
+  height: 32px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   padding: 0 8px;
-  font-size: 13px;
+  font-size: 14px;
   background: #fff;
 }
 .layer-toggle-btn,
 .layer-diff-btn {
-  height: 28px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
+  color: #606266;
 }
 .layer-toggle-btn.active {
   background: #ecf5ff;
@@ -1497,7 +1546,7 @@ watch(
 .canvas-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex-shrink: 0;
 }
 .canvas-toolbar-center {
@@ -1505,13 +1554,18 @@ watch(
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 .canvas-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   flex-shrink: 0;
+}
+.canvas-toolbar-right :deep(.el-button),
+.canvas-toolbar-center :deep(.el-button),
+.canvas-toolbar-left :deep(.el-button) {
+  margin-left: 4px;
 }
 
 /* 模态对话框 */

@@ -131,6 +131,84 @@ export function setAuditHandler(
   _onAudit = fn
 }
 
+// ---- 全局 loading（顶部流式进度条 + 透明遮罩） ----
+
+let _loadingCount = 0
+let _loaderEl: HTMLElement | null = null
+let _loaderBar: HTMLElement | null = null
+let _loaderMask: HTMLElement | null = null
+let _stopTimer1: ReturnType<typeof setTimeout> | null = null
+let _stopTimer2: ReturnType<typeof setTimeout> | null = null
+
+if (typeof document !== 'undefined' && !document.getElementById('lc-top-loader-style')) {
+  const style = document.createElement('style')
+  style.id = 'lc-top-loader-style'
+  style.textContent = `
+.lc-top-loader{position:fixed;top:0;left:0;right:0;height:3px;z-index:100000;pointer-events:none;opacity:0;transition:opacity .3s ease}
+.lc-top-loader-bar{height:100%;width:0%;border-radius:0 2px 2px 0;background:linear-gradient(90deg,#409eff,#67c23a,#409eff);background-size:200% 100%;box-shadow:0 0 10px rgba(64,158,255,.5);transition:width .3s ease;animation:lc-loader-shimmer 1.5s linear infinite}
+@keyframes lc-loader-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.lc-top-loader.lc-loader-active{opacity:1}
+.lc-top-loader.lc-loader-done .lc-top-loader-bar{width:100%!important}
+.lc-top-loader.lc-loader-fade{opacity:0}
+.lc-loader-mask{position:fixed;inset:0;z-index:99999;background:transparent;pointer-events:none;opacity:0;transition:opacity .3s ease;cursor:wait}
+.lc-loader-mask.lc-mask-active{opacity:1;pointer-events:auto}
+`
+  document.head.appendChild(style)
+}
+
+function _ensureLoaderEl(): void {
+  if (_loaderEl) return
+  _loaderMask = document.createElement('div')
+  _loaderMask.className = 'lc-loader-mask'
+  document.body.appendChild(_loaderMask)
+  _loaderEl = document.createElement('div')
+  _loaderEl.className = 'lc-top-loader'
+  _loaderBar = document.createElement('div')
+  _loaderBar.className = 'lc-top-loader-bar'
+  _loaderEl.appendChild(_loaderBar)
+  document.body.appendChild(_loaderEl)
+}
+
+function _startLoading(): void {
+  _loadingCount++
+  if (_loadingCount === 1) {
+    if (_stopTimer1) { clearTimeout(_stopTimer1); _stopTimer1 = null }
+    if (_stopTimer2) { clearTimeout(_stopTimer2); _stopTimer2 = null }
+    _ensureLoaderEl()
+    if (!_loaderEl || !_loaderBar || !_loaderMask) return
+    _loaderEl.classList.remove('lc-loader-done', 'lc-loader-fade')
+    _loaderBar.style.transition = 'none'
+    _loaderBar.style.width = '0%'
+    void _loaderBar.offsetWidth
+    _loaderBar.style.transition = 'width 8s ease-out'
+    _loaderBar.style.width = '85%'
+    _loaderEl.classList.add('lc-loader-active')
+    _loaderMask.classList.add('lc-mask-active')
+  }
+}
+
+function _stopLoading(): void {
+  _loadingCount = Math.max(0, _loadingCount - 1)
+  if (_loadingCount === 0 && _loaderEl && _loaderBar) {
+    _loaderBar.style.transition = 'width .3s ease'
+    _loaderBar.style.width = '100%'
+    _loaderEl.classList.add('lc-loader-done')
+    if (_loaderMask) _loaderMask.classList.remove('lc-mask-active')
+    _stopTimer1 = setTimeout(() => {
+      _stopTimer1 = null
+      if (!_loaderEl || !_loaderBar) return
+      _loaderEl.classList.add('lc-loader-fade')
+      _stopTimer2 = setTimeout(() => {
+        _stopTimer2 = null
+        if (!_loaderEl || !_loaderBar) return
+        _loaderEl.classList.remove('lc-loader-active', 'lc-loader-done', 'lc-loader-fade')
+        _loaderBar.style.transition = 'none'
+        _loaderBar.style.width = '0%'
+      }, 300)
+    }, 300)
+  }
+}
+
 // ---- 核心请求函数 ----
 
 /** 请求选项 */
@@ -142,6 +220,8 @@ export interface RequestOptions {
   jsonContentType?: boolean
   /** 内部标记：401 刷新后重放（防循环），外部勿传 */
   _replayed?: boolean
+  /** 跳过全局 loading（用于后台静默请求如 token 刷新） */
+  skipLoading?: boolean
 }
 
 /** 请求结果 */
@@ -231,6 +311,9 @@ export async function httpRequest(
   url: string,
   options: RequestOptions = {}
 ): Promise<RequestResult> {
+  const shouldShowLoading = !options.skipLoading && !options._replayed
+  if (shouldShowLoading) _startLoading()
+  try {
   const method = options.method || 'GET'
   const headers = getBaseHeaders()
   const token = currentAccessToken()
@@ -323,6 +406,9 @@ export async function httpRequest(
   })
 
   return { ok: ctx.ok, status: ctx.status, data: ctx.data }
+  } finally {
+    if (shouldShowLoading) _stopLoading()
+  }
 }
 
 // ---- 响应解包工具 ----

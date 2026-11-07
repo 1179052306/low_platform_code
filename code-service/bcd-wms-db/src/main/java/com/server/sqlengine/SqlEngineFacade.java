@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+
 import java.util.Map;
 
 /**
@@ -461,10 +462,7 @@ public class SqlEngineFacade {
             CompiledSql compiled = sqlEngine.insert(builder.build(), dbName);
             log.debug("SQL引擎-新增: {}", compiled.sql());
 
-            int rows = executor.update(dbName, compiled);
-            ResMsg r = new ResMsg();
-            r.setData(rows);
-            return r;
+            return executor.update(dbName, compiled);
         } catch (Exception e) {
             log.error("SQL引擎-新增失败", e);
             ResMsg r = new ResMsg();
@@ -489,6 +487,7 @@ public class SqlEngineFacade {
                 throw new IllegalArgumentException("data 不能为空");
             }
 
+
             InsertStatement.Builder builder = InsertStatement.builder().into(tableName);
             for (int i = 0; i < rows.size(); i++) {
                 JSONObject row = rows.getJSONObject(i);
@@ -508,10 +507,7 @@ public class SqlEngineFacade {
                 batchParams.add(compiler.compileInsertBatchRow(stmt, i, dbName));
             }
 
-            int[] result = executor.batch(dbName, compiled, batchParams);
-            ResMsg r = new ResMsg();
-            r.setData(result);
-            return r;
+            return executor.batch(dbName, compiled, batchParams);
         } catch (Exception e) {
             log.error("SQL引擎-批量新增失败", e);
             ResMsg r = new ResMsg();
@@ -586,10 +582,7 @@ public class SqlEngineFacade {
             CompiledSql compiled = sqlEngine.update(builder.build(), dbName);
             log.debug("SQL引擎-修改: {}", compiled.sql());
 
-            int rows = executor.update(dbName, compiled);
-            ResMsg r = new ResMsg();
-            r.setData(rows);
-            return r;
+            return executor.update(dbName, compiled);
         } catch (Exception e) {
             log.error("SQL引擎-修改失败", e);
             ResMsg r = new ResMsg();
@@ -655,12 +648,7 @@ public class SqlEngineFacade {
             }
 
             log.debug("SQL引擎-批量修改: {} 条", sqlList.size());
-            executor.executeInTransaction(dbName, sqlList);
-            int[] result = new int[sqlList.size()];
-            java.util.Arrays.fill(result, 1);
-            ResMsg r = new ResMsg();
-            r.setData(result);
-            return r;
+            return executor.executeInTransaction(dbName, sqlList);
         } catch (Exception e) {
             log.error("SQL引擎-批量修改失败", e);
             ResMsg r = new ResMsg();
@@ -713,12 +701,7 @@ public class SqlEngineFacade {
             }
 
             log.debug("SQL引擎-批量删除: {} 条", sqlList.size());
-            executor.executeInTransaction(dbName, sqlList);
-            int[] result = new int[sqlList.size()];
-            java.util.Arrays.fill(result, 1);
-            ResMsg r = new ResMsg();
-            r.setData(result);
-            return r;
+            return executor.executeInTransaction(dbName, sqlList);
         } catch (Exception e) {
             log.error("SQL引擎-批量删除失败", e);
             ResMsg r = new ResMsg();
@@ -755,9 +738,7 @@ public class SqlEngineFacade {
             CompiledSql compiled = sqlEngine.delete(builder.build(), dbName);
             log.debug("SQL引擎-删除: {}", compiled.sql());
 
-            int rows = executor.update(dbName, compiled);
-            ResMsg r = new ResMsg();
-            r.setData(rows);
+            ResMsg r = executor.update(dbName, compiled);
             return r;
         } catch (Exception e) {
             log.error("SQL引擎-删除失败", e);
@@ -770,13 +751,85 @@ public class SqlEngineFacade {
 
     // ==================== 事务 ====================
 
+    /** 只编译 INSERT 不执行，返回 CompiledSql 供事务批量执行 */
+    public CompiledSql compileInsert(JSONObject req, @Nullable String dbName) throws Exception {
+        String tableName = req.getString("tableName");
+        if (tableName == null || tableName.isEmpty()) throw new IllegalArgumentException("tableName 不能为空");
+        JSONObject data = req.getJSONObject("data");
+        if (data == null || data.isEmpty()) throw new IllegalArgumentException("data 不能为空");
+        validator.validateSetClauses(dbName, tableName, data);
+        InsertStatement.Builder builder = InsertStatement.builder().into(tableName);
+        for (String key : data.keySet()) builder.set(key, data.get(key));
+        JSONArray skipCols = req.getJSONArray("skipColumns");
+        if (skipCols != null) for (int i = 0; i < skipCols.size(); i++) builder.skip(skipCols.getString(i));
+        JSONArray timestampCols = req.getJSONArray("autoTimestampColumns");
+        if (timestampCols != null) {
+            com.server.sqlengine.dialect.SqlDialect dialect = compiler.getDialect(dbName);
+            String tsLiteral = dialect.currentTimestamp();
+            for (int i = 0; i < timestampCols.size(); i++) builder.setExpr(timestampCols.getString(i), tsLiteral);
+        }
+        JSONObject seqCols = req.getJSONObject("sequenceColumns");
+        if (seqCols != null) {
+            com.server.sqlengine.dialect.SqlDialect dialect = compiler.getDialect(dbName);
+            for (String col : seqCols.keySet()) builder.setExpr(col, dialect.sequenceNextVal(seqCols.getString(col)));
+        }
+        JSONObject rawExprs = req.getJSONObject("rawExpressions");
+        if (rawExprs != null) for (String col : rawExprs.keySet()) builder.setExpr(col, rawExprs.getString(col));
+        return sqlEngine.insert(builder.build(), dbName);
+    }
+
+    /** 只编译 UPDATE 不执行，返回 CompiledSql 供事务批量执行 */
+    public CompiledSql compileUpdate(JSONObject req, @Nullable String dbName) throws Exception {
+        String tableName = req.getString("tableName");
+        if (tableName == null || tableName.isEmpty()) throw new IllegalArgumentException("tableName 不能为空");
+        JSONObject data = req.getJSONObject("data");
+        if (data == null || data.isEmpty()) throw new IllegalArgumentException("data 不能为空");
+        JSONArray conditions = req.getJSONArray("conditions");
+        Condition where = converter.convert(conditions);
+        if (where == null) throw new IllegalArgumentException("UPDATE 操作必须提供 conditions 条件");
+        List<String> conditionCols = converter.extractColumnNames(conditions);
+        List<String> allCols = new ArrayList<String>(data.keySet());
+        allCols.addAll(conditionCols);
+        validator.validateTableAndColumns(dbName, tableName, allCols);
+        String alias = converter.extractAlias(conditions);
+        UpdateStatement.Builder builder = (alias != null && !alias.isEmpty())
+                ? UpdateStatement.builder().table(tableName, alias)
+                : UpdateStatement.builder().table(tableName);
+        for (String key : data.keySet()) builder.set(key, data.get(key));
+        JSONArray timestampCols = req.getJSONArray("autoTimestampColumns");
+        if (timestampCols != null) {
+            com.server.sqlengine.dialect.SqlDialect dialect = compiler.getDialect(dbName);
+            String tsLiteral = dialect.currentTimestamp();
+            for (int i = 0; i < timestampCols.size(); i++) builder.setExpr(timestampCols.getString(i), tsLiteral);
+        }
+        JSONObject rawExprs = req.getJSONObject("rawExpressions");
+        if (rawExprs != null) for (String col : rawExprs.keySet()) builder.setExpr(col, rawExprs.getString(col));
+        JSONObject increments = req.getJSONObject("increments");
+        if (increments != null) for (String col : increments.keySet()) builder.setIncrement(col, increments.getBigDecimal(col));
+        builder.where(where);
+        return sqlEngine.update(builder.build(), dbName);
+    }
+
+    /** 只编译 DELETE 不执行，返回 CompiledSql 供事务批量执行 */
+    public CompiledSql compileDelete(JSONObject req, @Nullable String dbName) throws Exception {
+        String tableName = req.getString("tableName");
+        if (tableName == null || tableName.isEmpty()) throw new IllegalArgumentException("tableName 不能为空");
+        JSONArray conditions = req.getJSONArray("conditions");
+        Condition where = converter.convert(conditions);
+        if (where == null) throw new IllegalArgumentException("DELETE 操作必须提供 conditions 条件");
+        List<String> conditionCols = converter.extractColumnNames(conditions);
+        validator.validateTableAndColumns(dbName, tableName, conditionCols);
+        String alias = converter.extractAlias(conditions);
+        DeleteStatement.Builder builder = DeleteStatement.builder().from(tableName, alias).where(where);
+        return sqlEngine.delete(builder.build(), dbName);
+    }
+
     /**
      * 事务批量执行 —— 多条 CompiledSql 在同一事务中执行，全成功才提交。
      */
     public ResMsg executeInTransaction(@Nullable String dbName, List<CompiledSql> sqlList) {
         try {
-            executor.executeInTransaction(dbName, sqlList);
-            return new ResMsg();
+            return executor.executeInTransaction(dbName, sqlList);
         } catch (Exception e) {
             log.error("SQL引擎-事务执行失败", e);
             ResMsg r = new ResMsg();

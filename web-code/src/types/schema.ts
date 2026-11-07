@@ -1,7 +1,7 @@
 /** 低代码平台协议类型定义 */
 
 /** 属性设置器类型 */
-export type SetterType = 'input' | 'textarea' | 'number' | 'switch' | 'select' | 'apiSelect' | 'color' | 'iconSelect' | 'json' | 'columns' | 'toolbarItems' | 'summary' | 'pageOpen' | 'optionsEditor' | 'itemsSelect' | 'parentTablePicker'
+export type SetterType = 'input' | 'textarea' | 'number' | 'switch' | 'select' | 'apiSelect' | 'color' | 'iconSelect' | 'json' | 'columns' | 'toolbarItems' | 'summary' | 'pageOpen' | 'optionsEditor' | 'itemsSelect' | 'parentTablePicker' | 'filterConditions'
 
 /** 属性设置器配置：描述右侧属性面板如何编辑某个 prop */
 export interface PropSetterConfig {
@@ -27,6 +27,11 @@ export type MaterialCategory =
   | '图表'
   | '导航'
   | '弹层'
+  | '移动端'
+  | '移动端布局'
+  | '移动端表单'
+  | '移动端展示'
+  | '移动端弹层'
 
 /** 物料（组件）元数据配置 */
 export interface MaterialConfig {
@@ -129,6 +134,12 @@ export interface ComponentSchema {
 /** 页面级 CSS（目前支持背景） */
 export interface PageCss {
   background?: string
+  /** 移动端画布根级布局方式 */
+  mobileLayout?: 'vertical' | 'horizontal' | 'free'
+  /** 移动端画布根级子控件间距 */
+  mobileGap?: number
+  /** 移动端画布根级内边距 */
+  mobilePadding?: number
 }
 
 /** 主题颜色配置 */

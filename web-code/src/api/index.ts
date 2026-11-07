@@ -26,6 +26,7 @@ import {
 } from './registry'
 import { hasActionPermission } from '@/utils/permission'
 import { t } from '@/store/lang'
+import { showRowErrors } from '@/utils/row-errors'
 
 export * from './registry'
 
@@ -172,6 +173,10 @@ export async function gatewayCall(
   const result = await apiCall('lowcodeGateway', { data: { bizCode, action, payload } })
   const resData = result.data as Record<string, unknown> | undefined
   if (resData && resData.res === false) {
+    const rowResults = resData.rowResults as Array<{ res: boolean; data: string }> | undefined
+    if (rowResults && rowResults.length > 0) {
+      await showRowErrors(rowResults)
+    }
     throw new Error(String(resData.msg || t('操作失败')))
   }
   return result

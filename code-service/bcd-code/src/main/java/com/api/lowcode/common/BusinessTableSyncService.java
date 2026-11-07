@@ -46,7 +46,7 @@ public class BusinessTableSyncService {
   static {
     TYPE_MAP.put("text-box", "VARCHAR(255)");
     TYPE_MAP.put("text-area", "TEXT");
-    TYPE_MAP.put("number-box", "NUMERIC(18,6)");
+    TYPE_MAP.put("number-box", "BIGINT");
     TYPE_MAP.put("date-box", "TIMESTAMP");
     TYPE_MAP.put("check-box", "BOOLEAN");
     TYPE_MAP.put("switch", "BOOLEAN");
@@ -66,7 +66,7 @@ public class BusinessTableSyncService {
   private static final java.util.Map<String, String> COLUMN_TYPE_MAP = new java.util.HashMap<>();
   static {
     COLUMN_TYPE_MAP.put("string", "VARCHAR(255)");
-    COLUMN_TYPE_MAP.put("number", "NUMERIC(18,6)");
+    COLUMN_TYPE_MAP.put("number", "BIGINT");
     COLUMN_TYPE_MAP.put("date", "DATE");
     COLUMN_TYPE_MAP.put("datetime", "TIMESTAMP");
     COLUMN_TYPE_MAP.put("boolean", "BOOLEAN");
@@ -439,7 +439,8 @@ public class BusinessTableSyncService {
     String cur = currentType.toLowerCase().trim();
     String des = desiredType.toLowerCase().trim();
     if (des.contains("bigint")) {
-      return cur.contains("character varying") || cur.contains("varchar") || cur.contains("text");
+      return cur.contains("character varying") || cur.contains("varchar") || cur.contains("text")
+          || cur.contains("numeric") || cur.contains("decimal");
     }
     if (des.contains("varchar") || des.contains("text")) {
       return cur.contains("bigint") || cur.contains("integer") || cur.contains("int");
@@ -757,6 +758,22 @@ public class BusinessTableSyncService {
     return null;
   }
 
+  /** 按 ID 在 schema root 中查找节点（兼容 root 为 JSONObject 或 JSONArray） */
+  private JSONObject findNodeByIdInSchema(JSONObject schema, String id) {
+    if (id == null) return null;
+    Object rootObj = schema.get("root");
+    if (rootObj instanceof JSONObject) {
+      return findNodeById((JSONObject) rootObj, id);
+    } else if (rootObj instanceof JSONArray) {
+      JSONArray rootArr = (JSONArray) rootObj;
+      for (int i = 0; i < rootArr.size(); i++) {
+        JSONObject found = findNodeById(rootArr.getJSONObject(i), id);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
   /** 解析父表名 */
   private String resolveParentTableName(DetailTableDef dt, JSONObject schema, JdbcTemplate jdbc, SqlDialect dialect) {
     String parentType = dt.parentType;
@@ -778,8 +795,7 @@ public class BusinessTableSyncService {
       return null;
     }
     if ("table".equals(parentType) && parentRef != null && !parentRef.trim().isEmpty()) {
-      JSONObject root = schema.getJSONObject("root");
-      JSONObject node = findNodeById(root, parentRef.trim());
+      JSONObject node = findNodeByIdInSchema(schema, parentRef.trim());
       if (node != null) {
         JSONObject props = node.getJSONObject("props");
         if (props != null) return props.getString("tableName");
@@ -811,8 +827,7 @@ public class BusinessTableSyncService {
       return "id";
     }
     if ("table".equals(parentType) && parentRef != null && !parentRef.trim().isEmpty()) {
-      JSONObject root = schema.getJSONObject("root");
-      JSONObject node = findNodeById(root, parentRef.trim());
+      JSONObject node = findNodeByIdInSchema(schema, parentRef.trim());
       if (node != null) {
         JSONObject props = node.getJSONObject("props");
         if (props != null) {

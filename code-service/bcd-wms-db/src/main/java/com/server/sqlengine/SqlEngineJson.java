@@ -3,6 +3,7 @@ package com.server.sqlengine;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.common.returns.ResMsg;
+import com.server.sqlengine.model.CompiledSql;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -134,15 +135,43 @@ public class SqlEngineJson {
         return facade.delete(req, DB_NAME);
     }
 
+    // ==================== 只编译不执行（供事务批量执行） ====================
+
+    public CompiledSql compileInsert(String table, JSONObject data) throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("tableName", table);
+        req.put("data", data);
+        return facade.compileInsert(req, DB_NAME);
+    }
+
+    public CompiledSql compileUpdate(String table, JSONObject data, JSONArray conditions) throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("tableName", table);
+        req.put("data", data);
+        req.put("conditions", conditions);
+        return facade.compileUpdate(req, DB_NAME);
+    }
+
+    public CompiledSql compileDelete(String table, JSONArray conditions) throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("tableName", table);
+        req.put("conditions", conditions);
+        return facade.compileDelete(req, DB_NAME);
+    }
+
+    public ResMsg executeInTransaction(java.util.List<CompiledSql> sqlList) {
+        return facade.executeInTransaction(DB_NAME, sqlList);
+    }
+
     /** upsert：先 update，影响行数为 0 则 insert；update 失败则直接返回错误 */
     public ResMsg upsert(String table, JSONObject data, JSONArray conditions) {
         ResMsg r = update(table, data, conditions);
+        Integer affected = (Integer) r.getData();
+        if (affected != null && affected == 0) {
+            return insert(table, data);
+        }
         if (!r.getRes()) {
             return r;
-        }
-        Integer affected = (Integer) r.getData();
-        if (affected == null || affected == 0) {
-            return insert(table, data);
         }
         return r;
     }

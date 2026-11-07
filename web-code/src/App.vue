@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { provide, watch, ref } from 'vue'
+import { provide, watch, ref, onMounted } from 'vue'
 import { ElConfigProvider } from 'element-plus'
 import { t, currentLang } from '@/store/lang'
+import { getDefaultThemeId, loadThemes, applyTheme } from '@/composables/useTheme'
 
 const elLocale = ref<any>(undefined)
 
@@ -55,6 +56,19 @@ async function loadElLocale(locale: string): Promise<void> {
 watch(currentLang, (lang) => loadElLocale(lang), { immediate: true })
 
 provide('t', t)
+
+onMounted(async () => {
+  const root = document.documentElement
+  root.classList.add('lc-theme-page')
+  try {
+    const themeId = await getDefaultThemeId()
+    if (themeId) {
+      const list = await loadThemes()
+      const th = list.find((tm) => tm.id === themeId)
+      if (th) applyTheme(root, th)
+    }
+  } catch { /* 主题加载失败不阻塞页面 */ }
+})
 </script>
 
 <template>

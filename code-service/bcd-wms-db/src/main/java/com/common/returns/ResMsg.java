@@ -1,5 +1,7 @@
 package com.common.returns;
 
+import java.util.List;
+
 public class ResMsg {
 
   private Boolean res = true;
@@ -7,6 +9,7 @@ public class ResMsg {
   private String msg = "方法执行成功";
 
   private int errtype = 0;
+  private List<ResRow> rowResults;
 
   public int getErrtype() {
     return errtype;
@@ -66,5 +69,13 @@ public class ResMsg {
 
   public void setMsg(String msg) {
     this.msg = msg;
+  }
+
+  public List<ResRow> getRowResults() {
+    return rowResults;
+  }
+
+  public void setRowResults(List<ResRow> rowResults) {
+    this.rowResults = rowResults;
   }
 }

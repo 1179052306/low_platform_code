@@ -51,6 +51,9 @@ public class CrudExecutor {
     @Resource
     private DataAuditService dataAuditService;
 
+    @Resource
+    private com.api.lowcode.meta.MetaRegistry metaRegistry;
+
     private static final String DB_NAME = "lowcode";
 
     /** 前端传入的唯一性校验配置键（元数据，非表字段，入库前必须剔除） */
@@ -226,11 +229,90 @@ public class CrudExecutor {
         return true;
     }
 
-    private JSONObject doCreate(BizMeta meta, ActionContext ctx) throws Exception {
+    /** 系统字段中无默认值、需要补全为 null 的字段（created_at/updated_at/deleted 有默认值不补全） */
+    private static final java.util.Set<String> SYSTEM_FIELDS_NO_DEFAULT = new java.util.HashSet<>(
+            java.util.Arrays.asList("created_by", "updated_by"));
+
+    /**
+     * 用 BizMeta + 系统字段补全行中缺失字段为 null，使所有行具有统一的字段列表。
+     * 这样 compile<Insert> 生成相同的 SQL 模板，executeInTransaction 只有一组 batch，性能最优。
+     * 有默认值的系统字段（created_at/updated_at/deleted）不补全，让数据库用默认值。
+     */
+    private void fillMissingFields(BizMeta meta, JSONObject row) {
+        if (meta.getFields() != null) {
+            for (FieldMeta f : meta.getFields()) {
+                String fieldName = f.getFieldName();
+                if (fieldName != null && !row.containsKey(fieldName)) {
+                    row.put(fieldName, null);
+                }
+            }
+        }
+        for (String sysField : SYSTEM_FIELDS_NO_DEFAULT) {
+            if (!row.containsKey(sysField)) {
+                row.put(sysField, null);
+            }
+        }
+    }
+
+    /**
+     * 从 lowcode_page 查询页面 schema，递归收集所有 data-grid 明细表的 tableName。
+     * 用于 doDelete 级联删除：所有明细表都有主表主键字段，用 pk=id 条件删除。
+     */
+    private java.util.List<String> collectDetailTableNames(String mainTable) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        try {
+            MultiDataSourceHolder.setDatasource(DB_NAME);
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            java.util.List<String> rows = jdbc.queryForList(
+                    "SELECT schema_json FROM lowcode_page WHERE table_name = ? AND deleted_at IS NULL",
+                    String.class, mainTable);
+            if (rows == null || rows.isEmpty()) return result;
+            for (String schemaStr : rows) {
+                if (schemaStr == null || schemaStr.isEmpty()) continue;
+                try {
+                    JSONObject schema = JSONObject.parseObject(schemaStr);
+                    collectGridTableNames(schema, result);
+                } catch (Exception e) {
+                    log.warn("[CrudExecutor] 解析页面schema失败 table={}: {}", mainTable, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[CrudExecutor] 查询明细表配置失败 table={}: {}", mainTable, e.getMessage());
+        } finally {
+            MultiDataSourceHolder.clearDataSource();
+        }
+        return result;
+    }
+
+    private void collectGridTableNames(JSONObject node, java.util.List<String> result) {
+        if (node == null) return;
+        if ("data-grid".equals(node.getString("type"))) {
+            JSONObject props = node.getJSONObject("props");
+            if (props != null) {
+                String tableName = props.getString("tableName");
+                if (tableName != null && !tableName.trim().isEmpty()) {
+                    result.add(tableName.trim());
+                }
+            }
+        }
+        JSONArray children = node.getJSONArray("children");
+        if (children != null) {
+            for (int i = 0; i < children.size(); i++) {
+                collectGridTableNames(children.getJSONObject(i), result);
+            }
+        }
+    }
+
+    private ResMsg doCreate(BizMeta meta, ActionContext ctx) throws Exception {
         JSONObject payload = ctx.getPayload();
         JSONObject data = new JSONObject(payload);
         JSONArray uniqueChecks = payload.getJSONArray(UNIQUE_CHECKS_KEY);
         data.remove(UNIQUE_CHECKS_KEY);
+        // 提取明细数据（一次保存主表+明细）：_details = [{ tableName, fkField, rows: [{...}] }]
+        JSONArray details = data.getJSONArray("_details");
+        data.remove("_details");
+        // 防御：移除所有 _ 前缀内部字段，避免校验拦截
+        data.keySet().removeIf(k -> k.startsWith("_"));
         String pk = getPk(meta);
         String pkVal = data.getString(pk);
         if (pkVal == null || pkVal.isEmpty()) {
@@ -244,16 +326,98 @@ public class CrudExecutor {
         validateFields(meta, data, true);
         filterWritableFields(meta, data, ctx);
         validateUniqueChecks(meta, data, uniqueChecks, null, null);
-        ResMsg r = helper.insert(meta.getMainTable(), data);
-        SqlEngineJson.check(r);
-        JSONObject result = new JSONObject();
-        result.put(pk, data.getString(pk));
+        // 收集所有 DML 的 CompiledSql，最后用 executeInTransaction 一次提交（全成功才提交，失败全回滚）
+        java.util.List<com.server.sqlengine.model.CompiledSql> txSqlList = new java.util.ArrayList<>();
+        txSqlList.add(helper.compileInsert(meta.getMainTable(), data));
+        Object masterPkVal = data.get(pk);
+
+        // 批量保存明细表数据（同一事务内）
+        // 支持表格级父子关联：_details 已由前端按拓扑排序（父表在前，子表在后）
+        // parentType=page → 外键=主表主键；parentType=table → 外键用 _rowId→真实主键 映射回填
+        if (details != null && !details.isEmpty()) {
+            java.util.Map<String, Object> rowIdMap = new java.util.HashMap<>();
+            for (int i = 0; i < details.size(); i++) {
+                JSONObject detail = details.getJSONObject(i);
+                String detailTable = detail.getString("tableName");
+                String fkField = detail.getString("fkField");
+                String parentType = detail.getString("parentType");
+                if (parentType == null || parentType.isEmpty()) parentType = "page";
+                JSONArray rows = detail.getJSONArray("rows");
+                if (rows == null || rows.isEmpty()) continue;
+                BizMeta detailMeta = metaRegistry.getMeta(detailTable);
+                if (detailMeta == null) {
+                    log.warn("[CrudExecutor] 明细表元数据未找到: {}", detailTable);
+                    continue;
+                }
+                String detailPk = getPk(detailMeta);
+                for (int j = 0; j < rows.size(); j++) {
+                    JSONObject row = rows.getJSONObject(j);
+                    row.remove("__op");
+                    String rowId = row.getString("_rowId");
+                    row.remove("_rowId");
+                    if (fkField != null && !fkField.isEmpty()) {
+                        if ("table".equals(parentType)) {
+                            String origFk = row.getString(fkField);
+                            if (origFk != null && rowIdMap.containsKey(origFk)) {
+                                row.put(fkField, rowIdMap.get(origFk));
+                            }
+                        } else {
+                            row.put(fkField, masterPkVal);
+                        }
+                    }
+                    java.util.List<String> keysToReplace = new java.util.ArrayList<>();
+                    for (String key : row.keySet()) {
+                        Object val = row.get(key);
+                        if (val instanceof String && rowIdMap.containsKey((String) val)) {
+                            keysToReplace.add(key);
+                        }
+                    }
+                    for (String key : keysToReplace) {
+                        row.put(key, rowIdMap.get(row.get(key)));
+                    }
+                    if (!pk.equals(fkField)) {
+                        row.put(pk, masterPkVal);
+                    }
+                    Object dPkVal = row.get(detailPk);
+                    boolean isTempPk = dPkVal instanceof String && ((String) dPkVal).startsWith("row_");
+                    String origPkStr = isTempPk ? (String) dPkVal : null;
+                    if (dPkVal == null || (dPkVal instanceof String && ((String) dPkVal).isEmpty()) || isTempPk) {
+                        if ("SNOWFLAKE".equalsIgnoreCase(detailMeta.getKeyStrategy())) {
+                            row.put(detailPk, SnowflakeIdGenerator.nextId());
+                        } else {
+                            row.put(detailPk, UUID.randomUUID().toString().replace("-", ""));
+                        }
+                    }
+                    filterWritableFields(detailMeta, row, ctx);
+                    fillMissingFields(detailMeta, row);
+                    txSqlList.add(helper.compileInsert(detailMeta.getMainTable(), row));
+                    if (rowId != null && !rowId.isEmpty()) {
+                        rowIdMap.put(rowId, row.get(detailPk));
+                    }
+                    if (origPkStr != null) {
+                        rowIdMap.put(origPkStr, row.get(detailPk));
+                    }
+                }
+                log.info("[CrudExecutor] 明细编译完成 table={} rows={}", detailTable, rows.size());
+            }
+        }
+
+        // 统一事务执行：executeInTransaction 内部按 SQL 模板分组用 JDBC batch 执行
+        ResMsg r = helper.executeInTransaction(txSqlList);
+        if (!r.getRes()) {
+            r.setMsg("保存失败: " + r.getMsg());
+            return r;
+        }
         log.info("[CrudExecutor] create 成功 bizCode={} table={} {}={}", meta.getBizCode(), meta.getMainTable(),
-                pk, data.getString(pk));
-        return result;
+                pk, masterPkVal);
+
+        JSONObject result = new JSONObject();
+        result.put(pk, masterPkVal);
+        r.setData(result);
+        return r;
     }
 
-    private JSONObject doUpdate(BizMeta meta, ActionContext ctx) throws Exception {
+    private ResMsg doUpdate(BizMeta meta, ActionContext ctx) throws Exception {
         JSONObject payload = ctx.getPayload();
         String pk = getPk(meta);
         String id = payload.getString(pk);
@@ -268,6 +432,10 @@ public class CrudExecutor {
         data.remove(pk.toUpperCase());
         JSONArray uniqueChecks = payload.getJSONArray(UNIQUE_CHECKS_KEY);
         data.remove(UNIQUE_CHECKS_KEY);
+        JSONArray details = data.getJSONArray("_details");
+        data.remove("_details");
+        // 防御：移除所有 _ 前缀内部字段，避免校验拦截
+        data.keySet().removeIf(k -> k.startsWith("_"));
         applyDefaultValues(meta, data, false, ctx);
         validateFields(meta, data, false);
         filterWritableFields(meta, data, ctx);
@@ -296,8 +464,112 @@ public class CrudExecutor {
 
         JSONArray conditions = helper.eq(pk, id);
         conditions = mergeDataScopeConditions(meta, ctx, conditions);
-        ResMsg r = helper.update(meta.getMainTable(), data, conditions);
-        SqlEngineJson.check(r);
+
+        // 收集所有 DML 的 CompiledSql，最后用 executeInTransaction 一次提交（全成功才提交，失败全回滚）
+        java.util.List<com.server.sqlengine.model.CompiledSql> txSqlList = new java.util.ArrayList<>();
+        txSqlList.add(helper.compileUpdate(meta.getMainTable(), data, conditions));
+
+        // 明细表先删后插（DELETE + INSERT，保留已有主键，同一事务原子提交）
+        if (details != null && !details.isEmpty()) {
+            java.util.Map<String, Object> rowIdMap = new java.util.HashMap<>();
+            for (int i = 0; i < details.size(); i++) {
+                JSONObject detail = details.getJSONObject(i);
+                String detailTable = detail.getString("tableName");
+                String fkField = detail.getString("fkField");
+                String parentType = detail.getString("parentType");
+                if (parentType == null || parentType.isEmpty()) parentType = "page";
+                JSONArray rows = detail.getJSONArray("rows");
+                BizMeta detailMeta = metaRegistry.getMeta(detailTable);
+                if (detailMeta == null) {
+                    log.warn("[CrudExecutor] 明细表元数据未找到: {}", detailTable);
+                    continue;
+                }
+                String detailPk = getPk(detailMeta);
+
+                // 先删：批量删除该关联条件下的所有明细行
+                JSONArray delConds;
+                if ("table".equals(parentType)) {
+                    java.util.List<Object> parentPkValues = new java.util.ArrayList<>();
+                    for (Object v : rowIdMap.values()) {
+                        if (v != null) parentPkValues.add(v);
+                    }
+                    if (parentPkValues.isEmpty()) {
+                        delConds = null;
+                    } else {
+                        delConds = helper.in(fkField, parentPkValues);
+                    }
+                } else {
+                    delConds = helper.eq(fkField, id);
+                }
+                if (delConds != null) {
+                    txSqlList.add(helper.compileDelete(detailMeta.getMainTable(), delConds));
+                }
+
+                // 后插：遍历前端传来的行，有主键保留，无/临时ID生成新主键
+                if (rows == null || rows.isEmpty()) continue;
+                for (int j = 0; j < rows.size(); j++) {
+                    JSONObject row = rows.getJSONObject(j);
+                    row.remove("__op");
+                    String rowId = row.getString("_rowId");
+                    row.remove("_rowId");
+                    // 外键回填
+                    if (fkField != null && !fkField.isEmpty()) {
+                        if ("table".equals(parentType)) {
+                            String origFk = row.getString(fkField);
+                            if (origFk != null && rowIdMap.containsKey(origFk)) {
+                                row.put(fkField, rowIdMap.get(origFk));
+                            }
+                        } else {
+                            row.put(fkField, id);
+                        }
+                    }
+                    // 扫描所有字段：值在 rowIdMap 中的替换为真实主键
+                    java.util.List<String> keysToReplace = new java.util.ArrayList<>();
+                    for (String key : row.keySet()) {
+                        Object val = row.get(key);
+                        if (val instanceof String && rowIdMap.containsKey((String) val)) {
+                            keysToReplace.add(key);
+                        }
+                    }
+                    for (String key : keysToReplace) {
+                        row.put(key, rowIdMap.get(row.get(key)));
+                    }
+                    // 总是设置主表主键
+                    if (!pk.equals(fkField)) {
+                        row.put(pk, id);
+                    }
+                    // 主键：有真实主键保留，无/临时ID生成新的
+                    Object dPkVal = row.get(detailPk);
+                    boolean isTempPk = dPkVal instanceof String && ((String) dPkVal).startsWith("row_");
+                    String origPkStr = isTempPk ? (String) dPkVal : null;
+                    if (dPkVal == null || (dPkVal instanceof String && ((String) dPkVal).isEmpty()) || isTempPk) {
+                        if ("SNOWFLAKE".equalsIgnoreCase(detailMeta.getKeyStrategy())) {
+                            row.put(detailPk, SnowflakeIdGenerator.nextId());
+                        } else {
+                            row.put(detailPk, UUID.randomUUID().toString().replace("-", ""));
+                        }
+                    }
+                    filterWritableFields(detailMeta, row, ctx);
+                    fillMissingFields(detailMeta, row);
+                    txSqlList.add(helper.compileInsert(detailMeta.getMainTable(), row));
+                    // 建立映射
+                    if (rowId != null && !rowId.isEmpty()) {
+                        rowIdMap.put(rowId, row.get(detailPk));
+                    }
+                    if (origPkStr != null) {
+                        rowIdMap.put(origPkStr, row.get(detailPk));
+                    }
+                }
+                log.info("[CrudExecutor] 明细先删后插 table={} rows={}", detailTable, rows.size());
+            }
+        }
+
+        // 统一事务执行：executeInTransaction 内部按 SQL 模板分组用 JDBC batch 执行
+        ResMsg r = helper.executeInTransaction(txSqlList);
+        if (!r.getRes()) {
+            r.setMsg("保存失败: " + r.getMsg());
+            return r;
+        }
 
         // 审计：afterCommit 入队
         if (beforeRow != null) {
@@ -307,11 +579,12 @@ public class CrudExecutor {
         JSONObject result = new JSONObject();
         result.put(pk, id);
         result.put("affectedRows", r.getData());
+        r.setData(result);
         log.info("[CrudExecutor] update 成功 bizCode={} table={} {}={}", meta.getBizCode(), meta.getMainTable(), pk, id);
-        return result;
+        return r;
     }
 
-    private JSONObject doDelete(BizMeta meta, ActionContext ctx) throws Exception {
+    private ResMsg doDelete(BizMeta meta, ActionContext ctx) throws Exception {
         JSONObject payload = ctx.getPayload();
         String pk = getPk(meta);
         String id = payload.getString(pk);
@@ -332,22 +605,48 @@ public class CrudExecutor {
         String logicDeleteField = meta.getLogicDeleteField();
         JSONArray conditions = helper.eq(pk, id);
         conditions = mergeDataScopeConditions(meta, ctx, conditions);
+
+        // 收集所有 DML，主表+明细级联删除在同一事务中执行
+        java.util.List<com.server.sqlengine.model.CompiledSql> txSqlList = new java.util.ArrayList<>();
+
+        // 级联删除明细表：从 lowcode_page 查询页面 schema，解析所有 data-grid 明细表
+        // 所有明细表都有主表主键字段（doCreate/doUpdate 中 row.put(pk, id)），用 pk=id 条件删除
+        java.util.List<String> detailTableNames = collectDetailTableNames(meta.getMainTable());
+        for (String detailTable : detailTableNames) {
+            BizMeta detailMeta = metaRegistry.getMeta(detailTable);
+            if (detailMeta == null) continue;
+            JSONArray detailConds = helper.eq(pk, id);
+            if (logicDeleteField != null && !logicDeleteField.isEmpty()) {
+                JSONObject logicData = new JSONObject();
+                logicData.put(logicDeleteField, true);
+                txSqlList.add(helper.compileUpdate(detailMeta.getMainTable(), logicData, detailConds));
+            } else {
+                txSqlList.add(helper.compileDelete(detailMeta.getMainTable(), detailConds));
+            }
+        }
+
+        // 主表删除
         if (logicDeleteField != null && !logicDeleteField.isEmpty()) {
             JSONObject data = new JSONObject();
             data.put(logicDeleteField, true);
-            ResMsg r = helper.update(meta.getMainTable(), data, conditions);
-            SqlEngineJson.check(r);
-            log.info("[CrudExecutor] 逻辑删除成功 bizCode={} table={} {}={}", meta.getBizCode(), meta.getMainTable(),
-                    pk, id);
+            txSqlList.add(helper.compileUpdate(meta.getMainTable(), data, conditions));
         } else {
-            ResMsg r = helper.delete(meta.getMainTable(), conditions);
-            SqlEngineJson.check(r);
-            log.info("[CrudExecutor] 物理删除成功 bizCode={} table={} {}={}", meta.getBizCode(), meta.getMainTable(),
-                    pk, id);
+            txSqlList.add(helper.compileDelete(meta.getMainTable(), conditions));
         }
+
+        // 统一事务执行：主表+明细级联删除全成功才提交
+        ResMsg r = helper.executeInTransaction(txSqlList);
+        if (!r.getRes()) {
+            r.setMsg("删除失败: " + r.getMsg());
+            return r;
+        }
+        log.info("[CrudExecutor] delete 成功 bizCode={} table={} {}={} 级联明细表={}",
+                meta.getBizCode(), meta.getMainTable(), pk, id, detailTableNames);
+
         JSONObject result = new JSONObject();
         result.put(pk, id);
-        return result;
+        r.setData(result);
+        return r;
     }
 
     /** 启用：将状态字段置为 1，支持批量 ids */
@@ -528,7 +827,7 @@ public class CrudExecutor {
             JSONObject row = rows.getJSONObject(i);
             JSONObject newRow = new JSONObject();
             for (String key : row.keySet()) {
-                String mappedKey = colMap.getOrDefault(key, key.toLowerCase());
+                String mappedKey = colMap.getOrDefault(key, key);
                 newRow.put(mappedKey, row.get(key));
             }
             mapped.add(newRow);

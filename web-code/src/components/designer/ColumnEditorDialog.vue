@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
+import { ElSelect, ElOption, ElInput, ElDatePicker, ElButton } from 'element-plus'
 import JsonTableEditorDialog from './JsonTableEditorDialog.vue'
 import ApiSelectDialog from './ApiSelectDialog.vue'
 import PageSelectDialog from './PageSelectDialog.vue'
+import ExprDialog from './ExprDialog.vue'
 import { useDialogDragAndMax } from './useDialogDragAndMax'
 import DialogMaxButton from './DialogMaxButton.vue'
 import FieldSelectDialog from './FieldSelectDialog.vue'
+import type { DependFilterCondition } from './DependFilterDialog.vue'
 import { t } from '@/store/lang'
 import { listBaseDataPages, loadPage, type SavedPageMeta } from '@/store/persistence'
 import type { ComponentSchema } from '@/types/schema'
@@ -20,6 +23,7 @@ interface ColumnConfig {
   isSystemField?: boolean
   allowEditing?: boolean
   required?: boolean
+  isSavable?: boolean
   allowSorting?: boolean
   allowFiltering?: boolean
   allowGrouping?: boolean
@@ -62,7 +66,15 @@ interface ColumnConfig {
     displayField?: string
     codeField?: string
     writeBack?: { sourceField: string; targetField: string }[]
+    filterConditions?: DependFilterCondition[]
   }
+  computeExpr?: string
+  triggerFields?: string[]
+  editableConditions?: { field: string; operator: string; value: string; value2?: string }[]
+  numberType?: 'any' | 'integer' | 'positiveInteger' | 'decimal'
+  decimalPlaces?: number
+  minValue?: number
+  maxValue?: number
 }
 
 const props = defineProps<{
@@ -87,6 +99,84 @@ const expandedIdx = ref<number | null>(null)
 const searchKeyword = ref('')
 const dragIdx = ref<number | null>(null)
 const dragOverIdx = ref<number | null>(null)
+
+/** 公式编辑弹窗状态 */
+const exprDialogVisible = ref(false)
+const exprDialogExpr = ref('')
+const exprDialogTriggerFields = ref<string[]>([])
+let _exprDialogTargetCol: ColumnConfig | null = null
+
+function openComputeExprDialog(col: ColumnConfig) {
+  _exprDialogTargetCol = col
+  exprDialogExpr.value = col.computeExpr ?? ''
+  exprDialogTriggerFields.value = col.triggerFields ? [...col.triggerFields] : []
+  exprDialogVisible.value = true
+}
+
+function onExprDialogConfirm(expr: string, triggerFields: string[]) {
+  if (_exprDialogTargetCol) {
+    _exprDialogTargetCol.computeExpr = expr || undefined
+    _exprDialogTargetCol.triggerFields = triggerFields.length ? triggerFields : undefined
+  }
+}
+
+/** 可编辑条件运算符（按字段数据类型映射，与 PageRuleDialog 一致） */
+const OPERATORS_BY_TYPE: Record<string, { value: string; label: string }[]> = {
+  number: [
+    { value: '=', label: '等于' },
+    { value: '<>', label: '不等于' },
+    { value: '>', label: '大于' },
+    { value: '>=', label: '大于等于' },
+    { value: '<', label: '小于' },
+    { value: '<=', label: '小于等于' },
+    { value: 'between', label: '之间' },
+  ],
+  date: [
+    { value: '=', label: '等于' },
+    { value: '<>', label: '不等于' },
+    { value: '>', label: '大于' },
+    { value: '>=', label: '大于等于' },
+    { value: '<', label: '小于' },
+    { value: '<=', label: '小于等于' },
+    { value: 'between', label: '之间' },
+  ],
+  boolean: [
+    { value: '=', label: '等于' },
+    { value: '<>', label: '不等于' },
+  ],
+  string: [
+    { value: 'contains', label: '包含' },
+    { value: 'notcontains', label: '不包含' },
+    { value: '=', label: '等于' },
+    { value: '<>', label: '不等于' },
+    { value: 'startswith', label: '以...开头' },
+    { value: 'endswith', label: '以...结尾' },
+  ],
+}
+
+function getColDataType(field: string): string {
+  if (!field) return 'string'
+  const col = columns.value.find(c => c.dataField === field)
+  if (!col) return 'string'
+  const dt = col.dataType
+  if (dt === 'number') return 'number'
+  if (dt === 'date' || dt === 'datetime') return 'date'
+  if (dt === 'boolean') return 'boolean'
+  return 'string'
+}
+
+function getOperatorsForField(field: string): { value: string; label: string }[] {
+  return OPERATORS_BY_TYPE[getColDataType(field)] ?? OPERATORS_BY_TYPE.string
+}
+
+function addEditableCondition(col: ColumnConfig) {
+  if (!col.editableConditions) col.editableConditions = []
+  col.editableConditions.push({ field: '', operator: '=', value: '' })
+}
+
+function removeEditableCondition(col: ColumnConfig, idx: number) {
+  col.editableConditions?.splice(idx, 1)
+}
 
 /** API 服务选择弹窗状态 */
 const apiSelectVisible = ref(false)
@@ -161,8 +251,85 @@ const displayFieldSelectId = ref('')
 const codeFieldSelectVisible = ref(false)
 const codeFieldSelectId = ref('')
 
+const showMultiValueDialog = ref(false)
+const multiValueRows = ref<string[]>([])
+let _multiValueTarget: { obj: any; key: string } | null = null
+
+function openFilterMultiValue(fc: any) {
+  _multiValueTarget = { obj: fc, key: 'fixedValue' }
+  const existing = fc.fixedValue ? String(fc.fixedValue).split('\n').map((v: string) => v.trim()).filter((v: string) => v !== '') : []
+  const rows = [...existing]
+  while (rows.length < 100) rows.push('')
+  multiValueRows.value = rows
+  showMultiValueDialog.value = true
+}
+
+function confirmFilterMultiValue() {
+  const values = multiValueRows.value.map((v: string) => v.trim()).filter((v: string) => v !== '')
+  if (_multiValueTarget) {
+    _multiValueTarget.obj[_multiValueTarget.key] = values.join('\n')
+  }
+  showMultiValueDialog.value = false
+}
+
+/** 表单控件字段拍平列表（用于过滤条件中选择表单控件，不展开基础资料子字段） */
+const formFieldFlatOptions = computed(() => {
+  const result: { fieldName: string; title: string }[] = []
+  for (const f of props.formFields ?? []) {
+    if (f.refPageId) {
+      result.push({ fieldName: f.fieldName, title: f.title })
+    } else if (f.children && f.children.length) {
+      for (const child of f.children) {
+        result.push({ fieldName: child.fieldName, title: `${f.title} / ${child.title}` })
+      }
+    } else {
+      result.push({ fieldName: f.fieldName, title: f.title })
+    }
+  }
+  return result
+})
+
+/** 根据过滤字段名返回可用操作符 */
+function getOperatorsForFilterField(fieldName: string) {
+  const f = refPageFields.value.find((f) => f.dbField === fieldName)
+  const dt = (f?.dataType || '').toLowerCase()
+  if (dt === 'number' || dt === 'int' || dt === 'integer' || dt === 'long' || dt === 'decimal' || dt === 'float' || dt === 'double' || dt === 'bigint') {
+    return [
+      { value: '=', label: '=' },
+      { value: '<>', label: '≠' },
+      { value: '>', label: '>' },
+      { value: '>=', label: '≥' },
+      { value: '<', label: '<' },
+      { value: '<=', label: '≤' },
+    ]
+  }
+  if (dt === 'date' || dt === 'datetime' || dt === 'timestamp' || dt === 'time') {
+    return [
+      { value: '=', label: '=' },
+      { value: '<>', label: '≠' },
+      { value: '>', label: '>' },
+      { value: '>=', label: '≥' },
+      { value: '<', label: '<' },
+      { value: '<=', label: '≤' },
+    ]
+  }
+  if (dt === 'boolean' || dt === 'bool') {
+    return [
+      { value: '=', label: '=' },
+      { value: '<>', label: '≠' },
+    ]
+  }
+  return [
+    { value: '=', label: '=' },
+    { value: '<>', label: '≠' },
+    { value: 'contains', label: t('包含') },
+    { value: 'startswith', label: t('开头') },
+    { value: 'endswith', label: t('结尾') },
+  ]
+}
+
 /** 关联页面字段列表 */
-const refPageFields = ref<{ dbField: string; fieldName: string; displayText: string }[]>([])
+const refPageFields = ref<{ dbField: string; fieldName: string; displayText: string; dataType?: string }[]>([])
 const refPagePrimaryKey = ref('')
 /** 被关联基础资料页面中启用编码规则（编号规则表达式）的字段，用作编码字段默认值 */
 const refPageCodeRuleField = ref('')
@@ -186,7 +353,7 @@ async function loadRefPageFields(refPageId: string) {
       return
     }
     refPagePrimaryKey.value = (page.primaryKeyField as string) || (page as any).primary_key_field || 'id'
-    const fields: { dbField: string; fieldName: string; displayText: string }[] = []
+    const fields: { dbField: string; fieldName: string; displayText: string; dataType?: string }[] = []
     const tableSchema = page.bizSchemas?.table?.[0]
     const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
     if (Array.isArray(tableProps.columns)) {
@@ -195,16 +362,27 @@ async function loadRefPageFields(refPageId: string) {
         const dataField = String(c.dataField || '')
         if (!dataField || dataField.includes('.')) continue
         const caption = String(c.caption || dataField)
-        fields.push({ dbField: dataField, fieldName: caption, displayText: `${caption} (${dataField})` })
+        const dt = String(c.dataType || '')
+        fields.push({ dbField: dataField, fieldName: caption, displayText: `${caption} (${dataField})`, dataType: dt || undefined })
       }
     }
+    const baseDataRefMap: { dbField: string; refPageId: string }[] = []
     const collect = (nodes: ComponentSchema[]) => {
       for (const node of nodes) {
         if (node.dbField && !node.dbField.includes('.')) {
-          if (!fields.some((f) => f.dbField === node.dbField)) {
+          const existing = fields.find((f) => f.dbField === node.dbField)
+          const inferredDt = inferDataType(node.type)
+          if (!existing) {
             const label = (node.props?.label as string) || ''
             const fieldName = node.fieldName || node.dbField
-            fields.push({ dbField: node.dbField, fieldName, displayText: label ? `${label} (${fieldName})` : fieldName })
+            const dt = String((node.props as Record<string, unknown> | undefined)?.dataType || '') || inferredDt
+            fields.push({ dbField: node.dbField, fieldName, displayText: label ? `${label} (${fieldName})` : fieldName, dataType: dt || undefined })
+          } else if ((!existing.dataType || existing.dataType === 'string') && inferredDt !== 'string') {
+            existing.dataType = inferredDt
+          }
+          if (node.type === 'base-data') {
+            const refId = String((node.props as Record<string, unknown> | undefined)?.refPageId || '')
+            if (refId) baseDataRefMap.push({ dbField: node.dbField, refPageId: refId })
           }
         }
         // 检测启用编码规则（编号规则表达式）的字段，作为编码字段默认值
@@ -226,7 +404,24 @@ async function loadRefPageFields(refPageId: string) {
     if (pk && !fields.some((f) => f.dbField === pk)) {
       fields.unshift({ dbField: pk, fieldName: pk, displayText: pk })
     }
+    const pkField = fields.find((f) => f.dbField === pk)
+    if (pkField && (!pkField.dataType || pkField.dataType === 'string')) {
+      const ks = String((page as any).keyStrategy || '')
+      if (ks === 'SNOWFLAKE' || ks === 'AUTO_INCREMENT' || !ks) pkField.dataType = 'number'
+    }
+    for (const bd of baseDataRefMap) {
+      const f = fields.find((f) => f.dbField === bd.dbField)
+      if (!f || (f.dataType && f.dataType !== 'string')) continue
+      try {
+        const refPage = await loadPage(bd.refPageId)
+        if (refPage) {
+          const ks = String((refPage as any).keyStrategy || '')
+          f.dataType = (ks === 'UUID' || ks === 'GUID') ? 'string' : 'number'
+        }
+      } catch { /* ignore */ }
+    }
     refPageFields.value = fields
+
   } catch {
     refPageFields.value = []
     refPagePrimaryKey.value = ''
@@ -393,6 +588,8 @@ function parseColumns(text: string): ColumnConfig[] | null {
         item.allowEditing !== undefined ? Boolean(item.allowEditing) : false,
       required:
         item.required !== undefined ? Boolean(item.required) : false,
+      isSavable:
+        item.isSavable !== undefined ? Boolean(item.isSavable) : true,
       allowSorting:
         item.allowSorting !== undefined ? Boolean(item.allowSorting) : true,
       allowFiltering:
@@ -418,6 +615,13 @@ function parseColumns(text: string): ColumnConfig[] | null {
       lookup: item.lookup as ColumnConfig['lookup'],
       dropDownGrid: item.dropDownGrid as ColumnConfig['dropDownGrid'],
       baseDataRef: item.baseDataRef as ColumnConfig['baseDataRef'],
+      computeExpr: item.computeExpr !== undefined ? String(item.computeExpr) : undefined,
+      triggerFields: Array.isArray(item.triggerFields) ? item.triggerFields.map(String) : undefined,
+      editableConditions: Array.isArray(item.editableConditions) ? item.editableConditions as ColumnConfig['editableConditions'] : undefined,
+      numberType: item.numberType !== undefined ? String(item.numberType) as ColumnConfig['numberType'] : undefined,
+      decimalPlaces: item.decimalPlaces !== undefined ? Number(item.decimalPlaces) : undefined,
+      minValue: item.minValue !== undefined ? Number(item.minValue) : undefined,
+      maxValue: item.maxValue !== undefined ? Number(item.maxValue) : undefined,
     }))
   } catch {
     return null
@@ -457,6 +661,7 @@ function addColumn() {
     editorType: 'default',
     allowEditing: false,
     visible: true,
+    isSavable: true,
     permCode: dataField,
   })
   expandedIdx.value = columns.value.length - 1
@@ -648,7 +853,7 @@ function toggleFormImportField(fieldName: string) {
 function inferDataType(controlType?: string): string {
   if (!controlType) return 'string'
   if (controlType === 'date-box' || controlType === 'date-range-box') return 'date'
-  if (controlType === 'number-box') return 'number'
+  if (controlType === 'number-box' || controlType === 'slider' || controlType === 'range-slider') return 'number'
   if (controlType === 'check-box' || controlType === 'switch') return 'boolean'
   return 'string'
 }
@@ -772,6 +977,7 @@ function onDataTypeChange(col: ColumnConfig) {
   col.format = defaultFormat(col.dataType)
 }
 
+
 function onEditorTypeChange(realIdx: number, type: string) {
   const col = columns.value[realIdx]
   col.editorType = type
@@ -889,6 +1095,7 @@ function onLookupDialogConfirm(value: string) {
   }
   lookupDialogVisible.value = false
 }
+
 
 function onConfirm() {
   if (mode.value === 'table') {
@@ -1191,6 +1398,15 @@ watch(mode, () => {
                     <label class="switch-item">
                       <input
                         type="checkbox"
+                        v-model="col.isSavable"
+                        :true-value="true"
+                        :false-value="false"
+                      />
+                      <span>{{ t('保存') }}</span>
+                    </label>
+                    <label class="switch-item">
+                      <input
+                        type="checkbox"
                         v-model="col.allowSorting"
                         :true-value="true"
                         :false-value="false"
@@ -1281,6 +1497,124 @@ watch(mode, () => {
                           {{ opt.label }}
                         </option>
                       </select>
+                    </div>
+
+                    <!-- 可编辑条件配置 -->
+                    <div class="form-row" style="flex-direction: column; align-items: stretch">
+                      <div class="cond-header">
+                        <label class="form-label">{{ t('可编辑条件') }}<span class="cond-info-icon" :title="t('多条件且关系，留空则始终可编辑')">?</span></label>
+                        <ElButton size="small" @click="addEditableCondition(col)">+ {{ t('添加条件') }}</ElButton>
+                      </div>
+                      <div class="cond-list">
+                        <div
+                          v-for="(cond, cidx) in col.editableConditions"
+                          :key="cidx"
+                          class="cond-row"
+                        >
+                          <ElSelect
+                            v-model="cond.field"
+                            filterable
+                            allow-create
+                            default-first-option
+                            :placeholder="t('字段名')"
+                            size="small"
+                            style="width: 130px"
+                          >
+                            <ElOption
+                              v-for="otherCol in columns.filter(c => c.dataField !== col.dataField)"
+                              :key="otherCol.dataField"
+                              :value="otherCol.dataField"
+                              :label="otherCol.dataField"
+                            />
+                          </ElSelect>
+                          <select class="cond-op" v-model="cond.operator">
+                            <option v-for="op in getOperatorsForField(cond.field)" :key="op.value" :value="op.value">{{ op.label }}</option>
+                          </select>
+                          <template v-if="getColDataType(cond.field) === 'date'">
+                            <ElDatePicker
+                              v-model="cond.value"
+                              type="datetime"
+                              size="small"
+                              style="width: 160px"
+                              :placeholder="cond.operator === 'between' ? t('开始') : t('选择日期')"
+                            />
+                            <template v-if="cond.operator === 'between'">
+                              <span class="cond-between-sep">~</span>
+                              <ElDatePicker
+                                v-model="cond.value2"
+                                type="datetime"
+                                size="small"
+                                style="width: 160px"
+                                :placeholder="t('结束')"
+                              />
+                            </template>
+                          </template>
+                          <template v-else-if="getColDataType(cond.field) === 'boolean'">
+                            <ElSelect v-model="cond.value" size="small" style="width: 100px">
+                              <ElOption label="true" value="true" />
+                              <ElOption label="false" value="false" />
+                            </ElSelect>
+                          </template>
+                          <template v-else>
+                            <ElInput
+                              v-model="cond.value"
+                              :type="getColDataType(cond.field) === 'number' ? 'number' : 'text'"
+                              size="small"
+                              style="width: 160px"
+                              :placeholder="cond.operator === 'between' ? t('开始') : t('值')"
+                            />
+                            <template v-if="cond.operator === 'between'">
+                              <span class="cond-between-sep">~</span>
+                              <ElInput
+                                v-model="cond.value2"
+                                :type="getColDataType(cond.field) === 'number' ? 'number' : 'text'"
+                                size="small"
+                                style="width: 160px"
+                                :placeholder="t('结束')"
+                              />
+                            </template>
+                          </template>
+                          <button class="cond-del" type="button" @click="removeEditableCondition(col, cidx)">×</button>
+                        </div>
+                        <div v-if="!col.editableConditions?.length" class="cond-empty">{{ t('暂无条件，始终可编辑') }}</div>
+                      </div>
+                    </div>
+
+                    <!-- 数字格式校验配置 -->
+                    <div v-if="col.dataType === 'number'" class="form-row" style="flex-wrap: wrap; gap: 4px 12px">
+                      <label class="form-label">{{ t('数字格式') }}</label>
+                      <select class="cond-op" v-model="col.numberType">
+                        <option :value="undefined">{{ t('任意') }}</option>
+                        <option value="integer">{{ t('整数') }}</option>
+                        <option value="positiveInteger">{{ t('正整数') }}</option>
+                        <option value="decimal">{{ t('小数') }}</option>
+                      </select>
+                      <template v-if="col.numberType === 'decimal'">
+                        <label class="form-label" style="margin-left: 4px">{{ t('小数位') }}</label>
+                        <ElInput
+                          v-model="col.decimalPlaces"
+                          type="number"
+                          size="small"
+                          style="width: 70px"
+                          :placeholder="t('位')"
+                        />
+                      </template>
+                      <label class="form-label" style="margin-left: 4px">{{ t('最小') }}</label>
+                      <ElInput
+                        v-model="col.minValue"
+                        type="number"
+                        size="small"
+                        style="width: 80px"
+                        :placeholder="t('不限')"
+                      />
+                      <label class="form-label" style="margin-left: 4px">{{ t('最大') }}</label>
+                      <ElInput
+                        v-model="col.maxValue"
+                        type="number"
+                        size="small"
+                        style="width: 80px"
+                        :placeholder="t('不限')"
+                      />
                     </div>
 
                     <!-- 下拉框配置 -->
@@ -1501,6 +1835,86 @@ watch(mode, () => {
                           >+ {{ t('添加反写') }}</button>
                         </div>
                       </div>
+                      <!-- 过滤条件配置 -->
+                      <div class="form-row" v-if="col.baseDataRef.refPageId">
+                        <label class="form-label">{{ t('过滤条件') }}</label>
+                        <div class="writeback-list">
+                          <div
+                            v-for="(fc, fcIdx) in (col.baseDataRef.filterConditions || (col.baseDataRef.filterConditions = []))"
+                            :key="fcIdx"
+                            class="writeback-row"
+                          >
+                            <select class="form-input writeback-select" v-model="fc.field">
+                              <option value="">{{ t('过滤字段') }}</option>
+                              <option
+                                v-for="f in refPageFields"
+                                :key="f.dbField"
+                                :value="f.dbField"
+                              >{{ f.displayText }}</option>
+                            </select>
+                            <select class="form-input writeback-select" v-model="fc.operator" style="width: 80px">
+                              <option
+                                v-for="op in getOperatorsForFilterField(fc.field)"
+                                :key="op.value"
+                                :value="op.value"
+                              >{{ op.label }}</option>
+                            </select>
+                            <select class="form-input writeback-select" v-model="fc.valueType" style="width: 90px">
+                              <option value="fixed">{{ t('固定值') }}</option>
+                              <option value="rowField">{{ t('行字段') }}</option>
+                              <option value="formControl">{{ t('表单控件') }}</option>
+                            </select>
+                            <input
+                              v-if="fc.valueType === 'fixed'"
+                              class="form-input writeback-select"
+                              v-model="fc.fixedValue"
+              :placeholder="fc.fixedValue && fc.fixedValue.includes('\n') ? fc.fixedValue.split('\n').filter((v: string) => v.trim()).join(', ') : t('固定值')"
+              :readonly="!!(fc.fixedValue && fc.fixedValue.includes('\n'))"
+                            />
+                            <button
+                              v-if="fc.valueType === 'fixed' && (fc.operator === '=' || fc.operator === '<>')"
+                              type="button"
+                              class="writeback-add-btn"
+                              style="margin-left: 2px; white-space: nowrap"
+                              @click="openFilterMultiValue(fc)"
+                            >多值</button>
+                            <select
+                              v-else-if="fc.valueType === 'rowField'"
+                              class="form-input writeback-select"
+                              v-model="fc.rowField"
+                            >
+                              <option value="">{{ t('行字段') }}</option>
+                              <option
+                                v-for="c in columns.filter((c2) => c2.dataField !== col.dataField && c2.dataField)"
+                                :key="c.dataField"
+                                :value="c.dataField"
+                              >{{ c.caption || c.dataField }}</option>
+                            </select>
+                            <select
+                              v-else-if="fc.valueType === 'formControl'"
+                              class="form-input writeback-select"
+                              v-model="fc.formControlField"
+                            >
+                              <option value="">{{ t('表单控件') }}</option>
+                              <option
+                                v-for="ff in formFieldFlatOptions"
+                                :key="ff.fieldName"
+                                :value="ff.fieldName"
+                              >{{ ff.title }}</option>
+                            </select>
+                            <button
+                              class="writeback-del-btn"
+                              type="button"
+                              @click="col.baseDataRef!.filterConditions!.splice(fcIdx, 1)"
+                            >✕</button>
+                          </div>
+                          <button
+                            class="writeback-add-btn"
+                            type="button"
+                            @click="(col.baseDataRef!.filterConditions ||= []).push({ field: '', operator: '=', valueType: 'fixed', fixedValue: '' })"
+                          >+ {{ t('添加条件') }}</button>
+                        </div>
+                      </div>
                     </div>
 
                     <!-- 下拉表格配置 -->
@@ -1647,6 +2061,29 @@ watch(mode, () => {
                       </div>
                     </div>
                   </div>
+
+                  <!-- 计算规则配置 -->
+                  <div class="editor-section">
+                    <div class="section-header">{{ t('计算规则') }}</div>
+                    <div class="form-row">
+                      <label class="form-label">{{ t('计算表达式') }}</label>
+                      <div class="expr-display-row">
+                        <span class="expr-display-text">{{ col.computeExpr || t('未设置') }}</span>
+                        <button class="expr-edit-btn" type="button" @click="openComputeExprDialog(col)">{{ t('编辑公式') }}</button>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <label class="form-label">{{ t('触发字段') }}</label>
+                      <div class="trigger-tags">
+                        <span
+                          v-for="tf in col.triggerFields"
+                          :key="tf"
+                          class="trigger-tag"
+                        >{{ tf }}</span>
+                        <span v-if="!col.triggerFields?.length" class="trigger-tag-empty">{{ t('未设置') }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </template>
             </div>
@@ -1663,6 +2100,39 @@ watch(mode, () => {
           />
         </div>
       </div>
+
+      <div v-if="showMultiValueDialog" class="dialog-overlay" style="z-index: 10001" @click.self="showMultiValueDialog = false">
+        <div class="dialog-container" style="width: 420px; max-height: 80vh">
+          <div class="dialog-header">
+            <span class="dialog-title">{{ t('多值输入') }}</span>
+            <button class="dialog-close" @click="showMultiValueDialog = false">x</button>
+          </div>
+          <div class="dialog-body" style="padding: 8px">
+            <div style="max-height: 50vh; overflow-y: auto">
+              <div v-for="(_, rowIdx) in multiValueRows" :key="rowIdx" style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px">
+                <input
+                  v-model="multiValueRows[rowIdx]"
+                  class="form-input"
+                  style="flex: 1"
+                  :placeholder="t('值')"
+                />
+                <button
+                  type="button"
+                  style="flex-shrink: 0; border: none; background: none; cursor: pointer; color: #f56c6c; font-size: 16px; padding: 0 4px"
+                  @click="multiValueRows[rowIdx] = ''"
+                  title="清空"
+                >×</button>
+              </div>
+            </div>
+          </div>
+          <div class="dialog-footer">
+            <button class="dialog-btn dialog-btn-cancel" @click="multiValueRows = multiValueRows.map(() => '')">{{ t('清空全部') }}</button>
+            <button class="dialog-btn dialog-btn-cancel" @click="showMultiValueDialog = false">{{ t('取消') }}</button>
+            <button class="dialog-btn dialog-btn-confirm" @click="confirmFilterMultiValue">{{ t('确定') }}</button>
+          </div>
+        </div>
+      </div>
+
       <div class="dialog-footer">
         <button class="dialog-btn dialog-btn-cancel" @click="onCancel">
           {{ t('取消') }}
@@ -1713,6 +2183,14 @@ watch(mode, () => {
       :title="t('选择编码字段')"
       @select="(field: string) => onCodeFieldSelectConfirm(field)"
     />
+    <ExprDialog
+      v-model="exprDialogVisible"
+      :fields="columns.map(c => c.dataField)"
+      :expr="exprDialogExpr"
+      :trigger-fields="exprDialogTriggerFields"
+      @confirm="onExprDialogConfirm"
+    />
+
 
     <Teleport to="body">
       <div
@@ -2311,6 +2789,116 @@ watch(mode, () => {
   flex-direction: column;
   gap: 8px;
   background: #fff;
+}
+.expr-display-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.expr-display-text {
+  flex: 1;
+  font-family: monospace;
+  font-size: 12px;
+  color: #606266;
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-height: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expr-edit-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid #1976d2;
+  background: #fff;
+  color: #1976d2;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.expr-edit-btn:hover {
+  background: #1976d2;
+  color: #fff;
+}
+.trigger-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.trigger-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: monospace;
+}
+.trigger-tag-empty {
+  font-size: 12px;
+  color: #c0c4cc;
+}
+.cond-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.cond-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #dcdfe6;
+  color: #909399;
+  font-size: 10px;
+  cursor: help;
+  vertical-align: middle;
+}
+.cond-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cond-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cond-op {
+  width: 100px;
+  flex-shrink: 0;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 0 4px;
+  height: 28px;
+  font-size: 12px;
+}
+.cond-between-sep {
+  color: #909399;
+  font-size: 12px;
+}
+.cond-del {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #f56c6c;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+}
+.cond-empty {
+  font-size: 12px;
+  color: #c0c4cc;
+  padding: 4px 0;
 }
 
 /* ===================== 子配置卡片 ===================== */

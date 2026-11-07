@@ -12,6 +12,7 @@ export const LAYOUT_CONTAINER_TYPES = new Set([
   'el-row',
   'el-splitter',
   'el-tabs',
+  'el-collapse',
 ])
 
 /** 布局结构子节点类型：el-col / el-splitter-panel / el-tab-pane
@@ -23,6 +24,7 @@ export const STRUCTURAL_CHILD_TYPES = new Set([
   'el-col',
   'el-splitter-panel',
   'el-tab-pane',
+  'el-collapse-item',
 ])
 
 /** 支持子节点自由定位的容器类型：el-splitter-panel / el-tab-pane
@@ -33,7 +35,19 @@ export const STRUCTURAL_CHILD_TYPES = new Set([
 export const FREE_POSITION_CONTAINERS = new Set([
   'el-splitter-panel',
   'el-tab-pane',
+  'el-collapse-item',
 ])
+
+/** 判断容器是否为自由定位容器（子节点可 absolute 定位）。
+ *  除 FREE_POSITION_CONTAINERS 外，移动端容器（m- 前缀）在 props.layout === 'free' 时也视为自由定位。 */
+export function isFreePositionContainer(node: {
+  type: string
+  props?: Record<string, unknown>
+}): boolean {
+  if (FREE_POSITION_CONTAINERS.has(node.type)) return true
+  if (node.type.startsWith('m-') && node.props?.layout === 'free') return true
+  return false
+}
 
 /** 栅格 section 类型：el-col / el-splitter-panel
  *  - 宽高由 flex/span/sectionKey 控制，不应用 CSS width/height
@@ -52,6 +66,7 @@ export const SUB_CONTAINER_TYPES = new Set([
   'el-col',
   'el-splitter-panel',
   'el-tab-pane',
+  'el-collapse-item',
 ])
 
 /** 受保护的布局容器类型：这些容器的直接子节点不能被拖拽分离或删除 */

@@ -2,7 +2,9 @@
 import { provide, computed, ref, onBeforeUnmount } from 'vue'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import RendererNode from './RendererNode.vue'
-import { createRenderStore, DESIGNER_STORE_KEY, collectAllNodes, findNodeByFieldNameIn } from '@/store/designer'
+import { createRenderStore, DESIGNER_STORE_KEY, collectAllNodes, findNodeByFieldNameIn, findNode } from '@/store/designer'
+import { GRID_REGISTRY_KEY } from '@/store/designer-shared'
+import { GRID_SELECTION_KEY } from '@/store/designer-shared'
 import { pageModal, type PageModalInstance } from './pageModal'
 import { gatewayCall } from '@/api'
 import { t } from '@/store/lang'
@@ -20,6 +22,14 @@ store.schema = props.modal.schema
 store.computeRules = props.modal.computeRules
 store.pageRules = props.modal.pageRules
 provide(DESIGNER_STORE_KEY, store)
+
+/** data-grid 组件实例注册表：nodeId → LcTable exposed instance（含 getData） */
+const gridRegistry = new Map<string, any>()
+provide(GRID_REGISTRY_KEY, gridRegistry)
+
+/** data-grid 选中行注册表：nodeId → 当前选中行（用于表格级父子关联过滤） */
+const gridSelectionMap = new Map<string, Record<string, unknown> | null>()
+provide(GRID_SELECTION_KEY, gridSelectionMap)
 
 const isDrawer = computed(() => props.modal.options.mode === 'drawer')
 const overlayZIndex = computed(() => 10000 + (props.stackIndex ?? 0) * 1000)
@@ -114,37 +124,102 @@ function findDetailGrids(nodes: ComponentSchema[]): ComponentSchema[] {
   return result
 }
 
+/** 从网关 query 响应中提取行数组（兼容多层嵌套结构） */
+function extractQueryRows(res: any): Record<string, unknown>[] {
+  if (!res) return []
+  // 路径1: res.data.data.data（三层嵌套）
+  if (res.data?.data?.data && Array.isArray(res.data.data.data)) return res.data.data.data
+  // 路径2: res.data.data（两层嵌套，data 是数组）
+  if (res.data?.data && Array.isArray(res.data.data)) return res.data.data
+  // 路径3: res.data（直接是数组）
+  if (Array.isArray(res.data)) return res.data
+  // 路径4: res.payload.data
+  if (res.payload?.data && Array.isArray(res.payload.data)) return res.payload.data
+  return []
+}
+
 /** 加载明细表数据并填充到 data-grid */
 async function loadDetailData(mId: unknown) {
   const pk = store.primaryKeyField || 'id'
   const detailGrids = findDetailGrids(store.schema)
-  for (const grid of detailGrids) {
+  // 按父子关系排序：父表先加载，子表后加载
+  const sorted = [...detailGrids].sort((a, b) => {
+    const aParent = (a.props.parentType as string) === 'table'
+    const bParent = (b.props.parentType as string) === 'table'
+    if (aParent === bParent) return 0
+    return aParent ? 1 : -1
+  })
+  // 一级明细表并发加载，子明细表等父表完成后加载
+  const firstLevel = sorted.filter(g => (g.props.parentType as string) !== 'table')
+  const childLevel = sorted.filter(g => (g.props.parentType as string) === 'table')
+
+  async function loadOneGrid(grid: ComponentSchema) {
     const detailTable = grid.props.tableName as string
-    const gridKeyExpr = (grid.props.keyExpr as string) || pk
+    const parentType = (grid.props.parentType as string) || 'page'
     try {
-      const filterData = [
-        { Symbol: 'and' },
-        { Id: pk, Symbol: '=', Val: mId, TableAlias: 'T' },
-      ]
-      const res = await gatewayCall(detailTable, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 9999 })
-      const rows = (res as { data?: Record<string, unknown>[] })?.data || []
+      let rows: Record<string, unknown>[] = []
+      if (parentType === 'table') {
+        // 子明细表：先尝试用主表PK过滤加载全部数据
+        try {
+          const filterData = [
+            { Symbol: 'and' },
+            { Id: pk, Symbol: '=', Val: mId, TableAlias: 'T' },
+          ]
+          const res = await gatewayCall(detailTable, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 9999 })
+          rows = extractQueryRows(res)
+        } catch { rows = [] }
+        // 若主表PK列不存在或返回空，回退用父明细表FK逐条查询
+        if (rows.length === 0) {
+          const parentRef = (grid.props.parentRef as string) || ''
+          const parentGrid = sorted.find(g => g.id === parentRef)
+          if (parentGrid) {
+            const parentKeyExpr = (parentGrid.props.keyExpr as string) || pk
+            const parentData = (parentGrid.props.dataSource as Record<string, unknown>[]) || []
+            for (const parentRow of parentData) {
+              const parentPk = parentRow[parentKeyExpr]
+              if (parentPk == null) continue
+              const fkFilter = [
+                { Symbol: 'and' },
+                { Id: parentKeyExpr, Symbol: '=', Val: parentPk, TableAlias: 'T' },
+              ]
+              const fkRes = await gatewayCall(detailTable, 'query', { filterData: JSON.stringify(fkFilter), page: 1, pageSize: 9999 })
+              rows.push(...extractQueryRows(fkRes))
+            }
+          }
+        }
+      } else {
+        // 一级明细表：用主表PK过滤
+        const filterData = [
+          { Symbol: 'and' },
+          { Id: pk, Symbol: '=', Val: mId, TableAlias: 'T' },
+        ]
+        const res = await gatewayCall(detailTable, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 9999 })
+        rows = extractQueryRows(res)
+      }
       detailOriginalData.set(detailTable, rows.map(r => ({ ...r })))
       grid.props.dataSource = rows
       grid.props.dataSourceType = 'static'
+      delete grid.props.remoteOperations
     } catch (err) {
       console.error(`[明细数据加载失败] ${detailTable}`, err)
       grid.props.dataSource = []
       detailOriginalData.set(detailTable, [])
     }
   }
+
+  // 一级明细表并发加载
+  await Promise.all(firstLevel.map(g => loadOneGrid(g)))
+  // 子明细表并发加载（此时父表数据已就绪）
+  await Promise.all(childLevel.map(g => loadOneGrid(g)))
 }
 
-async function loadFullRecordAndFill() {
-  if (!rowData) return
+async function loadRecordAndFill(sourceRow: Record<string, unknown>) {
   const pk = store.primaryKeyField || 'id'
-  const pkVal = getField(rowData, pk)
+  const pkVal = getField(sourceRow, pk)
   if (pkVal == null) {
-    for (const node of store.schema) { fillFormValues(node, rowData) }
+    for (const node of store.schema) { fillFormValues(node, sourceRow) }
+    await loadDetailData(masterId.value)
+    initialFormValues.value = snapshotFormValues()
     return
   }
   masterId.value = pkVal
@@ -155,23 +230,34 @@ async function loadFullRecordAndFill() {
       { Id: pk, Symbol: '=', Val: pkVal, TableAlias: 'T' },
     ]
     const res = await gatewayCall(tableName.value, 'query', { filterData: JSON.stringify(filterData), page: 1, pageSize: 1 })
-    const rows = (res as { data?: Record<string, unknown>[] })?.data
+    const rows = extractQueryRows(res)
     if (rows && rows.length > 0) {
       const fullData = rows[0]
       masterId.value = getField(fullData, pk) ?? pkVal
       if (props.modal.params) { props.modal.params.masterId = masterId.value }
       for (const node of store.schema) { fillFormValues(node, fullData) }
     } else {
-      for (const node of store.schema) { fillFormValues(node, rowData) }
+      for (const node of store.schema) { fillFormValues(node, sourceRow) }
     }
   } catch {
-    for (const node of store.schema) { fillFormValues(node, rowData) }
+    for (const node of store.schema) { fillFormValues(node, sourceRow) }
   }
   await loadDetailData(masterId.value)
   initialFormValues.value = snapshotFormValues()
 }
 
+async function loadFullRecordAndFill() {
+  if (!rowData) return
+  await loadRecordAndFill(rowData)
+}
+
 if (rowData) {
+  // 同步设置明细表格为 static 空数据，防止 data-grid 在 async 查询完成前自动发起 remote 请求
+  for (const grid of findDetailGrids(store.schema)) {
+    grid.props.dataSourceType = 'static'
+    grid.props.dataSource = []
+    delete grid.props.remoteOperations
+  }
   loadFullRecordAndFill()
 }
 
@@ -193,14 +279,11 @@ function isDirty(): boolean {
 }
 
 /** 逐条编辑：切换到指定行 */
-function switchRow(index: number): void {
+async function switchRow(index: number): Promise<void> {
   if (!rowDataList || index < 0 || index >= rowDataList.length) return
   editIndex.value = index
   const data = rowDataList[index]
-  for (const node of store.schema) {
-    fillFormValues(node, data)
-  }
-  initialFormValues.value = snapshotFormValues()
+  await loadRecordAndFill(data)
 }
 
 function prevRow(): void {
@@ -295,15 +378,61 @@ async function validateUnique(data: Record<string, unknown>): Promise<string[]> 
 }
 
 /** 保存明细表数据（先删后插策略） */
+/** 拓扑排序明细网格：parentType=table 的子网格排在父网格之后 */
+function topoSortGrids(grids: ComponentSchema[]): ComponentSchema[] {
+  const result: ComponentSchema[] = []
+  const visited = new Set<string>()
+  const visiting = new Set<string>()
+  function visit(grid: ComponentSchema) {
+    if (visited.has(grid.id)) return
+    if (visiting.has(grid.id)) return
+    visiting.add(grid.id)
+    const parentType = (grid.props.parentType as string) || 'page'
+    if (parentType === 'table') {
+      const parentRef = (grid.props.parentRef as string) || ''
+      const parentGrid = grids.find(g => g.id === parentRef)
+      if (parentGrid) visit(parentGrid)
+    }
+    visiting.delete(grid.id)
+    visited.add(grid.id)
+    result.push(grid)
+  }
+  for (const grid of grids) visit(grid)
+  return result
+}
+
+/** 从网关响应中提取新生成的主键值 */
+function extractPkFromResponse(res: any, keyExpr: string): unknown {
+  const data = res?.data?.data ?? res?.data ?? res
+  if (data && typeof data === 'object') {
+    return data[keyExpr] ?? data[keyExpr.toLowerCase()] ?? data[keyExpr.toUpperCase()] ?? data.id ?? data.ID
+  }
+  return undefined
+}
+
 async function saveDetailData(masterData: Record<string, unknown>) {
   const pk = store.primaryKeyField || 'id'
   const mId = masterData[pk] ?? masterId.value
-  if (mId == null) return
   const detailGrids = findDetailGrids(store.schema)
-  for (const grid of detailGrids) {
+  if (mId == null) {
+    console.warn('[saveDetailData] mId is null，跳过明细保存')
+    return
+  }
+  const sortedGrids = topoSortGrids(detailGrids)
+  const rowIdMap = new Map<string, unknown>()
+  for (const grid of sortedGrids) {
     const detailTable = grid.props.tableName as string
     const gridKeyExpr = (grid.props.keyExpr as string) || pk
-    const currentRows = (grid.props.dataSource as Record<string, unknown>[]) || []
+    const parentType = (grid.props.parentType as string) || 'page'
+    const parentRef = (grid.props.parentRef as string) || ''
+    const currentRows = (() => {
+      const gridInst = gridRegistry.get(grid.id)
+
+      if (gridInst && typeof gridInst.getData === 'function') {
+        return gridInst.getData() as Record<string, unknown>[]
+      }
+      return (grid.props.dataSource as Record<string, unknown>[]) || []
+    })()
     const originalRows = detailOriginalData.get(detailTable) || []
     for (const orig of originalRows) {
       const origPk = orig[gridKeyExpr] ?? orig[gridKeyExpr.toLowerCase()] ?? orig[gridKeyExpr.toUpperCase()]
@@ -318,15 +447,34 @@ async function saveDetailData(masterData: Record<string, unknown>) {
         }
       }
     }
+    let fkField = pk
+    if (parentType === 'table') {
+      const parentNode = findNode(store.schema, parentRef)
+      fkField = (parentNode?.node?.props?.keyExpr as string) || pk
+    }
     for (const row of currentRows) {
-      const ins: Record<string, unknown> = { ...row }
-      ins[pk] = mId
-      delete ins.__op
+      const ins: Record<string, unknown> = {}
+      for (const k of Object.keys(row)) {
+        if (!k.startsWith('_') && k !== '__op') ins[k] = row[k]
+      }
+      if (parentType === 'table') {
+        const origFk = ins[fkField]
+        if (typeof origFk === 'string' && rowIdMap.has(origFk)) {
+          ins[fkField] = rowIdMap.get(origFk)
+        }
+      } else {
+        ins[fkField] = mId
+      }
       try {
-        await httpRequest('/api/lowcode/gateway', {
+        const detailRes = await httpRequest('/api/lowcode/gateway', {
           method: 'POST',
           body: JSON.stringify({ bizCode: detailTable, action: 'create', payload: ins }),
         })
+        const _rowId = row._rowId as string
+        if (_rowId) {
+          const realPk = extractPkFromResponse(detailRes, gridKeyExpr)
+          if (realPk != null) rowIdMap.set(_rowId, realPk)
+        }
       } catch (err) {
         console.error(`[明细新增失败] ${detailTable}`, err)
       }
@@ -349,6 +497,13 @@ async function onSave() {
   if (hasError) {
     ElMessage.warning(t('表单验证未通过，请检查必填项'))
     return
+  }
+  const detailGrids = findDetailGrids(store.schema)
+  for (const grid of detailGrids) {
+    const gridInst = gridRegistry.get(grid.id)
+    if (gridInst && typeof gridInst.validateAndSave === 'function') {
+      if (!gridInst.validateAndSave()) return
+    }
   }
   const data: Record<string, unknown> = {}
   for (const node of store.schema) {
@@ -388,17 +543,53 @@ async function onSave() {
       if (pkVal == null || pkVal === '') {
         delete data[pk]
       }
+      // 兜底：剔除所有空字符串的 *_ID 字段（可能 primaryKeyField 未正确配置）
+      for (const key of Object.keys(data)) {
+        if (data[key] === '' && key.toUpperCase().endsWith('_ID')) {
+          delete data[key]
+        }
+      }
     }
+    const pk = store.primaryKeyField || 'id'
+    const sortedGrids = topoSortGrids(detailGrids)
+    const _details: Array<Record<string, unknown>> = []
+    for (const grid of sortedGrids) {
+      const detailTable = grid.props.tableName as string
+      const gridInst = gridRegistry.get(grid.id)
+      const rows = gridInst && typeof gridInst.getData === 'function'
+        ? gridInst.getData() as Record<string, unknown>[]
+        : (grid.props.dataSource as Record<string, unknown>[]) || []
+      if (rows.length === 0) continue
+      const parentType = (grid.props.parentType as string) || 'page'
+      const parentRef = (grid.props.parentRef as string) || ''
+      let fkField = pk
+      if (parentType === 'table') {
+        const parentNode = findNode(store.schema, parentRef)
+        fkField = (parentNode?.node?.props?.keyExpr as string) || pk
+      }
+      const parentRefTable = parentType === 'table'
+        ? (findNode(store.schema, parentRef)?.node?.props?.tableName as string) || ''
+        : ''
+      _details.push({
+        tableName: detailTable,
+        fkField,
+        parentType,
+        parentRefTable,
+        rows: rows.map(r => {
+          const c: Record<string, unknown> = {}
+          for (const k of Object.keys(r)) {
+            if (k !== '__op') c[k] = r[k]
+          }
+          return c
+        }),
+      })
+    }
+    if (_details.length > 0) data._details = _details
     const saveRes = await gatewayCall(tableName.value, action, data)
     if (action === 'create') {
-      const pk = store.primaryKeyField || 'id'
-      const resData = saveRes.data as Record<string, unknown> | undefined
-      const newId = resData?.[pk]
-        ?? (saveRes.payload.data[0] as Record<string, unknown> | undefined)?.[pk]
-        ?? resData?.id
+      const newId = extractPkFromResponse(saveRes, pk)
       if (newId != null) { data[pk] = newId; masterId.value = newId }
     }
-    await saveDetailData(data)
     ElMessage.success(t('保存成功'))
     if (isMultiEdit.value && editIndex.value < rowDataList!.length - 1) {
       nextRow()
@@ -528,7 +719,7 @@ const modalStyle = computed(() => {
       <div class="page-modal-footer">
         <ElButton @click="close">{{ t('取消') }}</ElButton>
         <ElButton v-if="isSelectMode" type="primary" :disabled="!store.selectedRowData" @click="onConfirmSelect">{{ t('确认选择') }}</ElButton>
-        <ElButton v-else type="primary" :loading="saving" @click="onSave">{{ t('保存') }}</ElButton>
+        <ElButton v-else type="primary" :loading="saving" :disabled="saving" @click="onSave">{{ t('保存') }}</ElButton>
       </div>
     </div>
   </div>
@@ -658,5 +849,15 @@ const modalStyle = computed(() => {
   padding: 10px 16px;
   border-top: 1px solid #eee;
   flex-shrink: 0;
+}
+</style>
+<style>
+.page-modal-enter-active,
+.page-modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+.page-modal-enter-from,
+.page-modal-leave-to {
+  opacity: 0;
 }
 </style>

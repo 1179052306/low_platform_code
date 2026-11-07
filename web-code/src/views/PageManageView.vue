@@ -525,6 +525,8 @@ async function previewPage(
         pageId: page.pageId,
         pageName: page.pageName,
         tableName: page.tableName || '',
+        primaryKeyField: page.primaryKeyField,
+        keyStrategy: page.keyStrategy,
         pageCss: page.pageCss || { background: '#ffffff' },
         schema: page.root,
         computeRules: page.computeRules,

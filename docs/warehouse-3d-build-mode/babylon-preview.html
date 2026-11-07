@@ -141,7 +141,7 @@ let mode = 'plan'; // plan | walk
 let scope = 'park'; // park | warehouse
 let currentWarehouse = null;
 let currentFloor = 1;
-const FLOOR_H = 4;
+const FLOOR_H = 10;
 let selectedType = null;
 let started = false;
 let placedMeshes = [];
@@ -228,23 +228,24 @@ function buildPark() {
 }
 
 function buildFloor(wh, floor) {
+  const meta = { w: wh.metadata.w, d: wh.metadata.d, floors: wh.metadata.floors, name: wh.metadata.name };
   clearAll();
   scope = 'warehouse';
-  currentWarehouse = wh;
+  currentWarehouse = { metadata: meta };
   currentFloor = floor;
   const yBase = (floor - 1) * FLOOR_H;
   const yCeil = yBase + FLOOR_H;
-  const w = wh.metadata.w, d = wh.metadata.d;
-  // 白色地坪漆地面（仓库尺寸）
+  const w = meta.w, d = meta.d;
+  // 工业灰地坪漆地面（仓库尺寸）
   groundMesh = BABYLON.MeshBuilder.CreateGround('tmp_ground', { width: w, height: d }, scene);
-  groundMesh.material = mat('#f0f0f0');
+  groundMesh.material = mat('#b8b8b8');
   groundMesh.position.y = yBase;
   groundMesh.receiveShadows = true;
   groundMesh.metadata = { isGround: true };
-  // 楼顶板（不透明，覆盖仓库范围）
-  const ceil = BABYLON.MeshBuilder.CreateGround('tmp_ceil', { width: w, height: d }, scene);
-  ceil.material = mat('#d8d4cc');
-  ceil.position.y = yCeil;
+  // 楼顶板（实体薄板，双面可见）
+  const ceil = BABYLON.MeshBuilder.CreateBox('tmp_ceil', { width: w, height: 0.2, depth: d }, scene);
+  ceil.material = mat('#c0bcc4');
+  ceil.position.y = yCeil - 0.1;
   // 横梁（沿X方向，间距5米，仅仓库内）
   const beamMat = mat('#8a8a80');
   for (let i = -d/2 + 5; i <= d/2 - 1; i += 5) {
@@ -277,8 +278,9 @@ function buildFloor(wh, floor) {
   }
 
   planCam.setTarget(new BABYLON.Vector3(0, yBase + 2, 0));
-  planCam.radius = 25;
-  walkCam.position = new BABYLON.Vector3(0, yBase + 3, d/2 - 2);
+  planCam.radius = 80;
+  walkCam.position = new BABYLON.Vector3(0, yBase + 3, d/2 - 25);
+  walkYaw = 0; walkPitch = 0;
   setBreadcrumb(['空地', wh.name, floor + 'F']);
   setInfo(wh.name + ' · ' + floor + 'F', '放置货架/石柱/障碍物');
   setHotbar([
@@ -295,7 +297,7 @@ function buildFloor(wh, floor) {
 function makeWarehouse(x, z, floors) {
   const root = new BABYLON.TransformNode('wh', scene);
   root.position = new BABYLON.Vector3(x, 0, z);
-  const w = 20, d = 15, fh = 4, totalH = floors * fh;
+  const w = 100, d = 70, fh = 10, totalH = floors * fh;
   const wallMat = mat('#d8d4cc');
   const trimMat = mat('#3a4a5a');
   const roofMat = mat('#4a5560');
@@ -552,7 +554,7 @@ window.addEventListener('keydown', e => {
     const wh = nearWarehouse.metadata;
     const opts = [];
     for (let f = 1; f <= wh.floors; f++) opts.push({ label: f + 'F', floor: f });
-    showModal('选择进入楼层', opts, o => buildFloor(wh, o.floor));
+    showModal('选择进入楼层', opts, o => buildFloor(nearWarehouse, o.floor));
   }
   // 数字键
   const slots = document.querySelectorAll('.slot');
@@ -562,16 +564,45 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keysDown[e.code] = false; });
 
-// 鼠标点击放置
+// 鼠标点击放置 / 拖拽移动
+let draggingMesh = null;
 canvas.addEventListener('pointerdown', (e) => {
   if (!started) return;
   if (document.getElementById('modalSlot').children.length) return;
   if (e.button !== 0) return;
   // 延迟检测是否拖动（pointerup 时判断）
   pointerDownPos = { x: e.clientX, y: e.clientY };
+  // 规划模式 + 楼层内 + 未选物品：检测是否点中已放置物品 → 拖拽
+  if (mode === 'plan' && scope === 'warehouse' && !selectedType) {
+    const pick = scene.pick(e.offsetX, e.offsetY, m => m !== groundMesh && m.isVisible && !m.name.startsWith('tmp_') && m.isEnabled);
+    if (pick.hit) {
+      let target = pick.pickedMesh;
+      while (target.parent && placedMeshes.indexOf(target) === -1) target = target.parent;
+      if (placedMeshes.indexOf(target) !== -1) {
+        draggingMesh = target;
+        planCam.detachControl(canvas);
+        return;
+      }
+    }
+  }
 });
 let pointerDownPos = null;
+canvas.addEventListener('pointermove', (e) => {
+  if (!draggingMesh || !groundMesh) return;
+  const pick = scene.pick(e.offsetX, e.offsetY, m => m === groundMesh);
+  if (pick.hit) {
+    draggingMesh.position.x = Math.round(pick.pickedPoint.x);
+    draggingMesh.position.z = Math.round(pick.pickedPoint.z);
+  }
+});
 canvas.addEventListener('pointerup', (e) => {
+  if (draggingMesh) {
+    showToast('物品已移动');
+    draggingMesh = null;
+    pointerDownPos = null;
+    planCam.attachControl(canvas, true);
+    return;
+  }
   if (!started || !pointerDownPos) return;
   const moved = Math.abs(e.clientX - pointerDownPos.x) + Math.abs(e.clientY - pointerDownPos.y) > 5;
   pointerDownPos = null;
@@ -634,11 +665,32 @@ engine.runRenderLoop(() => {
     const fwd = new BABYLON.Vector3(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
     const right = new BABYLON.Vector3(Math.cos(walkYaw), 0, -Math.sin(walkYaw));
     let move = BABYLON.Vector3.Zero();
-    if (keysDown.KeyW) move.addInPlace(fwd.scale(-speed));
-    if (keysDown.KeyS) move.addInPlace(fwd.scale(speed));
+    if (keysDown.KeyW) move.addInPlace(fwd.scale(speed));
+    if (keysDown.KeyS) move.addInPlace(fwd.scale(-speed));
     if (keysDown.KeyA) move.addInPlace(right.scale(-speed));
     if (keysDown.KeyD) move.addInPlace(right.scale(speed));
-    if (move.lengthSquared() > 0) walkCam.moveWithCollisions(move);
+    if (move.lengthSquared() > 0) {
+      const oldPos = walkCam.position.clone();
+      walkCam.position.addInPlace(move);
+      const margin = 1.5;
+      if (scope === 'warehouse' && currentWarehouse) {
+        const w = currentWarehouse.metadata.w, d = currentWarehouse.metadata.d;
+        walkCam.position.x = Math.max(-w/2 + margin, Math.min(w/2 - margin, walkCam.position.x));
+        walkCam.position.z = Math.max(-d/2 + margin, Math.min(d/2 - margin, walkCam.position.z));
+      } else if (scope === 'park') {
+        for (const m of placedMeshes) {
+          if (m.metadata && m.metadata.isWarehouse) {
+            const w = m.metadata.w, d = m.metadata.d;
+            const dx = walkCam.position.x - m.position.x;
+            const dz = walkCam.position.z - m.position.z;
+            if (Math.abs(dx) < w/2 + margin && Math.abs(dz) < d/2 + margin) {
+              walkCam.position = oldPos;
+              break;
+            }
+          }
+        }
+      }
+    }
     // 锁定高度
     const fixedY = scope === 'warehouse' ? (currentFloor - 1) * FLOOR_H + 3 : 3;
     walkCam.position.y = fixedY;
@@ -647,7 +699,7 @@ engine.runRenderLoop(() => {
     if (scope === 'park') {
       for (const m of placedMeshes) {
         if (m.metadata && m.metadata.isWarehouse) {
-          if (BABYLON.Vector3.Distance(walkCam.position, m.position) < 8) { nearWarehouse = m; break; }
+          if (BABYLON.Vector3.Distance(walkCam.position, m.position) < 55) { nearWarehouse = m; break; }
         }
       }
     }

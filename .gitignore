@@ -56,3 +56,11 @@ start-auth-services.sh
 system-user-view-verified.png
 code-service/list-java.ps1
 code-service/restart-3015.ps1
+# 临时测试文件
+.pwtest/
+drag-test.html
+web-code/fix_mobile_materials.py
+web-code/test_drag_repro.py
+wsdl-local/
+# Flutter Web 编译产物
+web-code/public/mobile-preview/

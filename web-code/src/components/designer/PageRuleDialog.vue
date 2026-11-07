@@ -14,6 +14,7 @@ import { getConfig, getDxAllPropSetters } from '@/materials'
 const props = defineProps<{
   modelValue: boolean
   fields: string[]
+  targetFields?: { value: string; label: string }[]
   rules: PageRule[]
 }>()
 
@@ -23,6 +24,11 @@ const emit = defineEmits<{
 }>()
 
 const innerRules = ref<PageRule[]>([])
+
+const targetFieldList = computed(() => {
+  if (props.targetFields && props.targetFields.length) return props.targetFields
+  return props.fields.map((f) => ({ value: f, label: f }))
+})
 const selectedRuleId = ref('')
 const selectedRule = ref<PageRule | null>(null)
 
@@ -449,10 +455,19 @@ watch(() => props.modelValue, (v) => { if (!v) resetDialog() })
           </div>
           <div class="pr-cond-list">
             <div v-for="(cond, idx) in selectedRule.conditions" :key="idx" class="pr-cond-row">
-              <select class="pr-cond-field" v-model="cond.field" @change="onConditionFieldChange(cond)">
-                <option value="">{{ t('选择字段') }}</option>
-                <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
-              </select>
+              <ElSelect
+                v-model="cond.field"
+                filterable
+                allow-create
+                default-first-option
+                :placeholder="t('字段/参数名')"
+                size="small"
+                style="width: 140px"
+                @change="onConditionFieldChange(cond)"
+              >
+                <ElOption value="triggerButton" :label="t('触发按钮(triggerButton)')" />
+                <ElOption v-for="f in fields" :key="f" :value="f" :label="f" />
+              </ElSelect>
               <select class="pr-cond-op" v-model="cond.operator" @change="onConditionOperatorChange(cond)">
                 <option v-for="op in getOperatorsForField(cond.field)" :key="op.value" :value="op.value">{{ op.label }}</option>
               </select>
@@ -532,10 +547,17 @@ watch(() => props.modelValue, (v) => { if (!v) resetDialog() })
               <select class="pr-action-type" v-model="act.type" @change="ensureActionConfig(act)">
                 <option v-for="at in ACTION_TYPES" :key="at.value" :value="at.value">{{ t(at.label) }}</option>
               </select>
-              <select v-if="act.type !== 'callApi' && act.type !== 'openPage' && act.type !== 'showMessage' && act.type !== 'runScript'" class="pr-action-field" v-model="act.targetField">
-                <option value="">{{ t('目标字段') }}</option>
-                <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
-              </select>
+              <ElSelect
+                v-if="act.type !== 'callApi' && act.type !== 'openPage' && act.type !== 'showMessage' && act.type !== 'runScript'"
+                v-model="act.targetField"
+                filterable
+                :placeholder="t('目标字段')"
+                size="small"
+                style="width: 140px"
+                class="pr-action-field"
+              >
+                <ElOption v-for="f in targetFieldList" :key="f.value" :value="f.value" :label="f.label" />
+              </ElSelect>
               <template v-if="act.type === 'setVisible' || act.type === 'setDisabled' || act.type === 'setRequired' || act.type === 'setReadOnly'">
                 <button class="pr-bool-btn" :class="{ 'pr-bool-on': act.boolValue }" @click="act.boolValue = true">{{ boolLabel(act.type, true) }}</button>
                 <button class="pr-bool-btn" :class="{ 'pr-bool-off': !act.boolValue }" @click="act.boolValue = false">{{ boolLabel(act.type, false) }}</button>
@@ -670,10 +692,17 @@ watch(() => props.modelValue, (v) => { if (!v) resetDialog() })
               <select class="pr-action-type" v-model="act.type" @change="ensureActionConfig(act)">
                 <option v-for="at in ACTION_TYPES" :key="at.value" :value="at.value">{{ t(at.label) }}</option>
               </select>
-              <select v-if="act.type !== 'callApi' && act.type !== 'openPage' && act.type !== 'showMessage' && act.type !== 'runScript'" class="pr-action-field" v-model="act.targetField">
-                <option value="">{{ t('目标字段') }}</option>
-                <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
-              </select>
+              <ElSelect
+                v-if="act.type !== 'callApi' && act.type !== 'openPage' && act.type !== 'showMessage' && act.type !== 'runScript'"
+                v-model="act.targetField"
+                filterable
+                :placeholder="t('目标字段')"
+                size="small"
+                style="width: 140px"
+                class="pr-action-field"
+              >
+                <ElOption v-for="f in targetFieldList" :key="f.value" :value="f.value" :label="f.label" />
+              </ElSelect>
               <template v-if="act.type === 'setVisible' || act.type === 'setDisabled' || act.type === 'setRequired' || act.type === 'setReadOnly'">
                 <button class="pr-bool-btn" :class="{ 'pr-bool-on': act.boolValue }" @click="act.boolValue = true">{{ boolLabel(act.type, true) }}</button>
                 <button class="pr-bool-btn" :class="{ 'pr-bool-off': !act.boolValue }" @click="act.boolValue = false">{{ boolLabel(act.type, false) }}</button>

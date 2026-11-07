@@ -5,7 +5,8 @@ import { httpRequest, extractPayload, setDebugPageIdProvider } from '@/utils/req
 import {
   LAYOUT_CONTAINER_TYPES,
   STRUCTURAL_CHILD_TYPES,
-  FREE_POSITION_CONTAINERS,
+
+  isFreePositionContainer,
   GRID_SECTION_TYPES,
   PROTECTED_LAYOUT_TYPES,
   LAYOUT_SECTION_TYPES,
@@ -217,6 +218,7 @@ export function undo(): void {
   collectAllNodes(designerStore.schema).forEach(migrateNodeProps)
   designerStore.selectedId = null
   designerStore.selectedIds = []
+  designerStore.schemaRevision += 1
 }
 
 export function redo(): void {
@@ -237,6 +239,7 @@ export function redo(): void {
   collectAllNodes(designerStore.schema).forEach(migrateNodeProps)
   designerStore.selectedId = null
   designerStore.selectedIds = []
+  designerStore.schemaRevision += 1
 }
 
 export const canUndo = computed(() => history.undoStack.length > 0)
@@ -327,7 +330,7 @@ export function createNode(type: string): ComponentSchema | null {
   // 布局容器（el-row / el-splitter / el-tabs）默认高度自适应子节点，宽度默认 300px
   const isLayoutContainer = LAYOUT_CONTAINER_TYPES.has(type)
   // el-tabs 需要固定高度（flex 布局链需要确定高度），默认 200px
-  const needsFixedHeight = type === 'el-tabs'
+  const needsFixedHeight = type === 'el-tabs' || type === 'el-collapse'
   // 过滤掉 defaultProps 中的 width/height，统一由尺寸 section 控制
   const { width: _dw, height: _dh, ...filteredProps } = cfg.defaultProps
   void _dw; void _dh
@@ -339,8 +342,8 @@ export function createNode(type: string): ComponentSchema | null {
     fieldName: nextFieldName(type),
     x: pos.x,
     y: pos.y,
-    width: isLayoutContainer ? 300 : size.width,
-    height: needsFixedHeight ? 200 : size.height,
+    width: isLayoutContainer ? 300 : (type.startsWith('m-') ? undefined : size.width),
+    height: needsFixedHeight ? 200 : (type.startsWith('m-') ? undefined : size.height),
     heightAuto: isLayoutContainer ? true : undefined,
   }
   // 自动创建默认子项（Row / Splitter / Container 等布局控件，支持嵌套）
@@ -388,13 +391,17 @@ function applyContainerCss(node: ComponentSchema): void {
 
 /** 添加节点：parentId 为 null 表示插入根列表，index 为插入位置；selectNew 控制是否选中新节点（默认 true） */
 export function addNode(type: string, parentId: string | null, index: number, selectNew: boolean = true, overrideProps?: Record<string, unknown>): void {
+  console.debug('[drag-debug] addNode: type=', type, 'parentId=', parentId, 'index=', index)
   // 禁止同类型布局容器嵌套自身（栅格/分割面板/布局容器）
   if (isForbiddenSelfNesting(type, parentId)) {
-    console.warn(`[低代码设计器] 禁止将 ${type} 嵌套到同类型的 ${type} 布局容器内。`)
+    console.warn('[drag-debug] addNode 拒绝：禁止将 ' + type + ' 嵌套到同类型布局容器内。')
     return
   }
   const node = createNode(type)
-  if (!node) return
+  if (!node) {
+    console.warn('[drag-debug] addNode 拒绝：createNode 返回 null（物料未注册?）type=', type)
+    return
+  }
   // 应用覆盖的 props（用于布局子节点自定义初始属性）
   if (overrideProps) {
     Object.assign(node.props, overrideProps)
@@ -407,7 +414,7 @@ export function addNode(type: string, parentId: string | null, index: number, se
     } else {
       // 检查父容器是否支持自由定位
       const parent = parentId !== null ? findNode(designerStore.schema, parentId) : null
-      if (parent && FREE_POSITION_CONTAINERS.has(parent.node.type)) {
+      if (parent && isFreePositionContainer(parent.node)) {
         // 自由定位容器：保持原有宽高，设置初始 x/y，不需要 CSS 100%
         node.x = 8
         node.y = 8
@@ -437,6 +444,14 @@ export function addNode(type: string, parentId: string | null, index: number, se
       return
     }
   }
+  // el-collapse 只允许 el-collapse-item 作为直接子节点
+  if (parentId !== null && type !== 'el-collapse-item') {
+    const parentFound = findNode(designerStore.schema, parentId)
+    if (parentFound && parentFound.node.type === 'el-collapse') {
+      console.warn('[低代码设计器] 折叠面板只能包含 el-collapse-item，请将控件拖入 item 内部。')
+      return
+    }
+  }
   // 如果父节点是 el-row 且当前类型不是 el-col，自动包裹一个 el-col
   if (parentId !== null && type !== 'el-col') {
     const parentFound = findNode(designerStore.schema, parentId)
@@ -449,6 +464,7 @@ export function addNode(type: string, parentId: string | null, index: number, se
           designerStore.selectedId = node.id
           designerStore.selectedIds = [node.id]
         }
+        designerStore.schemaRevision += 1
         return
       }
     }
@@ -463,6 +479,8 @@ export function addNode(type: string, parentId: string | null, index: number, se
     designerStore.selectedId = node.id
     designerStore.selectedIds = [node.id]
   }
+  designerStore.schemaRevision += 1
+  console.debug('[drag-debug] addNode 成功:', node.type, '#', node.id)
 }
 
 /** 移动节点到新位置（画布内拖拽排序 / 拖入容器） */
@@ -539,11 +557,12 @@ export function moveNode(nodeId: string, parentId: string | null, index: number)
           applyContainerCss(found.node)
           designerStore.selectedId = nodeId
           designerStore.selectedIds = [nodeId]
+          designerStore.schemaRevision += 1
           return true
         }
       }
       // 拖入容器时设置自适应宽高并保存原始尺寸
-      if (FREE_POSITION_CONTAINERS.has(parentFound.node.type)) {
+      if (isFreePositionContainer(parentFound.node)) {
         // 自由定位容器：保持原有宽高，设置初始 x/y
         found.node.x = 8
         found.node.y = 8
@@ -570,6 +589,7 @@ export function moveNode(nodeId: string, parentId: string | null, index: number)
   }
   designerStore.selectedId = nodeId
   designerStore.selectedIds = [nodeId]
+  designerStore.schemaRevision += 1
   return true
 }
 
@@ -601,6 +621,7 @@ export function removeNode(id: string): void {
   found.list.splice(found.index, 1)
   if (designerStore.selectedId === id) designerStore.selectedId = null
   designerStore.selectedIds = designerStore.selectedIds.filter((x) => x !== id)
+  designerStore.schemaRevision += 1
 }
 
 /** 批量删除节点（含容器维度：删除容器会连同其所有子节点一起删除） */
@@ -654,6 +675,7 @@ export function removeNodes(ids: string[]): void {
   if (designerStore.selectedId && toRemove.has(designerStore.selectedId)) {
     designerStore.selectedId = designerStore.selectedIds[0] ?? null
   }
+  designerStore.schemaRevision += 1
 }
 
 /** 复制节点（粘贴到根列表末尾） */
@@ -668,6 +690,7 @@ export function copyNode(id: string): void {
   designerStore.schema.push(copy)
   designerStore.selectedId = copy.id
   designerStore.selectedIds = [copy.id]
+  designerStore.schemaRevision += 1
 }
 
 /** 为节点及其所有子节点重新生成不重复的字段名 */
@@ -704,6 +727,7 @@ export function duplicateNodes(ids: string[]): void {
     // 没有实际复制任何节点，回滚空快照
     history.undoStack.pop()
   }
+  designerStore.schemaRevision += 1
 }
 
 /** 批量复制节点到内部剪贴板（容器维度：容器连同子树一起复制） */
@@ -743,6 +767,7 @@ export function pasteClipboard(): void {
   }
   designerStore.selectedIds = pastedIds
   designerStore.selectedId = pastedIds[0] ?? null
+  designerStore.schemaRevision += 1
 }
 
 // ---------- 选中集合管理 ----------
@@ -901,12 +926,13 @@ export function updateNodePosition(
   x: number,
   y: number,
   clampToZero = true,
+  silent = false,
 ): void {
   const found = findNode(designerStore.schema, id)
   if (!found) return
   found.node.x = clampToZero ? Math.max(0, x) : x
   found.node.y = clampToZero ? Math.max(0, y) : y
-  designerStore.schemaRevision += 1
+  if (!silent) designerStore.schemaRevision += 1
 }
 
 /** 更新控件实际渲染尺寸。heightChanged=false 时仅调整宽度，不修改 heightAuto 标记 */
@@ -1247,6 +1273,7 @@ export function setBizMode(bizMode: 'form' | 'table' | 'mobile'): void {
   migrateSchemaNodes(designerStore.schema)
   designerStore.selectedId = null
   designerStore.selectedIds = []
+  designerStore.schemaRevision += 1
 }
 
 /** 从表单模式克隆控件到当前画布（移动端/表格模式引用表单字段）。
@@ -1274,6 +1301,7 @@ export function addNodeFromForm(sourceNode: ComponentSchema): void {
   designerStore.schema.push(copy)
   designerStore.selectedId = copy.id
   designerStore.selectedIds = [copy.id]
+  designerStore.schemaRevision += 1
 }
 
 /** 导出页面 Schema */
@@ -1469,6 +1497,8 @@ export function importSchema(page: PageSchema): boolean {
   migrateSchemaNodes(designerStore.schema)
   designerStore.selectedId = null
   designerStore.selectedIds = []
+  history.undoStack = []
+  history.redoStack = []
   return true
 }
 
@@ -1479,6 +1509,7 @@ export function clearCanvas(): void {
   designerStore.schema = []
   designerStore.selectedId = null
   designerStore.selectedIds = []
+  designerStore.schemaRevision += 1
 }
 
 

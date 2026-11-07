@@ -13,6 +13,7 @@ import {
   provide,
 } from 'vue'
 import type { ComponentSchema } from '@/types/schema'
+
 import type { DetailTableConfig } from '@/types/schema'
 import { materialComponents, getConfig, resolveNodeProps } from '@/materials'
 import {
@@ -24,6 +25,8 @@ import {
   DESIGNER_STORE_KEY,
   type RenderStore,
 } from '@/store/designer'
+import { GRID_REGISTRY_KEY } from '@/store/designer-shared'
+import { GRID_SELECTION_KEY } from '@/store/designer-shared'
 import {
   VALIDATABLE_TYPES,
   type ValidationRuleConfig,
@@ -44,6 +47,7 @@ import { hasPerm } from '@/store/auth'
 import { evaluateExpr, pickFields } from '@/utils/compute-expr'
 import { executeActions, evalConditions } from '@/utils/page-rule-exec'
 import { ElMessage, ElMessageBox, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
+import { FREE_POSITION_CONTAINERS } from '@/constants/container-types'
 import { createSandboxedFunction } from '@/utils/sandbox'
 import { gatewayCall } from '@/api'
 import { useToolbarOverflow } from '@/composables/useToolbarOverflow'
@@ -122,6 +126,22 @@ provide(DESIGNER_STORE_KEY, store)
 
 /** 存储 dx-data-grid 的 DevExtreme 实例，供 editCellTemplate 使用 */
 const gridInstanceRef = ref<any>(null)
+
+/** data-grid 组件实例注册表（由 PageModalItem provide，用于 saveDetailData 读取最新表格数据） */
+const gridRegistry = inject(GRID_REGISTRY_KEY, null)
+
+/** data-grid 选中行注册表（由 PageModalItem/PreviewView provide，用于表格级父子关联） */
+const gridSelectionMap = inject(GRID_SELECTION_KEY, null)
+
+/** 注册/注销当前 data-grid 的 LcTable 组件实例到 registry */
+function registerGridRef(el: any) {
+  if (!gridRegistry) return
+  if (el) {
+    gridRegistry.set(props.node.id, el)
+  } else {
+    gridRegistry.delete(props.node.id)
+  }
+}
 
 /** 获取真实的 DataGrid 实例（兼容 Vue 包装器） */
 function getGridInstance(): any {
@@ -463,6 +483,7 @@ const gridBoundProps = computed<Record<string, unknown>>(() => {
   if (props.node.type === 'data-grid') {
     base.masterDetail = hasMasterDetail.value ? _stableMasterDetail : undefined
     base.advFilterConditions = advSearchConditions.value
+    base.presetFilterConditions = (props.node.props as any)?.presetFilterConditions
   }
 
   if (store.selectMode) {
@@ -520,6 +541,13 @@ const gridToolbarItems = computed(() => {
     | undefined
   if (!Array.isArray(items)) return []
 
+  const defaultOpenPageFor = (name: string): { pageId: string; bizMode: 'form'; width: string; height: string; title?: string; passSelectedRow?: boolean } | undefined => {
+    if (name === 'add') return { pageId: '__current__', bizMode: 'form', width: '80%', height: '80%' }
+    if (name === 'edit') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, width: '80%', height: '80%' }
+    if (name === 'copyRow') return { pageId: '__current__', bizMode: 'form', passSelectedRow: true, width: '80%', height: '80%' }
+    return undefined
+  }
+
   return items
     .filter((item) => {
       if (item.visible === false) return false
@@ -528,6 +556,10 @@ const gridToolbarItems = computed(() => {
       return true
     })
     .map((item) => {
+      if (!item.openPage && !item.isCustom) {
+        const dp = defaultOpenPageFor(item.name)
+        if (dp) (item as Record<string, unknown>).openPage = dp
+      }
       // 构建点击事件
       let onClick: (e: unknown) => void
       if (item.onClick && item.onClick.trim()) {
@@ -577,16 +609,90 @@ const gridToolbarItems = computed(() => {
         }
       } else {
         // 预设按钮行为
-        onClick = () => {
+        onClick = async () => {
           const grid = getGridInstance()
           if (!grid) return
           switch (item.name) {
             case 'addRow': {
-              if (typeof grid.addRow === 'function') grid.addRow()
+              if (typeof grid.addRow !== 'function') break
+              // 表格级父子关联：检查父表有无数据和选中行
+              const parentType = (props.node.props.parentType as string) || 'page'
+              if (parentType === 'table' && gridRegistry && gridSelectionMap) {
+                const parentRef = (props.node.props.parentRef as string) || ''
+                const parentGrid = gridRegistry.get(parentRef)
+                if (!parentGrid || typeof parentGrid.getData !== 'function') {
+                  ElMessage.warning(t('未找到上级表格，请检查配置'))
+                  break
+                }
+                const parentData = parentGrid.getData() as Record<string, unknown>[]
+                if (!parentData || parentData.length === 0) {
+                  ElMessage.warning(t('上级表格无数据，请先新增上级记录'))
+                  break
+                }
+                const parentSelected = gridSelectionMap.get(parentRef)
+                if (!parentSelected) {
+                  ElMessage.warning(t('请先在上级表格中选择一行'))
+                  break
+                }
+                // 父表多选时不允许添加
+                const parentSelectedRows = typeof parentGrid.getSelectedRowsData === 'function' ? parentGrid.getSelectedRowsData() : []
+                if (parentSelectedRows.length > 1) {
+                  ElMessage.warning(t('上级表格选中了多行，请只选择一行后再,再添加下级数据'))
+                  break
+                }
+                // 注入父表选中行主键作为外键
+                const parentNode = findNode(store.schema, parentRef)
+                const parentKeyExpr = (parentNode?.node?.props?.keyExpr as string) || store.primaryKeyField || 'id'
+                const fkValue = parentSelected[parentKeyExpr] ?? parentSelected._rowId
+                grid.addRow({ [parentKeyExpr]: fkValue })
+              } else {
+                grid.addRow()
+              }
               break
             }
             case 'deleteRows': {
-              if (typeof grid.deleteSelectedRows === 'function') grid.deleteSelectedRows()
+              if (typeof grid.deleteSelectedRows !== 'function') break
+              // 表格级父子关联：删除父表行时级联删除子表数据
+              let skipDeleteConfirm = false
+              if (gridRegistry && gridSelectionMap) {
+                const selectedRows = typeof grid.getSelectedRowsData === 'function' ? grid.getSelectedRowsData() : []
+                if (selectedRows.length > 0) {
+                  const parentKeyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
+                  const fkValues = selectedRows.map((r: Record<string, unknown>) => r[parentKeyExpr] ?? r.id)
+                  // 查找所有以当前 grid 为父表的子 grid
+                  const childGrids = collectAllNodes(store.schema).filter(n =>
+                    n.type === 'data-grid' &&
+                    (n.props.parentType as string) === 'table' &&
+                    (n.props.parentRef as string) === props.node.id
+                  )
+                  // 统计子表关联数据数
+                  let childCount = 0
+                  for (const child of childGrids) {
+                    const childInst = gridRegistry.get(child.id)
+                    if (childInst && typeof childInst.countRowsByField === 'function') {
+                      childCount += childInst.countRowsByField(parentKeyExpr, fkValues)
+                    }
+                  }
+                  if (childCount > 0) {
+                    try {
+                      await ElMessageBox.confirm(
+                        t('选中的父级记录下有 {count} 条下级数据，确定删除将同时删除这些下级数据，是否继续？').replace('{count}', String(childCount)),
+                        t('提示'),
+                        { type: 'warning' }
+                      )
+                    } catch { break }
+                    // 确认删除：先删子表数据，再删父表（跳过重复确认）
+                    for (const child of childGrids) {
+                      const childInst = gridRegistry.get(child.id)
+                      if (childInst && typeof childInst.deleteRowsByField === 'function') {
+                        childInst.deleteRowsByField(parentKeyExpr, fkValues)
+                      }
+                    }
+                    skipDeleteConfirm = true
+                  }
+                }
+              }
+              grid.deleteSelectedRows(skipDeleteConfirm)
               break
             }
             case 'sortAsc': {
@@ -601,7 +707,7 @@ const gridToolbarItems = computed(() => {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
               if (!sel || !sel.length) { ElMessage.warning(t('请先选择要复制的记录')); break }
-              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+              const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
               const openCfg = item.openPage
               const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
               const copied = { ...(sel[0] as Record<string, unknown>) }
@@ -609,7 +715,7 @@ const gridToolbarItems = computed(() => {
               if (designerStore.previewMode) {
                 const targetPageId = openCfg?.pageId && openCfg.pageId !== '__current__' ? openCfg.pageId : designerStore.pageId
                 if (targetPageId) {
-                  const copyParams: Record<string, unknown> = { tableName: designerStore.tableName, ...(openCfg?.params || {}), rowData: copied, asCopy: true }
+                  const copyParams: Record<string, unknown> = { tableName: designerStore.tableName, triggerButton: item.name, ...(openCfg?.params || {}), rowData: copied, asCopy: true }
                   pageModal.openPage(
                     targetPageId,
                     copyParams,
@@ -633,9 +739,17 @@ const gridToolbarItems = computed(() => {
               if (openCfg?.pageId && designerStore.previewMode) {
                 const targetPageId = openCfg.pageId === '__current__' ? designerStore.pageId : openCfg.pageId
                 if (targetPageId) {
+                  const addParams: Record<string, unknown> = { tableName: designerStore.tableName, triggerButton: item.name, ...(openCfg.params || {}) }
+                  if (openCfg.passSelectedRow && typeof grid.getSelectedRowsData === 'function') {
+                    const sel = grid.getSelectedRowsData()
+                    if (sel && sel.length) {
+                      addParams.rowData = sel[0]
+                      if (sel.length > 1) addParams.rowDataList = sel
+                    }
+                  }
                   pageModal.openPage(
                     targetPageId,
-                    { tableName: designerStore.tableName, ...(openCfg.params || {}) },
+                    addParams,
                     {
                       bizMode: openCfg.bizMode || 'form',
                       title: openCfg.title || t('新增'),
@@ -648,7 +762,7 @@ const gridToolbarItems = computed(() => {
               } else if (designerStore.previewMode && designerStore.pageId) {
                 pageModal.openPage(
                   designerStore.pageId,
-                  { tableName: designerStore.tableName },
+                  { tableName: designerStore.tableName, triggerButton: item.name },
                   { bizMode: 'form', title: t('新增'), width: mc?.width ?? 900, height: mc?.height ?? 600, maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true },
                 ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
               } else if (typeof grid.addRow === 'function') {
@@ -660,7 +774,7 @@ const gridToolbarItems = computed(() => {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
               if (!sel || !sel.length) { ElMessage.warning(t('请先选择要删除的记录')); break }
-              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+              const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
               const key = sel[0][keyExpr]
               if (key === undefined || key === null) break
               const bizCode = designerStore.tableName
@@ -687,7 +801,7 @@ const gridToolbarItems = computed(() => {
               if (typeof grid.getSelectedRowsData !== 'function') break
               const sel = grid.getSelectedRowsData()
               if (!sel || !sel.length) { ElMessage.warning(t('请先选择要修改的记录')); break }
-              const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+              const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
               const key = keyExpr ? sel[0][keyExpr] : sel[0]
               const openCfg = item.openPage
               const mc = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
@@ -695,7 +809,7 @@ const gridToolbarItems = computed(() => {
               if (openCfg?.pageId && designerStore.previewMode) {
                 const targetPageId = openCfg.pageId === '__current__' ? designerStore.pageId : openCfg.pageId
                 if (targetPageId) {
-                  const editParams: Record<string, unknown> = { tableName: designerStore.tableName, ...(openCfg.params || {}) }
+                  const editParams: Record<string, unknown> = { tableName: designerStore.tableName, triggerButton: item.name, ...(openCfg.params || {}) }
                   if (passRow) {
                     editParams.rowData = sel[0]
                     if (sel.length > 1) editParams.rowDataList = sel
@@ -715,7 +829,7 @@ const gridToolbarItems = computed(() => {
               } else if (designerStore.previewMode && designerStore.pageId) {
                 pageModal.openPage(
                   designerStore.pageId,
-                  { rowData: sel[0], tableName: designerStore.tableName, rowDataList: sel.length > 1 ? sel : undefined },
+                  { rowData: sel[0], tableName: designerStore.tableName, triggerButton: item.name, rowDataList: sel.length > 1 ? sel : undefined },
                   { bizMode: 'form', title: t('修改'), width: mc?.width ?? 900, height: mc?.height ?? 600, maximizable: mc?.maximizable ?? true, draggable: mc?.draggable ?? true },
                 ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
               } else if (typeof grid.getRowIndexByKey === 'function') {
@@ -763,12 +877,42 @@ const gridToolbarItems = computed(() => {
               if (typeof grid.openColumnConfig === 'function') grid.openColumnConfig()
               break
             case 'save':
+              if (typeof grid.validateAndSave === 'function' && !grid.validateAndSave()) break
               if (typeof grid.saveEditData === 'function') grid.saveEditData()
               break
             case 'cancel':
               if (typeof grid.cancelEditData === 'function')
                 grid.cancelEditData()
               break
+            default: {
+              const oc = item.openPage
+              if (oc?.pageId && designerStore.previewMode) {
+                const tpid = oc.pageId === '__current__' ? designerStore.pageId : oc.pageId
+                if (tpid) {
+                  const cp: Record<string, unknown> = { tableName: designerStore.tableName, triggerButton: item.name, ...(oc.params || {}) }
+                  if (oc.passSelectedRow && typeof grid.getSelectedRowsData === 'function') {
+                    const s = grid.getSelectedRowsData()
+                    if (s && s.length) {
+                      cp.rowData = s[0]
+                      if (s.length > 1) cp.rowDataList = s
+                    }
+                  }
+                  const mc2 = props.node.props.modalConfig as { width?: number; height?: number; maximizable?: boolean; draggable?: boolean } | undefined
+                  pageModal.openPage(
+                    tpid,
+                    cp,
+                    {
+                      bizMode: oc.bizMode || 'form',
+                      title: oc.title || item.caption || item.name,
+                      mode: (oc.mode as 'popup' | 'drawer') || 'popup',
+                      width: oc.width ?? mc2?.width ?? 900, height: oc.height ?? mc2?.height ?? 600,
+                      maximizable: mc2?.maximizable ?? true, draggable: mc2?.draggable ?? true,
+                    },
+                  ).then(() => { if (typeof grid.refresh === 'function') grid.refresh() }).catch(() => {})
+                }
+              }
+              break
+            }
           }
         }
       }
@@ -850,6 +994,9 @@ const gridToolbarItems = computed(() => {
           onClick,
           type: (item.type === 'normal' || !item.type) ? 'default' : item.type,
           stylingMode: (!item.stylingMode || (item.stylingMode === 'text' && !item.isCustom)) ? 'contained' : item.stylingMode,
+          badgeVisible: (item as any).badgeVisible === true,
+          badgeContent: (item as any).badgeContent,
+          badgeType: (item as any).badgeType,
           ...((item.bgColor || item.textColor || item.hoverColor)
             ? {
                 elementAttr: {
@@ -936,7 +1083,7 @@ function handleStatusToggleAction(actionName: string, grid: any): void {
   if (typeof grid.getSelectedRowsData !== 'function') return
   const sel = grid.getSelectedRowsData()
   if (!sel || !sel.length) { ElMessage.warning(t('请先选择要操作的记录')); return }
-  const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+  const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
   const bizCode = designerStore.tableName
   if (!bizCode) { ElMessage.warning(t('未配置业务表')); return }
   const ids = sel.map((r: Record<string, unknown>) => r[keyExpr])
@@ -1015,6 +1162,7 @@ function createRuntimeApi() {
     },
     setVisible: (fieldName: string, visible: boolean) => {
       const node = findNodeByFieldNameIn(store.schema, fieldName)
+
       if (!node) return
       if (!node.css) node.css = {}
       if (visible) {
@@ -1603,10 +1751,14 @@ const boundProps = computed<Record<string, unknown>>(() => {
   if (props.node.type === 'el-tabs') {
     base.children = props.node.children
   }
+  // el-collapse 需要传递 children 数据用于渲染折叠项
+  if (props.node.type === 'el-collapse') {
+    base.children = props.node.children
+  }
   // dx-data-grid：根据数据源类型决定使用静态数据还是远程加载
   if (props.node.type === 'data-grid') {
-    // 主键字段始终跟随页面 primaryKeyField 配置
-    base.keyExpr = store.primaryKeyField || 'id'
+    // 主键字段：优先用 grid 自身配置的 keyExpr（明细表主键与主表不同），回退到页面 primaryKeyField
+    base.keyExpr = (base.keyExpr as string) || store.primaryKeyField || 'id'
     const dataSourceType = (base.dataSourceType as string) || 'static'
 
     // 清理自定义配置属性，不传给 DevExtreme 组件
@@ -1937,6 +2089,23 @@ const boundProps = computed<Record<string, unknown>>(() => {
                 TableAlias: getColumnTableAlias(fkField),
               })
             }
+          } else if (parentType === 'table' && gridSelectionMap) {
+            const parentRef = (props.node.props.parentRef as string) || ''
+            const parentSelected = gridSelectionMap.get(parentRef)
+            if (parentSelected) {
+              const parentNode = findNode(store.schema, parentRef)
+              const parentKeyExpr = (parentNode?.node?.props?.keyExpr as string) || store.primaryKeyField || 'id'
+              const fkValue = parentSelected[parentKeyExpr] ?? parentSelected._rowId
+              if (fkValue !== undefined && fkValue !== null && fkValue !== '') {
+                allFilterData.push({ Symbol: 'and' })
+                allFilterData.push({
+                  Id: parentKeyExpr,
+                  Symbol: '=',
+                  Val: fkValue,
+                  TableAlias: getColumnTableAlias(parentKeyExpr),
+                })
+              }
+            }
           }
         }
         if (loadOptions.filter) {
@@ -2091,7 +2260,7 @@ const boundProps = computed<Record<string, unknown>>(() => {
             if (!result.ok) throw new Error(`HTTP ${result.status}`)
             const payload = extractPayload(result.data)
             // 主键字段大小写兼容：后端 mapColumnNames 返回的列名格式可能与 keyExpr 不一致
-            const _keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+            const _keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
             const _rows = (payload.data || []) as Record<string, unknown>[]
             if (
               _keyExpr !== 'id' &&
@@ -2142,6 +2311,17 @@ const boundProps = computed<Record<string, unknown>>(() => {
               const mId = pageModal.getParams()?.masterId
               if (mId !== undefined && mId !== null && mId !== '') {
                 ins[fkField] = mId
+              }
+            } else if (parentType === 'table' && gridSelectionMap) {
+              const parentRef = (props.node.props.parentRef as string) || ''
+              const parentSelected = gridSelectionMap.get(parentRef)
+              if (parentSelected) {
+                const parentNode = findNode(store.schema, parentRef)
+                const parentKeyExpr = (parentNode?.node?.props?.keyExpr as string) || store.primaryKeyField || 'id'
+                const fkValue = parentSelected[parentKeyExpr] ?? parentSelected._rowId
+                if (fkValue !== undefined && fkValue !== null) {
+                  ins[parentKeyExpr] = fkValue
+                }
               }
             }
             await httpRequest('/api/lowcode/gateway', {
@@ -2788,12 +2968,29 @@ function setupPageRuleWatches(): void {
   for (const stop of pageRuleWatchStoppers) stop()
   pageRuleWatchStoppers.length = 0
   if (!props.node.fieldName || !store.pageRules) return
+  const modalParams = pageModal.getParams()
   for (const rule of store.pageRules) {
     if (!rule.enabled) continue
     const ruleConditions = rule.conditions ?? []
     const condFields = ruleConditions.map((c) => c.field).filter(Boolean)
     if (!condFields.length) continue
-    if (props.node.fieldName !== condFields[0]) continue
+    const isParamOnly = condFields.every((f) => f in modalParams)
+    if (isParamOnly) {
+      if (store.schema[0]?.id !== props.node.id) continue
+      const ctx: Record<string, unknown> = {}
+      for (const fn of condFields) ctx[fn] = modalParams[fn]
+      const matched = evalConditions(ruleConditions, ctx)
+      const api = createRuntimeApi()
+      const actions = matched ? rule.actions : (rule.elseActions ?? [])
+      if (actions.length) {
+        executeActions(actions, api, ctx).catch((err) =>
+          console.error(`[页面规则] ${rule.name} 参数条件执行错误:`, err),
+        )
+      }
+      continue
+    }
+    const formCondFields = condFields.filter((f) => !(f in modalParams))
+    if (props.node.fieldName !== formCondFields[0]) continue
     const ruleActions = rule.actions
     const ruleElseActions = rule.elseActions ?? []
     const stop = watch(
@@ -2801,8 +2998,12 @@ function setupPageRuleWatches(): void {
         const root = store.schema
         const ctx: Record<string, unknown> = {}
         for (const fn of condFields) {
-          const depNode = findNodeByFieldNameIn(root, fn)
-          ctx[fn] = depNode?.props.value ?? null
+          if (fn in modalParams) {
+            ctx[fn] = modalParams[fn]
+          } else {
+            const depNode = findNodeByFieldNameIn(root, fn)
+            ctx[fn] = depNode?.props.value ?? null
+          }
         }
         return ctx
       },
@@ -2846,18 +3047,40 @@ const batchSelectedRows = ref<Record<string, unknown>[]>([])
 const showBatchDialog = ref(false)
 const batchActionType = ref<string>('')
 
-const batchActions = [
-  { name: 'submit', caption: t('批量下达') },
-  { name: 'approve', caption: t('批量审批') },
-  { name: 'freeze', caption: t('批量冻结') },
-  { name: 'delete', caption: t('批量删除') },
-]
+const batchActions = computed(() => {
+  const bt = props.node.props.batchToolbar as { visible?: boolean; items?: any[] } | undefined
+  if (!bt || bt.visible !== true) return []
+  return (bt.items || []).filter((item: any) => item.visible !== false)
+})
 
 function onGridSelectionChanged(e: { selectedRowsData: Record<string, unknown>[] }) {
   batchSelectedRows.value = e.selectedRowsData ?? []
   if (store.selectMode) {
     store.selectedRowData = (e.selectedRowsData && e.selectedRowsData.length > 0) ? e.selectedRowsData[0] : null
     store.selectedRowsList = e.selectedRowsData ?? []
+  }
+  // 表格级父子关联：更新选中行表，并触发下级表格过滤
+  if (props.node.type === 'data-grid' && gridSelectionMap && gridRegistry) {
+    const selectedRow = (e.selectedRowsData && e.selectedRowsData.length > 0) ? e.selectedRowsData[0] : null
+    gridSelectionMap.set(props.node.id, selectedRow)
+    // 查找所有以当前 grid 为父表的子 grid，触发过滤
+    const childGrids = collectAllNodes(store.schema).filter(n =>
+      n.type === 'data-grid' &&
+      (n.props.parentType as string) === 'table' &&
+      (n.props.parentRef as string) === props.node.id
+    )
+    for (const child of childGrids) {
+      const childInst = gridRegistry.get(child.id)
+      if (!childInst) continue
+      const parentKeyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
+      const fkValue = selectedRow ? (selectedRow[parentKeyExpr] ?? selectedRow._rowId) : null
+      const childDataSourceType = (child.props.dataSourceType as string) || 'static'
+      if (childDataSourceType === 'remote' && typeof childInst.refresh === 'function') {
+        childInst.refresh()
+      } else if (typeof childInst.setParentFilter === 'function') {
+        childInst.setParentFilter(parentKeyExpr, fkValue)
+      }
+    }
   }
 }
 
@@ -2868,17 +3091,44 @@ function onGridRowDblClick(e: { data: Record<string, unknown> }) {
 }
 
 
-function startBatchAction(action: string) {
+function startBatchAction(btn: any) {
   if (!batchSelectedRows.value.length) return
-  batchActionType.value = action
+  const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
+  const ids = batchSelectedRows.value.map((r) => r[keyExpr] ?? r[keyExpr.toLowerCase()] ?? r[keyExpr.toUpperCase()])
+  if (btn.onClick && btn.onClick.trim()) {
+    try {
+      const fn = new Function('ids', 'rows', 'api', 'grid', btn.onClick)
+      fn(ids, batchSelectedRows.value, {}, gridRegistry?.get(props.node.id))
+    } catch (err) {
+      ElMessage.error(err instanceof Error ? err.message : String(err))
+    }
+    return
+  }
+  if (btn.action) {
+    batchActionType.value = btn.action
+    showBatchDialog.value = true
+    return
+  }
+  if (btn.openPage?.pageId) {
+    const oc = btn.openPage
+    pageModal.openPage(
+      oc.pageId,
+      { ids, rows: batchSelectedRows.value, ...(oc.params || {}) },
+      { title: oc.title || btn.caption, width: oc.width ?? 900, height: oc.height ?? 600, bizMode: oc.bizMode },
+    )
+    return
+  }
+  const actionName = btn.name.startsWith('batch') ? btn.name : `batch${btn.name}`
+  batchActionType.value = actionName
   showBatchDialog.value = true
 }
 
 async function onConfirmBatchAction(action: string) {
   try {
-    const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+    const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
     const ids = batchSelectedRows.value.map((r) => r[keyExpr] ?? r[keyExpr.toLowerCase()] ?? r[keyExpr.toUpperCase()])
-    await gatewayCall(designerStore.pageName, `batch${action}`, { ids })
+    const actionName = action.startsWith('batch') ? action : `batch${action}`
+    await gatewayCall(designerStore.pageName, actionName, { ids })
     store.schemaRevision += 1
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : String(err))
@@ -2910,7 +3160,7 @@ async function loadDetailData(
   foreignKey: string,
 ): Promise<Record<string, unknown>[]> {
   try {
-    const keyExpr = store.primaryKeyField || (props.node.props.keyExpr as string) || 'id'
+    const keyExpr = (props.node.props.keyExpr as string) || store.primaryKeyField || 'id'
     const masterId = masterRow[keyExpr]
     const res = await gatewayCall(detailTableName, 'query', {
       filter: JSON.stringify([{ field: foreignKey, operator: '=', value: masterId }]),
@@ -2948,9 +3198,6 @@ onBeforeUnmount(() => {
 })
 
 
-/** 支持子节点自由定位的容器类型（子节点可像画布一样自由拖拽） */
-const FREE_POSITION_CONTAINERS = new Set(['el-splitter-panel', 'el-tab-pane'])
-
 /** 容器内容区样式：与设计器 CanvasNode.vue 的 containerContentStyle 保持一致 */
 const containerContentStyle = computed(() => {
   const style: Record<string, string> = {}
@@ -2981,6 +3228,13 @@ const containerContentStyle = computed(() => {
     style.width = '100%'
     style.height = '100%'
     style.boxSizing = 'border-box'
+  } else if (nodeType === 'el-collapse') {
+    style.display = 'flex'
+    style.flexDirection = 'column'
+
+    style.boxSizing = 'border-box'
+    style.overflowY = 'auto'
+    style.overflowX = 'hidden'
   } else if (FREE_POSITION_CONTAINERS.has(nodeType)) {
     // 自由定位容器：子节点使用 absolute 定位，容器需要 position:relative
     style.position = 'relative'
@@ -3005,6 +3259,23 @@ const containerContentStyle = computed(() => {
 const childrenPositioned = computed(() =>
   FREE_POSITION_CONTAINERS.has(props.node.type)
 )
+
+/** 递归判断节点的所有后代是否都隐藏 */
+function isAllDescendantsHidden(children: ComponentSchema[]): boolean {
+  return children.every((child) => {
+    if (child.css?.display === 'none') return true
+    if (child.props.visible === false) return true
+    if (child.fieldName && isFieldHidden(designerStore.pageName, child.fieldName)) return true
+    const childType = child.type
+    if (
+      (childType === 'el-col' || childType === 'el-splitter-panel' || childType === 'el-tab-pane' || childType === 'el-row' || childType === 'el-splitter' || childType === 'el-tabs' || childType === 'el-collapse' || childType === 'el-collapse-item') &&
+      child.children && child.children.length
+    ) {
+      return isAllDescendantsHidden(child.children)
+    }
+    return false
+  })
+}
 
 const wrapperStyle = computed(() => {
   const style: Record<string, string> = {}
@@ -3058,6 +3329,21 @@ const wrapperStyle = computed(() => {
       } else {
         // 非栅格 section 的容器子节点：合并 bodyStyle
         Object.assign(style, bodyStyle)
+        // el-collapse-item: 宽度填满父容器
+        if (nodeType === 'el-collapse-item') {
+          style.width = '100%'
+        }
+        // el-collapse: 默认不撑满父容器，按内容自适应宽度
+        if (nodeType === 'el-collapse' && !style.width) {
+          style.width = 'fit-content'
+          style.maxWidth = '100%'
+        }
+        // el-collapse: 默认最大高度限制，内容超出时滚动而非撑高画布
+        if (nodeType === 'el-collapse' && !style.height && !style.maxHeight) {
+          style.maxHeight = '300px'
+          style.overflowY = 'auto'
+          style.overflowX = 'hidden'
+        }
       }
     } else {
       // 非定位、非容器节点（普通控件）：合并 bodyStyle 让宽高生效
@@ -3139,15 +3425,13 @@ const wrapperStyle = computed(() => {
     style.height = 'auto'
   }
 
-  // 栅格列自动隐藏：当 el-col 有子节点且所有子节点都隐藏时，el-col 自身也隐藏，不留空白
-  if (nodeType === 'el-col' && props.node.children && props.node.children.length) {
-    const allChildrenHidden = props.node.children.every((child) => {
-      if (child.css?.display === 'none') return true
-      if (child.props.visible === false) return true
-      if (child.fieldName && isFieldHidden(designerStore.pageName, child.fieldName)) return true
-      return false
-    })
-    if (allChildrenHidden) {
+  // 布局容器自动隐藏：当容器无子节点或所有子节点都隐藏时，容器自身也隐藏
+  // 支持 el-col、el-splitter-panel、el-tab-pane、el-row 递归检查
+  // 空容器（无子节点）也隐藏，使后续兄弟节点补位
+  if (
+    nodeType === 'el-col' || nodeType === 'el-splitter-panel' || nodeType === 'el-tab-pane' || nodeType === 'el-row' || nodeType === 'el-collapse'
+  ) {
+    if (isAllDescendantsHidden(props.node.children ?? [])) {
       style.display = 'none'
     }
   }
@@ -3195,6 +3479,12 @@ const wrapperStyle = computed(() => {
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
+                <el-badge v-else-if="(item.options as any)?.badgeVisible" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :value="(item.options as any)?.badgeContent ?? ''" :type="(item.options as any)?.badgeType || 'danger'" :hidden="!(item.options as any)?.badgeContent">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                  </el-button>
+                </el-badge>
                 <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
                   <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
                   <span>{{ item.options?.text }}</span>
@@ -3218,6 +3508,12 @@ const wrapperStyle = computed(() => {
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
+                <el-badge v-else-if="(item.options as any)?.badgeVisible" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :value="(item.options as any)?.badgeContent ?? ''" :type="(item.options as any)?.badgeType || 'danger'" :hidden="!(item.options as any)?.badgeContent">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                  </el-button>
+                </el-badge>
                 <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
                   <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
                   <span>{{ item.options?.text }}</span>
@@ -3241,6 +3537,12 @@ const wrapperStyle = computed(() => {
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
+                <el-badge v-else-if="(item.options as any)?.badgeVisible" v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :value="(item.options as any)?.badgeContent ?? ''" :type="(item.options as any)?.badgeType || 'danger'" :hidden="!(item.options as any)?.badgeContent">
+                  <el-button :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
+                    <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
+                    <span>{{ item.options?.text }}</span>
+                  </el-button>
+                </el-badge>
                 <el-button v-else v-show="!overflowIndices.has(idx)" :data-toolbar-btn="idx" :type="(item.options?.type as any) || 'default'" :text="item.options?.stylingMode === 'text'" :bg="item.options?.stylingMode === 'text'" :plain="item.options?.stylingMode === 'outlined'" :class="item.options?.elementAttr?.class" :style="item.options?.elementAttr?.style" @click="(item.options as any)?.onClick?.({})">
                   <ToolbarIcon v-if="item.options?.icon" :name="item.options.icon" />
                   <span>{{ item.options?.text }}</span>
@@ -3275,18 +3577,19 @@ const wrapperStyle = computed(() => {
             </div>
           </div>
           <!-- FE-S10: 批量操作按钮（表格页选中行后显示） -->
-          <div v-if="showGridToolbar && isGridRemote && batchSelectedRows.length > 1" class="batch-action-bar">
+          <div v-if="showGridToolbar && isGridRemote && batchSelectedRows.length > 0 && batchActions.length" class="batch-action-bar">
             <span class="batch-count">{{ t('已选') }} {{ batchSelectedRows.length }} {{ t('条') }}</span>
             <button
               v-for="ba in batchActions"
               :key="ba.name"
               class="batch-btn"
-              @click="startBatchAction(ba.name)"
-            >{{ ba.caption }}</button>
+              @click="startBatchAction(ba)"
+            >{{ ba.caption || ba.name }}</button>
           </div>
           <component
             :is="materialComponents[node.type]"
             v-bind="gridBoundProps"
+            :ref="(el: any) => registerGridRef(el)"
           >
             <template v-if="hasMasterDetail && masterDetailConfig" #detail="{ row }">
               <div class="master-detail-container">

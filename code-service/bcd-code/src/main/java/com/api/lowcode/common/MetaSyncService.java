@@ -134,7 +134,6 @@ public class MetaSyncService {
                 fieldMeta.put("sort_no", f.sortNo);
                 // 清除语义：取消组合唯一后显式写空串，避免 upsert 保留旧值
                 fieldMeta.put("unique_group", f.uniqueGroup != null ? f.uniqueGroup : "");
-                if (f.baseDataRef != null) {
                 if (f.defaultValueExpr != null) {
                     // 编码规则 JSON，create 时空值由 NumberRuleEngine 按规则生成
                     fieldMeta.put("default_value_expr", f.defaultValueExpr);
@@ -142,6 +141,7 @@ public class MetaSyncService {
                     // 显式清空，避免 upsert 保留旧规则
                     fieldMeta.put("default_value_expr", "");
                 }
+                if (f.baseDataRef != null) {
                     fieldMeta.put("base_data_ref", f.baseDataRef);
                 }
                 fieldMeta.put("created_at", now);
@@ -186,16 +186,18 @@ public class MetaSyncService {
         if (pagePkField == null || pagePkField.trim().isEmpty()) pagePkField = "id";
 
         for (JSONObject grid : detailGrids) {
-            String dtTable = grid.getString("tableName");
+            JSONObject gp = grid.getJSONObject("props");
+            if (gp == null) continue;
+            String dtTable = gp.getString("tableName");
             if (dtTable == null || dtTable.trim().isEmpty()) continue;
             dtTable = dtTable.trim();
             if (dtTable.startsWith("sys_")) continue;
 
-            String dtKeyExpr = grid.getString("keyExpr");
+            String dtKeyExpr = gp.getString("keyExpr");
             if (dtKeyExpr == null || dtKeyExpr.trim().isEmpty()) dtKeyExpr = "id";
-            String dtKeyStrategy = grid.getString("keyStrategy");
+            String dtKeyStrategy = gp.getString("keyStrategy");
             if (dtKeyStrategy == null || dtKeyStrategy.trim().isEmpty()) dtKeyStrategy = "SNOWFLAKE";
-            String dtComment = grid.getString("tableComment");
+            String dtComment = gp.getString("tableComment");
             if (dtComment == null || dtComment.trim().isEmpty()) dtComment = dtTable;
 
             try {
@@ -214,7 +216,7 @@ public class MetaSyncService {
                 dtBizMeta.put("created_at", now);
                 helper.upsert("lc_biz_meta", dtBizMeta, helper.eq("biz_code", dtTable));
 
-                JSONArray columns = grid.getJSONArray("columns");
+                JSONArray columns = gp.getJSONArray("columns");
                 int sortNo = 1;
                 if (columns != null) {
                     for (int i = 0; i < columns.size(); i++) {
@@ -238,6 +240,22 @@ public class MetaSyncService {
                         helper.upsert("lc_field_meta", fieldMeta, helper.eq("id", fieldMeta.getString("id")));
                     }
                 }
+                // 注册明细表自身主键字段到元数据（确保 mapColumnNames 不转小写）
+                if (!dtKeyExpr.equals(pagePkField)) {
+                    JSONObject pkFieldMeta = new JSONObject();
+                    pkFieldMeta.put("id", "field_" + dtTable + "_" + dtKeyExpr);
+                    pkFieldMeta.put("biz_code", dtTable);
+                    pkFieldMeta.put("field_name", dtKeyExpr);
+                    pkFieldMeta.put("column_type", "SYSTEM");
+                    pkFieldMeta.put("data_type", "VARCHAR");
+                    pkFieldMeta.put("is_required", true);
+                    pkFieldMeta.put("is_unique", false);
+                    pkFieldMeta.put("is_system_field", true);
+                    pkFieldMeta.put("sort_no", 0);
+                    pkFieldMeta.put("unique_group", "");
+                    pkFieldMeta.put("created_at", now);
+                    helper.upsert("lc_field_meta", pkFieldMeta, helper.eq("id", pkFieldMeta.getString("id")));
+                }
                 JSONObject fkFieldMeta = new JSONObject();
                 fkFieldMeta.put("id", "field_" + dtTable + "_" + pagePkField);
                 fkFieldMeta.put("biz_code", dtTable);
@@ -251,6 +269,35 @@ public class MetaSyncService {
                 fkFieldMeta.put("unique_group", "");
                 fkFieldMeta.put("created_at", now);
                 helper.upsert("lc_field_meta", fkFieldMeta, helper.eq("id", fkFieldMeta.getString("id")));
+
+                // 子明细表（parentType=table）：额外添加父明细表外键字段到元数据
+                String parentType = gp.getString("parentType");
+                if ("table".equals(parentType)) {
+                    String parentRef = gp.getString("parentRef");
+                    if (parentRef != null && !parentRef.trim().isEmpty()) {
+                        JSONObject parentGrid = findGridById(formRoot, parentRef);
+                        if (parentGrid != null) {
+                            JSONObject pp = parentGrid.getJSONObject("props");
+                            String parentKeyExpr = pp != null ? pp.getString("keyExpr") : null;
+                            if (parentKeyExpr != null && !parentKeyExpr.trim().isEmpty()
+                                    && !parentKeyExpr.equals(pagePkField)) {
+                                JSONObject parentFkMeta = new JSONObject();
+                                parentFkMeta.put("id", "field_" + dtTable + "_" + parentKeyExpr);
+                                parentFkMeta.put("biz_code", dtTable);
+                                parentFkMeta.put("field_name", parentKeyExpr);
+                                parentFkMeta.put("column_type", "SYSTEM");
+                                parentFkMeta.put("data_type", "VARCHAR");
+                                parentFkMeta.put("is_required", true);
+                                parentFkMeta.put("is_unique", false);
+                                parentFkMeta.put("is_system_field", true);
+                                parentFkMeta.put("sort_no", 0);
+                                parentFkMeta.put("unique_group", "");
+                                parentFkMeta.put("created_at", now);
+                                helper.upsert("lc_field_meta", parentFkMeta, helper.eq("id", parentFkMeta.getString("id")));
+                            }
+                        }
+                    }
+                }
 
                 String[] defaultActions = {"query", "create", "update", "delete"};
                 for (String action : defaultActions) {
@@ -278,7 +325,8 @@ public class MetaSyncService {
         for (int i = 0; i < nodes.size(); i++) {
             JSONObject node = nodes.getJSONObject(i);
             if ("data-grid".equals(node.getString("type"))) {
-                String tn = node.getString("tableName");
+                JSONObject np = node.getJSONObject("props");
+                String tn = np != null ? np.getString("tableName") : null;
                 if (tn != null && !tn.trim().isEmpty()) {
                     result.add(node);
                 }
@@ -288,6 +336,21 @@ public class MetaSyncService {
                 collectDetailGrids(children, result);
             }
         }
+    }
+
+    /** 在 schema 树中按节点 id 查找 data-grid 节点 */
+    private JSONObject findGridById(JSONArray nodes, String id) {
+        if (nodes == null || id == null) return null;
+        for (int i = 0; i < nodes.size(); i++) {
+            JSONObject node = nodes.getJSONObject(i);
+            if (id.equals(node.getString("id"))) return node;
+            JSONArray children = node.getJSONArray("children");
+            if (children != null) {
+                JSONObject found = findGridById(children, id);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private String mapDetailColumnType(String dataType) {

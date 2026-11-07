@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, watchEffect, onMounted, onBeforeUnmount, useSlots, nextTick, h, Teleport, defineAsyncComponent } from 'vue'
+import { ref, computed, watch, watchEffect, onMounted, onBeforeUnmount, useSlots, nextTick, h, Teleport, defineAsyncComponent, inject } from 'vue'
+defineOptions({ inheritAttrs: false })
 import { VxeGrid } from 'vxe-table'
 import VxeUI from 'vxe-pc-ui'
 import { ElMessage, ElMessageBox, ElButton, ElInput, ElSelect, ElOption, ElDatePicker, ElDialog, ElForm, ElFormItem, ElPagination, ElPopover, ElDropdown, ElDropdownMenu, ElDropdownItem, ElCheckbox } from 'element-plus'
@@ -8,6 +9,9 @@ import { saveAs } from 'file-saver'
 import { getSession } from '@/store/auth'
 import { loadColumnConfig, saveColumnConfig, type ColumnConfigData } from '@/store/persistence'
 import { gatewayCall } from '@/api'
+import { evaluateExpr } from '@/utils/compute-expr'
+import { evalConditions } from '@/utils/page-rule-exec'
+import { DESIGNER_STORE_KEY, type RenderStore } from '@/store/designer-shared'
 
 const DxBaseDataAsync = defineAsyncComponent(() => import('./DxBaseData.vue'))
 
@@ -393,6 +397,7 @@ export interface LcColumn {
   allowSorting?: boolean
   allowEditing?: boolean
   required?: boolean
+  isSavable?: boolean
   allowFixing?: boolean
   allowSummary?: boolean
   lookup?: { dataSource: any[]; valueExpr: string; displayExpr: string }
@@ -453,6 +458,7 @@ const props = defineProps<{
   masterDetail?: { enabled?: boolean; template?: string }
   exportConfig?: { fileName?: string }
   advFilterConditions?: any[]
+  presetFilterConditions?: { field: string; operator: string; value: string; value2?: string }[]
   minHeight?: number | string
   maxHeight?: number | string
   round?: boolean
@@ -500,6 +506,7 @@ const props = defineProps<{
   showSeq?: boolean
   seqWidth?: number
   bizCode?: string
+  allowEmptySave?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -524,7 +531,27 @@ const filterValues = ref<Record<string, { op: string; val: any; val2?: any }>>({
 const editingRowKey = ref<any>(null)
 const editingRowData = ref<Record<string, any>>({})
 const insertMode = ref(false)
+let _rowIdSeq = 0
+function nextRowId(): string { return 'row_' + (++_rowIdSeq) }
+function ensureRowIds(rows: any[]) {
+  for (const row of rows) {
+    if (!row._rowId) {
+      const kv = row[keyField.value]
+      row._rowId = (kv != null && kv !== '') ? String(kv) : nextRowId()
+    }
+  }
+}
+function stripInternalFields(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.map(r => {
+    const c: Record<string, unknown> = {}
+    for (const k of Object.keys(r)) {
+      if (!k.startsWith('_')) c[k] = r[k]
+    }
+    return c
+  })
+}
 const contextMenu = ref<{ visible: boolean; x: number; y: number; row: any; col: any }>({ visible: false, x: 0, y: 0, row: null, col: null })
+const parentFilter = ref<{ fkField: string; fkValue: unknown } | null>(null)
 const ddgVisible = ref(false)
 const ddgCol = ref<any>(null)
 const ddgSearchText = ref('')
@@ -557,7 +584,8 @@ const headerCtxIsFixed = computed(() => {
   return col?.fixed === true || col?.fixed === 'left' || col?.fixed === 'right'
 })
 
-const keyField = computed(() => props.keyExpr || 'id')
+const _renderStore = inject(DESIGNER_STORE_KEY, null) as RenderStore | null
+const keyField = computed(() => props.keyExpr || _renderStore?.primaryKeyField || 'id')
 const isRemote = computed(() => {
   if (typeof props.remoteOperations === 'boolean') return props.remoteOperations
   if (props.remoteOperations && typeof props.remoteOperations === 'object') {
@@ -615,13 +643,36 @@ function getLookupDataSource(col: LcColumn): any[] {
   return lookupCache.value[field] || []
 }
 
+function formatDateString(val: string, fmt: string): string {
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const map: Record<string, string> = {
+    'yyyy': String(d.getFullYear()),
+    'MM': pad(d.getMonth() + 1),
+    'dd': pad(d.getDate()),
+    'HH': pad(d.getHours()),
+    'mm': pad(d.getMinutes()),
+    'ss': pad(d.getSeconds()),
+  }
+  let result = fmt
+  for (const [k, v] of Object.entries(map)) {
+    result = result.replace(k, v)
+  }
+  return result
+}
+
 function getCellValue(row: any, col: LcColumn): any {
   if (typeof col.calculateDisplayValue === 'function') return col.calculateDisplayValue(row)
   const val = row[col.dataField as string]
-  if (col.dataType === 'date' && val) {
-    const d = new Date(val)
-    if (!isNaN(d.getTime())) {
-      return d.toISOString().slice(0, 10)
+  if ((col.dataType === 'date' || col.dataType === 'datetime') && val && typeof val === 'string') {
+    const fmt = col.format as string | undefined
+    if (fmt) {
+      return formatDateString(val, fmt)
+    }
+    if (col.dataType === 'date') {
+      const d = new Date(val)
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
     }
   }
   return val
@@ -669,8 +720,27 @@ function convertFilterToDev(filterVal: any): any[] {
 }
 
 let _firstLoad = true
+let _loadSeq = 0
+
+function buildLoadFilter(): any[] | undefined {
+  const parts: any[] = []
+  for (const [f, c] of Object.entries(filterValues.value)) {
+    parts.push((c as any).op === 'between' ? [f, 'between', (c as any).val, (c as any).val2] : [f, (c as any).op, (c as any).val])
+  }
+  for (const cond of (props.presetFilterConditions || []) as any[]) {
+    if (cond.field && cond.value !== '' && cond.value != null) {
+      if (cond.operator === 'between' && cond.value2 !== '' && cond.value2 != null) {
+        parts.push([cond.field, 'between', cond.value, cond.value2])
+      } else if (cond.operator !== 'between') {
+        parts.push([cond.field, cond.operator, cond.value])
+      }
+    }
+  }
+  return parts.length ? parts : undefined
+}
 
 async function loadData() {
+  const seq = ++_loadSeq
 
   if (isRemote.value && props.dataSource && typeof (props.dataSource as any).load === 'function') {
     if (_firstLoad) loading.value = true
@@ -679,32 +749,52 @@ async function loadData() {
         skip: (currentPage.value - 1) * pageSize.value,
         take: pageSize.value,
         sort: sortState.value.length ? [{ selector: sortState.value[0].field, desc: sortState.value[0].order === 'desc' }] : undefined,
-        filter: Object.keys(filterValues.value).length ? Object.entries(filterValues.value).map(([f, c]) => (c as any).op === 'between' ? [f, 'between', (c as any).val, (c as any).val2] : [f, (c as any).op, (c as any).val]) : undefined,
+        filter: buildLoadFilter(),
         searchValue: searchValue.value || undefined,
       }
       const result = await (props.dataSource as any).load(loadOptions)
+      if (seq !== _loadSeq) return
       tableData.value = result.data || []
+      ensureRowIds(tableData.value)
       totalCount.value = result.totalCount ?? result.data?.length ?? 0
+
     } catch (e) {
+      if (seq !== _loadSeq) return
       console.error('[LcTable] load error:', e)
       tableData.value = []
       totalCount.value = 0
     } finally {
-      _firstLoad = false
-      loading.value = false
+      if (seq === _loadSeq) {
+        _firstLoad = false
+        loading.value = false
+      }
     }
   } else if (Array.isArray(props.dataSource)) {
+    if (seq !== _loadSeq) return
     tableData.value = props.dataSource
+    ensureRowIds(tableData.value)
     totalCount.value = props.dataSource.length
     _firstLoad = false
   }
 }
 
+const filteredData = computed(() => {
+  if (!parentFilter.value) return tableData.value
+  const { fkField, fkValue } = parentFilter.value
+  if (fkValue == null || fkValue === '') return []
+  const fkStr = String(fkValue)
+  return tableData.value.filter(r => {
+    const v = r[fkField]
+    return v === fkValue || String(v) === fkStr
+  })
+})
+
 const displayData = computed(() => {
   if (isRemote.value) return tableData.value
-  if (pagingEnabled.value === false) return tableData.value
+  const data = filteredData.value
+  if (pagingEnabled.value === false) return data
   const start = (currentPage.value - 1) * pageSize.value
-  return tableData.value.slice(start, start + pageSize.value)
+  return data.slice(start, start + pageSize.value)
 })
 
 const autoFooterData = computed(() => {
@@ -723,7 +813,7 @@ const autoFooterData = computed(() => {
 const autoShowFooter = computed(() => props.showFooter || autoFooterData.value !== null)
 
 
-const totalForPager = computed(() => isRemote.value ? totalCount.value : tableData.value.length)
+const totalForPager = computed(() => isRemote.value ? totalCount.value : filteredData.value.length)
 
 const sortState = ref<{ field: string; order: 'asc' | 'desc' }[]>([])
 
@@ -764,6 +854,37 @@ function onEditActived(e: any) {
 function onEditClosed(e: any) {
   if (editingMode.value === 'row') {
     console.warn('[LcTable] edit-closed in row mode', e?.column?.field, e?.row)
+  }
+  applyComputeRules(e?.row, e?.column?.field)
+}
+
+/** 列间计算联动：编辑某列后，重算所有 triggerFields 包含该列的目标列 */
+function applyComputeRules(row: any, editedField?: string) {
+  if (!row || !editedField) return
+  const cols = visibleColumns.value
+  const visited = new Set<string>([editedField])
+  const queue = [editedField]
+  let changed = false
+  while (queue.length) {
+    const field = queue.shift()!
+    for (const col of cols) {
+      const tf = col.triggerFields as string[] | undefined
+      if (!tf || !tf.includes(field)) continue
+      const target = col.dataField as string
+      if (visited.has(target)) continue
+      visited.add(target)
+      if (!col.computeExpr) continue
+      const result = evaluateExpr(col.computeExpr as string, row)
+      if (result !== null && result !== undefined && row[target] !== result) {
+        row[target] = result
+        queue.push(target)
+        changed = true
+      }
+    }
+  }
+  if (changed) {
+    const $table = gridRef.value?.getTableRef?.() || (gridRef.value as any)
+    $table?.reloadRow?.(row)
   }
 }
 
@@ -839,6 +960,13 @@ function handleFilterChange(e: any) {
 }
 
 function refresh() { loadData() }
+
+function setParentFilter(fkField: string, fkValue: unknown) {
+  parentFilter.value = { fkField, fkValue }
+  selectedRowsData.value = []
+  selectedKeys.value = []
+  currentPage.value = 1
+}
 function getSelectedRowsData() { return selectedRowsData.value }
 function getSelectedRowKeys() { return selectedKeys.value }
 
@@ -852,9 +980,19 @@ function startEditRow(row: any) {
 function isEditing(row: any) { return editingRowKey.value === row[keyField.value] }
 
 async function saveEdit() {
+  if (insertMode.value) {
+    const newRow = { ...editingRowData.value }
+    if (!newRow._rowId) newRow._rowId = nextRowId()
+    tableData.value = [newRow, ...tableData.value]
+    totalCount.value = tableData.value.length
+    insertMode.value = false
+    editingRowKey.value = null
+    editingRowData.value = {}
+    return
+  }
   if (isRemote.value && (props.dataSource as any)?.update) {
     try {
-      await (props.dataSource as LcDataSource).update?.(editingRowKey.value, editingRowData.value)
+      await (props.dataSource as any)?.update?.(editingRowKey.value, editingRowData.value)
       ElMessage.success('保存成功')
     } catch (e) { ElMessage.error('保存失败'); return }
   } else {
@@ -865,6 +1003,7 @@ async function saveEdit() {
   editingRowData.value = {}
   loadData()
 }
+
 
 function cancelEdit() {
   editingRowKey.value = null
@@ -888,32 +1027,50 @@ async function deleteRow(row: any) {
   loadData()
 }
 
-function addRow() {
+function addRow(defaultValues?: Record<string, unknown>) {
+  const rowId = nextRowId()
   if (editingMode.value === 'popup' || editingMode.value === 'form') {
     insertMode.value = true
     editingRowKey.value = null
-    editingRowData.value = {}
+    editingRowData.value = { _rowId: rowId, ...(defaultValues || {}) }
   } else {
-    const newRow: any = {}
+    const newRow: any = { _rowId: rowId }
     visibleColumns.value.forEach(c => { newRow[c.dataField as string] = null })
+    if (defaultValues) Object.assign(newRow, defaultValues)
     tableData.value = [newRow, ...tableData.value]
     totalCount.value = tableData.value.length
   }
 }
 
-async function deleteSelectedRows() {
+async function deleteSelectedRows(skipConfirm?: boolean) {
   if (selectedRowsData.value.length === 0) {
     ElMessage.warning('请先选择要删除的行')
     return
   }
-  try {
-    await ElMessageBox.confirm(`确认删除选中的 ${selectedRowsData.value.length} 行？`, '提示', { type: 'warning' })
-  } catch { return }
+  if (!skipConfirm) {
+    try {
+      await ElMessageBox.confirm(`确认删除选中的 ${selectedRowsData.value.length} 行？`, '提示', { type: 'warning' })
+    } catch { return }
+  }
   const keys = selectedRowsData.value.map(r => r[keyField.value])
   tableData.value = tableData.value.filter(r => !keys.includes(r[keyField.value]))
   totalCount.value = tableData.value.length
   selectedRowsData.value = []
   selectedKeys.value = []
+}
+
+function deleteRowsByField(field: string, values: unknown[]) {
+  if (!values.length) return 0
+  const before = tableData.value.length
+  tableData.value = tableData.value.filter(r => !values.includes(r[field]))
+  const removed = before - tableData.value.length
+  totalCount.value = tableData.value.length
+  return removed
+}
+
+function countRowsByField(field: string, values: unknown[]) {
+  if (!values.length) return 0
+  return tableData.value.filter(r => values.includes(r[field])).length
 }
 
 
@@ -1425,7 +1582,8 @@ function computeGridColumns(): any[] {
         h('span', { style: 'color: #f56c6c; margin-left: 2px; font-weight: bold' }, '*'),
       ]
     }
-    if (col.lookup || typeof (col as any).calculateDisplayValue === 'function') {
+    if (col.lookup || typeof (col as any).calculateDisplayValue === 'function' || col.baseDataRef
+        || col.dataType === 'date' || col.dataType === 'datetime') {
       if (!vxeCol.slots) vxeCol.slots = {}
       vxeCol.slots.default = `cell_${col.dataField}`
     }
@@ -1496,15 +1654,19 @@ function computeGridColumns(): any[] {
             refPageId: bdRef.refPageId || '',
             displayField: bdRef.displayField || '',
             valueField: bdRef.valueField || 'id',
+            codeField: bdRef.codeField || '',
             value: row[field] ?? null,
             size: 'small',
             style: 'width: 100%',
+            dependFilters: bdRef.filterConditions || [],
+            rowData: row,
 
             onVnodeMounted: focusInput,
             onSelectionChanged: (selectedRow: any) => {
               if (selectedRow) {
                 const vf = (bdRef.valueField || 'id').toUpperCase()
                 row[field] = selectedRow[vf]
+
                 if (bdRef.writeBack && Array.isArray(bdRef.writeBack)) {
                   for (const wb of bdRef.writeBack) {
                     if (wb.sourceField && wb.targetField) {
@@ -1546,11 +1708,45 @@ function computeGridColumns(): any[] {
             onVnodeMounted: focusInput,
           })
         }
+        if (editCol.dataType === 'number') {
+          const nt = editCol.numberType as string | undefined
+          const dp = editCol.decimalPlaces as number | undefined
+          const minV = editCol.minValue as number | undefined
+          const maxV = editCol.maxValue as number | undefined
+          const clampVal = (v: any): any => {
+            if (v === '' || v === null || v === undefined) return v
+            let n = Number(v)
+            if (isNaN(n)) return v
+            if (nt === 'integer') n = Math.trunc(n)
+            if (nt === 'positiveInteger') n = Math.max(0, Math.trunc(n))
+            if (nt === 'decimal' && typeof dp === 'number' && dp >= 0) {
+              const f = Math.pow(10, dp)
+              n = Math.round(n * f) / f
+            }
+            if (typeof minV === 'number' && !isNaN(minV)) n = Math.max(minV, n)
+            if (typeof maxV === 'number' && !isNaN(maxV)) n = Math.min(maxV, n)
+            return n
+          }
+          return h(ElInput, {
+            modelValue: row[field],
+            'onUpdate:modelValue': (val: any) => { row[field] = val },
+            size: 'small',
+            type: 'number',
+            style: 'width: 100%',
+            onVnodeMounted: focusInput,
+            onKeydown: (e: any) => { if (e.key === 'Enter') finishEdit() },
+            onBlur: () => {
+              const clamped = clampVal(row[field])
+              if (clamped !== row[field]) row[field] = clamped
+              finishEdit()
+            },
+          })
+        }
         return h(ElInput, {
           modelValue: row[field],
           'onUpdate:modelValue': (val: any) => { row[field] = val },
           size: 'small',
-          type: editCol.dataType === 'number' ? 'number' : 'text',
+          type: 'text',
           style: 'width: 100%',
           onVnodeMounted: focusInput,
           onKeydown: (e: any) => { if (e.key === 'Enter') finishEdit() },
@@ -1644,10 +1840,10 @@ const proxyConfig = computed(() => {
 
 const OP_LABELS: Record<string, string> = {
   equal: '等于', notEqual: '不等于', '=': '等于', '<>': '不等于',
-  contains: '包含', notContains: '不包含',
-  startsWith: '开始于', endsWith: '结束于',
-  greaterThan: '大于', greaterThanOrEqual: '大于等于',
-  lessThan: '小于', lessThanOrEqual: '小于等于',
+  contains: '包含', notContains: '不包含', notcontains: '不包含',
+  startsWith: '开始于', endsWith: '结束于', startswith: '开始于', endswith: '结束于',
+  greaterThan: '大于', greaterThanOrEqual: '大于等于', '>': '大于', '>=': '大于等于',
+  lessThan: '小于', lessThanOrEqual: '小于等于', '<': '小于', '<=': '小于等于',
   between: '介于', notBetween: '不介于',
   isNull: '为空', isNotNull: '不为空',
 
@@ -1671,7 +1867,7 @@ const activeFilterTags = computed(() => {
     if (cond.op === 'between' && cond.val2 !== undefined) valText += ` ~ ${cond.val2}`
     tags.push({ key: `filter:${field}`, label: `${fieldName} ${opLabel} ${valText}` })
   }
-  for (const cond of (props.advFilterConditions || advSearchConditions.value)) {
+  for (const cond of [...(props.presetFilterConditions || []), ...(props.advFilterConditions || []), ...advSearchConditions.value]) {
     if (!cond.field || cond.value === '' || cond.value === null || cond.value === undefined) continue
     const col = colMap.get(cond.field)
     const fieldName = col?.caption || cond.field
@@ -1717,6 +1913,11 @@ const floatingFilterConfig = computed(() => ({
   enabled: filterRowVisible.value,
 }))
 
+const effectiveKeepSource = computed(() => {
+  if (props.keepSource !== undefined) return props.keepSource
+  return props.editShowStatus !== false
+})
+
 const editConfig = computed(() => {
   if (editingMode.value === 'form' || editingMode.value === 'popup') return undefined
   if (!allowUpdating.value && !allowAdding.value && !hasAnyEditableColumn.value) return undefined
@@ -1725,12 +1926,21 @@ const editConfig = computed(() => {
     mode: (editingMode.value === 'row' ? 'row' : 'cell') as 'cell' | 'row',
     autoFocus: true,
     showStatus: props.editShowStatus !== false,
+    keepSource: true,
     beforeEditMethod: ({ row, column }: any) => {
       const col = visibleColumns.value.find(c => c.dataField === column.field)
       if (!col) return true
-      if (col.allowEditing === true) return true
       if (col.allowEditing === false) return false
-      return allowUpdating.value
+      const conds = col.editableConditions as { field: string; operator: string; value: string; value2?: string }[] | undefined
+      if (col.allowEditing === true) {
+        if (conds && conds.length) return evalConditions(conds, row)
+        return true
+      }
+      if (allowUpdating.value) {
+        if (conds && conds.length) return evalConditions(conds, row)
+        return true
+      }
+      return false
     },
   }
   if (props.editAutoClear !== undefined) cfg.autoClear = props.editAutoClear
@@ -1862,11 +2072,84 @@ const showToolbar = computed(() => {
 })
 
 
+const requiredErrorsVisible = ref(false)
+const requiredErrorsData = ref<Array<{ rowNumber: number; fields: Array<{ field: string; caption: string }> }>>([])
+
+function getSaveData(): Record<string, unknown>[] {
+  const cols = props.columns || []
+  const savableFields = cols.filter(c => c.isSavable !== false).map(c => c.dataField)
+  return tableData.value.map(row => {
+    const filtered: Record<string, unknown> = {}
+    for (const f of savableFields) {
+      if (f && row[f] !== undefined) filtered[f] = row[f]
+    }
+    for (const k of Object.keys(row)) {
+      if (k.startsWith('_')) filtered[k] = row[k]
+    }
+    return filtered
+  })
+}
+
+function validateNotEmpty(): { valid: boolean; message: string } {
+  if (tableData.value.length === 0) {
+    return { valid: false, message: '表格数据为空，不能保存' }
+  }
+  return { valid: true, message: '' }
+}
+
+function validateRequired(): { valid: boolean; errors: Array<{ rowNumber: number; fields: Array<{ field: string; caption: string }> }> } {
+  const cols = props.columns || []
+  const requiredCols = cols.filter(c => c.required === true && c.isSavable !== false)
+  const errors: Array<{ rowNumber: number; fields: Array<{ field: string; caption: string }> }> = []
+  tableData.value.forEach((row, idx) => {
+    const missing: Array<{ field: string; caption: string }> = []
+    for (const col of requiredCols) {
+      const val = row[col.dataField || '']
+      if (val === undefined || val === null || val === '') {
+        missing.push({ field: col.dataField || '', caption: col.caption || col.dataField || '' })
+      }
+    }
+    if (missing.length > 0) {
+      errors.push({ rowNumber: idx + 1, fields: missing })
+    }
+  })
+  return { valid: errors.length === 0, errors }
+}
+
+function showRequiredErrors(errors: Array<{ rowNumber: number; fields: Array<{ field: string; caption: string }> }>) {
+  requiredErrorsData.value = errors
+  requiredErrorsVisible.value = true
+}
+
+function validateAndSave(): boolean {
+  if (props.allowEmptySave === false) {
+    const check = validateNotEmpty()
+    if (!check.valid) {
+      ElMessage.warning(check.message)
+      return false
+    }
+  }
+  const reqCheck = validateRequired()
+  if (!reqCheck.valid) {
+    showRequiredErrors(reqCheck.errors)
+    return false
+  }
+  return true
+}
+
 const instance = {
   refresh, loadData, getSelectedRowsData, getSelectedRowKeys,
+  setParentFilter,
+  getData: () => tableData.value,
+  getSaveData,
+  getColumns: () => props.columns || [],
+  validateNotEmpty,
+  validateRequired,
+  showRequiredErrors,
+  validateAndSave,
   exportToExcel, exportPageData, exportSelected, exportQuery,
   openColumnConfig,
-  addRow, deleteRow, deleteSelectedRows, sortAsc, sortDesc, copyRow, startEditRow, saveEdit, cancelEdit,
+  addRow, deleteRow, deleteSelectedRows, deleteRowsByField, countRowsByField, sortAsc, sortDesc, copyRow, startEditRow, saveEdit, cancelEdit,
   get option() { return (name: string, value?: any) => { if (value !== undefined) (this as any)[name] = value; return (this as any)[name] } },
   cellValue: (rowIndex: number, field: string, value?: any) => {
     const row = displayData.value[rowIndex]
@@ -1878,6 +2161,7 @@ const instance = {
   editRow: (idx: number) => { const row = displayData.value[idx]; if (row) startEditRow(row) },
   saveEditData: saveEdit,
   cancelEditData: cancelEdit,
+
 }
 
 
@@ -2010,10 +2294,12 @@ defineExpose(instance)
 <template>
   <div class="lc-table-wrapper">
     <div v-if="showToolbar" class="lc-table-toolbar">
-      <el-button v-if="isRemote && allowAdding" @click="addRow">新增</el-button>
+      <el-button v-if="isRemote && allowAdding" @click="() => addRow()">新增</el-button>
       <el-button v-if="isRemote && allowUpdating" @click="() => { const r = selectedRowsData[0]; if (r) startEditRow(r) }">修改</el-button>
       <el-button v-if="isRemote && allowDeleting" @click="() => selectedRowsData.forEach(r => deleteRow(r))">删除</el-button>
-      <el-button v-for="item in (props.toolbar?.items || []).filter((i: any) => i.visible !== false && !['add','edit','delete','export','refresh','columnConfig','columnChooser','statusToggle'].includes(i.name))" :key="item.name" :type="(item.type as any) || 'default'" @click="handleToolbarClick({ code: item.name })">{{ item.caption || item.name }}</el-button>
+      <el-badge v-for="item in (props.toolbar?.items || []).filter((i: any) => i.visible !== false && !['add','edit','delete','export','refresh','columnConfig','columnChooser','statusToggle'].includes(i.name))" :key="item.name" :value="(item as any)?.badgeContent ?? ''" :type="(item as any)?.badgeType || 'danger'" :hidden="!(item as any)?.badgeVisible || !(item as any)?.badgeContent">
+        <el-button :type="(item.type as any) || 'default'" @click="handleToolbarClick({ code: item.name })">{{ item.caption || item.name }}</el-button>
+      </el-badge>
       <el-dropdown v-if="isRemote && (props.toolbar?.items || []).some((i: any) => i.name === 'export' && i.visible !== false)" @command="(cmd: string) => handleExportCommand(cmd)">
         <el-button type="default">导出 ▾</el-button>
         <template #dropdown>
@@ -2077,7 +2363,7 @@ defineExpose(instance)
       :footer-data="autoFooterData || footerData"
       :show-footer-overflow="showFooterOverflow"
       :edit-rules="editRules"
-      :keep-source="keepSource"
+      :keep-source="effectiveKeepSource"
       :tree-config="treeConfig"
       :expand-config="expandConfig"
       :row-drag-config="rowDragConfig"
@@ -2338,6 +2624,36 @@ defineExpose(instance)
       </template>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="requiredErrorsVisible" class="lc-req-err-overlay" @click.self="requiredErrorsVisible = false">
+      <div class="lc-req-err-dialog">
+        <div class="lc-req-err-header">
+          <span>必填字段未填写</span>
+          <button class="lc-req-err-close" @click="requiredErrorsVisible = false">✕</button>
+        </div>
+        <div class="lc-req-err-body">
+          <table class="lc-req-err-table">
+            <thead>
+              <tr>
+                <th style="width: 80px">行号</th>
+                <th>未填写字段</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(err, idx) in requiredErrorsData" :key="idx">
+                <td style="text-align: center">{{ err.rowNumber }}</td>
+                <td>{{ err.fields.map(f => f.caption).join('、') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="lc-req-err-footer">
+          <button class="lc-req-err-btn" @click="requiredErrorsVisible = false">确定</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -2358,6 +2674,12 @@ defineExpose(instance)
 .lc-table-wrapper :deep(.is--floating-filters .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
 .lc-table-wrapper :deep(.is--floating-filters .el-input) { padding-right: 5px !important; }
 .lc-table-wrapper :deep(.is--floating-filters .el-date-editor .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active .el-select__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active .el-date-editor .el-input__wrapper) { border-radius: 0 !important; min-height: 36px !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active .el-input) { width: 100% !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active .vxe-cell--wrapper) { min-height: 36px !important; }
+.lc-table-wrapper :deep(.vxe-table--body-wrapper .col--active > .vxe-cell) { padding-top: 0 !important; padding-bottom: 0 !important; }
 .lc-table-toolbar { display: flex; gap: 8px; align-items: center; padding: 4px 0 0 0; flex-wrap: wrap; flex-shrink: 0; }
 .lc-grid-container { flex: 1; min-height: 0; overflow: hidden; position: relative; }
 .lc-table-search { padding: 0 0 8px 0; flex-shrink: 0; }
@@ -2399,6 +2721,32 @@ defineExpose(instance)
 .lc-column-config-item.lc-col-drag-over { background: #ecf5ff; border-top: 2px solid #409eff; }
 .lc-column-config-item.lc-col-dragging { opacity: 0.5; cursor: grabbing; }
 .lc-col-drag-handle { color: #c0c4cc; font-size: 16px; cursor: grab; user-select: none; }
+
+.lc-req-err-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.45); z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+}
+.lc-req-err-dialog {
+  background: #fff; border-radius: 8px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 480px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.lc-req-err-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid #e4e7ed; font-size: 15px; font-weight: 600; color: #f56c6c;
+}
+.lc-req-err-close { border: none; background: transparent; cursor: pointer; font-size: 16px; color: #909399; }
+.lc-req-err-close:hover { color: #303133; }
+.lc-req-err-body { padding: 12px 16px; flex: 1; overflow: auto; }
+.lc-req-err-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lc-req-err-table th { background: #f5f7fa; padding: 8px; text-align: left; border: 1px solid #e4e7ed; color: #606266; }
+.lc-req-err-table td { padding: 8px; border: 1px solid #e4e7ed; color: #303133; }
+.lc-req-err-footer { display: flex; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid #e4e7ed; }
+.lc-req-err-btn {
+  padding: 6px 16px; border: 1px solid #1976d2; border-radius: 4px;
+  background: #1976d2; color: #fff; font-size: 13px; cursor: pointer;
+}
+.lc-req-err-btn:hover { background: #1565c0; }
 
 </style>
 <style>

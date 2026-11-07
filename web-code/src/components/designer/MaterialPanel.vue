@@ -12,6 +12,7 @@ import {
 import { getOrphanFields, dropField, type OrphanField } from '@/store/persistence'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+
 const allGroups = groupByCategory()
 const searchKeyword = ref('')
 
@@ -25,13 +26,17 @@ const CATEGORY_ORDER = [
   '图表',
   '导航',
   '弹层',
+  '移动端布局',
+  '移动端表单',
+  '移动端展示',
+  '移动端弹层',
 ]
 
 /** 各业务模式允许的物料分类白名单（default 模式不过滤，显示全部） */
 const BIZ_MODE_CATEGORIES: Record<string, string[]> = {
   form: ['布局', '表单', '数据', '操作', '基础', '图表', '弹层'],
   table: ['布局', '表单', '数据', '操作', '基础', '图表'],
-  mobile: ['布局', '表单', '操作', '基础'],
+  mobile: ['移动端布局', '移动端表单', '移动端展示', '移动端弹层'],
 }
 
 /** 当前模式允许的物料分类（default 模式返回 null 表示不过滤） */
@@ -57,6 +62,9 @@ const isFormMode = computed(
 const isMobileMode = computed(
   () => designerStore.mode === 'biz' && designerStore.bizMode === 'mobile',
 )
+
+/** 当前是否为业务模式（表单或移动端，有 tab 切换） */
+const isBizMode = computed(() => isFormMode.value || isMobileMode.value)
 
 /** 面板 tab（仅表单模式使用） */
 const panelTab = ref<'materials' | 'fields' | 'tree'>('materials')
@@ -110,51 +118,158 @@ function onDragStart(e: DragEvent, type: string): void {
   if (!e.dataTransfer) return
   e.dataTransfer.effectAllowed = 'copy'
   e.dataTransfer.setData('application/x-material', type)
+  console.debug('[drag-debug] 物料 dragstart:', type, 'effectAllowed=', e.dataTransfer.effectAllowed)
 }
 
 // ---------- 字段绑定 tab ----------
 
-/** 当前表单 schema 中有 dbField 的控件列表（含表格列字段） */
-const dbFieldNodes = computed<ComponentSchema[]>(() => {
+const collapsedGroups = ref<Set<string>>(new Set())
+function toggleGroup(key: string): void {
+  if (collapsedGroups.value.has(key)) collapsedGroups.value.delete(key)
+  else collapsedGroups.value.add(key)
+}
+
+interface FieldGroupItem {
+  dbField: string
+  caption?: string
+  type: string
+  nodeId?: string
+}
+interface FieldTreeNode {
+  key: string
+  tableName: string
+  tableComment?: string
+  isMain: boolean
+  depth: number
+  fields: FieldGroupItem[]
+  hasChildren: boolean
+}
+
+/** 构建 data-grid 树形节点 */
+interface GridNode {
+  id: string
+  tableName: string
+  tableComment: string
+  parentType: string
+  parentRef: string
+  fields: FieldGroupItem[]
+}
+function buildGridTree(grids: GridNode[], mainKey: string): FieldTreeNode[] {
+  const result: FieldTreeNode[] = []
+  const byId = new Map(grids.map(g => [g.id, g]))
+  const added = new Set<string>()
+
+  function emit(grid: GridNode, depth: number) {
+    if (added.has(grid.id)) return
+    added.add(grid.id)
+    const children = grids.filter(g => g.parentType === 'table' && g.parentRef === grid.id)
+    result.push({
+      key: `grid-${grid.id}`,
+      tableName: grid.tableName,
+      tableComment: grid.tableComment,
+      isMain: false,
+      depth,
+      fields: grid.fields,
+      hasChildren: children.length > 0,
+    })
+    for (const child of children) emit(child, depth + 1)
+  }
+
+  // 一级明细表（parentType=page 或无 parentType）直接挂在主表下
+  for (const g of grids) {
+    if (g.parentType === 'table') continue
+    emit(g, 1)
+  }
+  return result
+}
+
+/** 当前表单 schema 中有 dbField 的控件列表，按表分组（主表 + 各明细表，支持嵌套层级） */
+const dbFieldGroups = computed<FieldTreeNode[]>(() => {
   if (!isFormMode.value) return []
-  const nodes = collectAllNodes(designerStore.schema).filter(
-    (n) => n.dbField && n.dbField.trim(),
-  )
-  const seen = new Set(nodes.map((n) => n.dbField))
-  const addColField = (dataField: string, caption?: string) => {
-    if (dataField && !seen.has(dataField)) {
-      seen.add(dataField)
-      nodes.push({
-        id: `col-${dataField}`,
-        type: 'data-grid-column',
-        props: {},
-        children: [],
-        dbField: dataField,
-        fieldName: caption || '',
-      })
+  const result: FieldTreeNode[] = []
+  const seenPerTable = new Map<string, Set<string>>()
+  const getSeen = (table: string) => {
+    let s = seenPerTable.get(table)
+    if (!s) { s = new Set(); seenPerTable.set(table, s) }
+    return s
+  }
+
+  // 1. 主表字段
+  const mainTable = designerStore.tableName || ''
+  const mainFields: FieldGroupItem[] = []
+  const mainSeen = getSeen(mainTable)
+  for (const n of collectAllNodes(designerStore.schema)) {
+    if (n.type === 'data-grid' || n.type === 'dx-data-grid') continue
+    if (n.dbField && n.dbField.trim() && !mainSeen.has(n.dbField)) {
+      mainSeen.add(n.dbField)
+      mainFields.push({ dbField: n.dbField, caption: n.fieldName || '', type: n.type, nodeId: n.id })
     }
   }
+
+  // 2. 收集所有 data-grid 节点
+  const grids: GridNode[] = []
   for (const n of collectAllNodes(designerStore.schema)) {
-    if (n.type === 'data-grid' || n.type === 'dx-data-grid') {
-      const cols = (n.props.columns ?? []) as Record<string, unknown>[]
-      for (const col of cols) {
-        addColField(col.dataField as string, col.caption as string)
+    if (n.type !== 'data-grid' && n.type !== 'dx-data-grid') continue
+    const detailTable = (n.props.tableName as string) || ''
+    const cols = (n.props.columns ?? []) as Record<string, unknown>[]
+    if (!cols.length) continue
+    const seen = getSeen(detailTable)
+    const fields: FieldGroupItem[] = []
+    for (const col of cols) {
+      const df = col.dataField as string
+      if (df && !seen.has(df)) {
+        seen.add(df)
+        fields.push({ dbField: df, caption: (col.caption as string) || '', type: 'column' })
       }
     }
+    grids.push({
+      id: n.id,
+      tableName: detailTable,
+      tableComment: (n.props.tableComment as string) || '',
+      parentType: (n.props.parentType as string) || 'page',
+      parentRef: (n.props.parentRef as string) || '',
+      fields,
+    })
   }
+
+  // 3. 构建主表节点
+  const childGrids = grids.filter(g => g.parentType !== 'table')
+  result.push({
+    key: '__main__',
+    tableName: mainTable,
+    isMain: true,
+    depth: 0,
+    fields: mainFields,
+    hasChildren: childGrids.length > 0 || grids.some(g => g.parentType === 'table'),
+  })
+
+  // 4. 构建明细表树（含嵌套）
+  result.push(...buildGridTree(grids, '__main__'))
+
+  // 5. 表格页面字段
   const tableSchema = designerStore.bizSchemas.table?.[0]
   const tableProps = (tableSchema?.props ?? {}) as Record<string, unknown>
-  if (Array.isArray(tableProps.columns)) {
+  if (Array.isArray(tableProps.columns) && !mainFields.length && !grids.length) {
+    const tableName = (tableProps.tableName as string) || designerStore.tableName || ''
+    const seen = getSeen(tableName)
+    const fields: FieldGroupItem[] = []
     for (const col of tableProps.columns as Record<string, unknown>[]) {
-      addColField(col.dataField as string, col.caption as string)
+      const df = col.dataField as string
+      if (df && !seen.has(df)) {
+        seen.add(df)
+        fields.push({ dbField: df, caption: (col.caption as string) || '', type: 'column' })
+      }
+    }
+    if (fields.length) {
+      result.push({ key: '__table__', tableName, isMain: true, depth: 0, fields, hasChildren: false })
     }
   }
-  return nodes
+  return result
 })
 
 /** 点击字段绑定项：选中画布中的控件 */
-function onDbFieldClick(node: ComponentSchema): void {
-  selectSingleNode(node.id)
+function onDbFieldClick(item: FieldGroupItem): void {
+  if (item.nodeId) selectSingleNode(item.nodeId)
 }
 
 // ---------- 孤儿字段（数据库有但 schema 已删除） ----------
@@ -171,8 +286,8 @@ async function loadOrphanFields(): Promise<void> {
   }
   loadingOrphan.value = true
   try {
-    const dbFields = dbFieldNodes.value
-      .map((n) => n.dbField!)
+    const dbFields = dbFieldGroups.value
+      .flatMap((g) => g.fields.map((f) => f.dbField))
       .filter(Boolean)
     orphanFields.value = await getOrphanFields(tableName, dbFields)
   } catch {
@@ -258,14 +373,15 @@ const flatTreeNodes = computed<FlatTreeNode[]>(() => {
     }
   }
   walk(designerStore.schema, 0)
+  console.log('[控件树] flatTreeNodes:', result.length, 'items', result.map(r => `${r.depth}:${r.node.type}:${r.hasChildren}`))
   return result
 })
 </script>
 
 <template>
   <aside class="material-panel">
-    <!-- 表单模式：tab 切换 -->
-    <template v-if="isFormMode">
+    <!-- 表单/移动端模式：tab 切换 -->
+    <template v-if="isBizMode">
       <div class="panel-title">{{ panelTitle }}</div>
       <div class="panel-tabs">
         <button
@@ -275,6 +391,7 @@ const flatTreeNodes = computed<FlatTreeNode[]>(() => {
           {{ t('组件库') }}
         </button>
         <button
+          v-if="isFormMode"
           :class="['panel-tab-btn', panelTab === 'fields' ? 'tab-active' : '']"
           @click="panelTab = 'fields'"
         >
@@ -290,6 +407,25 @@ const flatTreeNodes = computed<FlatTreeNode[]>(() => {
 
       <!-- 组件库 tab -->
       <div v-if="panelTab === 'materials'" class="tab-content">
+        <!-- 移动端：从表单添加字段 -->
+        <div v-if="isMobileMode" class="form-fields-section">
+          <div class="group-title">{{ t('从表单添加字段') }}</div>
+          <div v-if="formFieldNodes.length" class="form-fields-list">
+            <div
+              v-for="node in formFieldNodes"
+              :key="node.id"
+              class="form-field-item"
+              :title="`${node.type} (fieldName: ${node.fieldName})`"
+              @click="onAddFromForm(node)"
+            >
+              <span class="form-field-type">{{ node.type }}</span>
+              <span class="form-field-name">{{ node.fieldName }}</span>
+            </div>
+          </div>
+          <div v-else class="panel-empty" style="padding: 12px 0">
+            {{ t('表单页面暂无字段，请先在表单模式添加控件') }}
+          </div>
+        </div>
         <input
           v-model="searchKeyword"
           class="panel-search-input"
@@ -326,31 +462,47 @@ const flatTreeNodes = computed<FlatTreeNode[]>(() => {
         <div class="panel-tip">{{ t('拖拽组件到中间画布') }}</div>
       </div>
 
-      <!-- 字段绑定 tab -->
-      <div v-if="panelTab === 'fields'" class="tab-content">
-        <div v-if="dbFieldNodes.length" class="db-field-list">
-          <div
-            v-for="node in dbFieldNodes"
-            :key="node.id"
-            class="db-field-item"
-            @click="onDbFieldClick(node)"
-          >
-            <div class="db-field-name">{{ node.dbField }}</div>
-            <div class="db-field-meta">
-              <span class="db-field-type">{{ node.type }}</span>
-              <span v-if="node.fieldName" class="db-field-fn"
-                >{{ node.fieldName }}</span
-              >
+      <!-- 字段绑定 tab (仅表单模式) -->
+      <div v-if="panelTab === 'fields' && isFormMode" class="tab-content">
+        <div v-if="dbFieldGroups.length" class="field-tree">
+          <template v-for="node in dbFieldGroups" :key="node.key">
+            <div
+              class="field-tree-header"
+              :class="{ 'is-main': node.isMain, 'is-detail': !node.isMain }"
+              :style="{ paddingLeft: `${8 + node.depth * 16}px` }"
+              @click="toggleGroup(node.key)"
+            >
+              <span class="field-tree-arrow" :class="{ collapsed: collapsedGroups.has(node.key) }">▾</span>
+              <span class="field-tree-label">{{ node.tableName || t('未命名') }}</span>
+              <span v-if="node.tableComment" class="field-tree-comment">{{ node.tableComment }}</span>
+              <span class="field-tree-count">{{ node.fields.length }}</span>
             </div>
-          </div>
+            <div
+              v-if="!collapsedGroups.has(node.key) && node.fields.length"
+              class="field-tree-body"
+              :style="{ paddingLeft: `${8 + (node.depth + 1) * 16}px` }"
+            >
+              <div
+                v-for="item in node.fields"
+                :key="`${node.key}-${item.dbField}`"
+                class="field-tree-leaf"
+                @click="onDbFieldClick(item)"
+              >
+                <span class="field-leaf-name">{{ item.dbField }}</span>
+                <span class="field-leaf-type">{{ item.type }}</span>
+                <span v-if="item.caption" class="field-leaf-caption">{{ item.caption }}</span>
+              </div>
+            </div>
+          </template>
         </div>
         <div
-          v-if="!dbFieldNodes.length && !orphanFields.length"
+          v-if="!dbFieldGroups.length && !orphanFields.length"
           class="panel-empty"
           style="padding: 40px 0"
         >
           {{ t('暂无数据库字段绑定，请在控件属性中填写数据库字段') }}
         </div>
+
         <!-- 孤儿字段（数据库有但 schema 已删除） -->
         <div v-if="orphanFields.length" class="orphan-section">
           <div class="orphan-title">{{ t('未绑定字段（可删除）') }}</div>
@@ -612,45 +764,225 @@ const flatTreeNodes = computed<FlatTreeNode[]>(() => {
   white-space: nowrap;
 }
 
-/* 字段绑定 tab */
-.db-field-list {
+/* 字段绑定 tab - 扁平化树形结构 */
+.field-tree {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
-.db-field-item {
-  padding: 8px 10px;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #fafbfc;
-  transition: all 0.15s;
-}
-.db-field-item:hover {
-  border-color: #1976d2;
-  background: #f0f7ff;
-}
-.db-field-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 2px;
-}
-.db-field-meta {
+.field-tree-header {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 12px;
 }
-.db-field-type {
-  font-size: 11px;
-  color: #1976d2;
-  background: #e6f0ff;
-  padding: 1px 6px;
-  border-radius: 3px;
+.field-tree-header.is-main {
+  background: #f0f9eb;
+  color: #303133;
+  font-weight: 600;
+  border-bottom: 1px solid #e1f3d8;
 }
-.db-field-fn {
+.field-tree-header.is-detail {
+  color: #606266;
+  border-bottom: 1px solid #f0f2f5;
+}
+.field-tree-header:hover {
+  background: #ecf5ff;
+}
+.field-tree-arrow {
+  font-size: 10px;
+  color: #c0c4cc;
+  transition: transform 0.1s;
+  flex-shrink: 0;
+  display: inline-block;
+  width: 10px;
+}
+.field-tree-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+.field-tree-label {
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.field-tree-comment {
   font-size: 11px;
   color: #909399;
+  flex-shrink: 0;
+}
+.field-tree-count {
+  font-size: 10px;
+  color: #fff;
+  background: #c0c4cc;
+  border-radius: 8px;
+  padding: 0 5px;
+  min-width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 14px;
+}
+.is-main .field-tree-count {
+  background: #67c23a;
+}
+.field-tree-body {
+  display: flex;
+  flex-direction: column;
+}
+.field-tree-leaf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.field-tree-leaf:hover {
+  background: #ecf5ff;
+}
+.field-leaf-name {
+  font-size: 12px;
+  color: #303133;
+  font-family: 'Consolas', 'Monaco', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.field-leaf-type {
+  font-size: 10px;
+  color: #909399;
+  background: #f5f7fa;
+  padding: 0 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.field-leaf-caption {
+  font-size: 11px;
+  color: #c0c4cc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
+}
+.field-tree-node {
+  margin-bottom: 2px;
+}
+.field-tree-node.is-detail {
+  margin-left: 12px;
+}
+.field-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  transition: background 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.field-tree-header:hover {
+  background: #f0f7ff;
+}
+.is-main .field-tree-header {
+  background: #f0f9eb;
+  font-weight: 600;
+}
+.is-main .field-tree-header:hover {
+  background: #e1f3d8;
+}
+.is-detail .field-tree-header {
+  background: #f5f7fa;
+  color: #606266;
+}
+.is-detail .field-tree-header:hover {
+  background: #e6f0ff;
+}
+.field-tree-arrow {
+  font-size: 10px;
+  color: #909399;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.field-tree-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+.field-tree-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.field-tree-label {
+  font-size: 12px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.field-tree-comment {
+  font-size: 11px;
+  color: #909399;
+  flex-shrink: 0;
+}
+.field-tree-count {
+  font-size: 10px;
+  color: #fff;
+  background: #c0c4cc;
+  border-radius: 8px;
+  padding: 0 5px;
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.is-main .field-tree-count {
+  background: #67c23a;
+}
+.field-tree-body {
+  padding: 2px 0 2px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.field-tree-leaf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.field-tree-leaf:hover {
+  background: #ecf5ff;
+}
+.field-leaf-name {
+  font-size: 12px;
+  color: #303133;
+  font-family: 'Consolas', 'Monaco', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.field-leaf-type {
+  font-size: 10px;
+  color: #1976d2;
+  background: #ecf2ff;
+  padding: 0 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.field-leaf-caption {
+  font-size: 11px;
+  color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
 }
 
 /* 孤儿字段 */

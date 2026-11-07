@@ -30,12 +30,32 @@ const BUTTON_EVENTS: EventConfig[] = [
 
 /** 值改变事件（表单类控件通用） */
 const VALUE_CHANGE_EVENTS: EventConfig[] = [
+  { name: 'click', label: '点击', description: '点击控件时触发' },
   { name: 'valueChanged', label: '值改变', description: '控件值发生变化时触发' },
   { name: 'focusIn', label: '获得焦点', description: '控件获得焦点时触发' },
   { name: 'focusOut', label: '失去焦点', description: '控件失去焦点时触发' },
   { name: 'enterKey', label: '回车键', description: '按下回车键时触发' },
   { name: 'keyDown', label: '按键按下', description: '按下键盘按键时触发' },
   { name: 'keyUp', label: '按键释放', description: '释放键盘按键时触发' },
+]
+
+const CHOICE_CHANGE_EVENTS: EventConfig[] = [
+  { name: 'click', label: '点击', description: '打开或选择选项时触发' },
+  { name: 'valueChanged', label: '值改变', description: '选中值发生变化时触发' },
+]
+
+const MOBILE_CLICK_EVENTS: EventConfig[] = [
+  { name: 'click', label: '点击', description: '点击控件时触发' },
+]
+
+const MOBILE_LIST_EVENTS: EventConfig[] = [
+  { name: 'itemClick', label: '项点击', description: '点击列表项时触发' },
+  { name: 'selectionChanged', label: '选择改变', description: '当前列表项变化时触发' },
+]
+
+const MOBILE_NAV_EVENTS: EventConfig[] = [
+  { name: 'selectionChanged', label: '选择改变', description: '当前导航项变化时触发' },
+  { name: 'itemClick', label: '项点击', description: '点击导航项时触发' },
 ]
 
 /** 数据表格事件 */
@@ -127,6 +147,9 @@ export const dxEvents: Record<string, EventConfig[]> = {
   // ---- 表单 ----
   'text-box': VALUE_CHANGE_EVENTS,
   'text-area': VALUE_CHANGE_EVENTS,
+  'select': CHOICE_CHANGE_EVENTS,
+  'date-picker': CHOICE_CHANGE_EVENTS,
+  'number-field': VALUE_CHANGE_EVENTS,
   'number-box': VALUE_CHANGE_EVENTS,
   'check-box': [
     { name: 'valueChanged', label: '值改变', description: '勾选状态变化时触发' },
@@ -291,6 +314,44 @@ export const dxEvents: Record<string, EventConfig[]> = {
     { name: 'selectionChanged', label: '选择改变', description: '选中记录变化时触发' },
   ],
 
+  // ---- 移动端控件 ----
+  'm-button': BUTTON_EVENTS,
+  'm-fab': BUTTON_EVENTS,
+  'm-input': VALUE_CHANGE_EVENTS,
+  'm-textarea': VALUE_CHANGE_EVENTS,
+  'm-search': VALUE_CHANGE_EVENTS,
+  'm-switch': [{ name: 'valueChanged', label: '值改变', description: '开关状态变化时触发' }],
+  'm-stepper': [{ name: 'valueChanged', label: '值改变', description: '步进值变化时触发' }],
+  'm-rate': [{ name: 'valueChanged', label: '值改变', description: '评分值变化时触发' }],
+  'm-slider': [{ name: 'valueChanged', label: '值改变', description: '滑块值变化时触发' }],
+  'm-dropdown': CHOICE_CHANGE_EVENTS,
+  'm-multi-select': CHOICE_CHANGE_EVENTS,
+  'm-radio': [{ name: 'valueChanged', label: '值改变', description: '选中项变化时触发' }],
+  'm-checkbox': [{ name: 'valueChanged', label: '值改变', description: '选中项变化时触发' }],
+  'm-cell': MOBILE_CLICK_EVENTS,
+  'm-tag': MOBILE_CLICK_EVENTS,
+  'm-image': MOBILE_CLICK_EVENTS,
+  'm-avatar': MOBILE_CLICK_EVENTS,
+  'm-list-view': MOBILE_LIST_EVENTS,
+  'm-card': MOBILE_CLICK_EVENTS,
+  'm-scaffold': MOBILE_CLICK_EVENTS,
+  'm-app-bar': MOBILE_CLICK_EVENTS,
+  'm-tab-bar': MOBILE_NAV_EVENTS,
+  'm-bottom-nav': MOBILE_NAV_EVENTS,
+  'm-toast': MOBILE_CLICK_EVENTS,
+  'm-dialog': MOBILE_CLICK_EVENTS,
+  'm-action-sheet': MOBILE_CLICK_EVENTS,
+  'm-popup': MOBILE_CLICK_EVENTS,
+  'm-collapse': MOBILE_CLICK_EVENTS,
+  'm-badge': MOBILE_CLICK_EVENTS,
+  'm-notice-bar': MOBILE_CLICK_EVENTS,
+  'm-progress': MOBILE_CLICK_EVENTS,
+  'm-divider': MOBILE_CLICK_EVENTS,
+  'm-empty': MOBILE_CLICK_EVENTS,
+  'm-loading': MOBILE_CLICK_EVENTS,
+  'm-result': MOBILE_CLICK_EVENTS,
+  'm-upload': MOBILE_CLICK_EVENTS,
+
   // ---- 布局控件（也支持基本事件） ----
   'el-row': COMMON_EVENTS,
   'el-splitter': [
@@ -298,6 +359,7 @@ export const dxEvents: Record<string, EventConfig[]> = {
     { name: 'resizeStart', label: '开始调整', description: '开始调整面板大小时触发' },
     { name: 'resizeEnd', label: '结束调整', description: '结束调整面板大小时触发' },
   ],
+  'el-collapse': COMMON_EVENTS,
 }
 
 /** 获取某控件类型的可用事件列表 */

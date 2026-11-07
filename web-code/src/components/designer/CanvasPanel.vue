@@ -20,7 +20,7 @@ import {
   updateNodeCss,
   isFullPercent,
 } from '@/store/designer'
-import { FREE_POSITION_CONTAINERS } from '@/constants/container-types'
+import { isFreePositionContainer } from '@/constants/container-types'
 import { applyTheme, clearTheme, getThemeDetail } from '@/composables/useTheme'
 import {
   snapRect as snapRectUtil,
@@ -381,6 +381,7 @@ function getContainerRect(container: ComponentSchema): {
 
 /** 画布基础尺寸：宽度固定不扩展，高度允许向下扩展（用于边界检查） */
 function getBaseCanvasSize(): { width: number; height: number } {
+
   return {
     width: Math.max(MIN_PAGE_WIDTH, viewport.value.width),
     height: pageSize.value.height,
@@ -471,7 +472,7 @@ function onDragMove(e: MouseEvent): void {
     ? findNode(designerStore.schema, state.parentId)
     : null
   const isPositionedChild =
-    !!parentFound && FREE_POSITION_CONTAINERS.has(parentFound.node.type)
+    !!parentFound && isFreePositionContainer(parentFound.node)
   let outOfBounds = false
   if (!isPositionedChild) {
     for (const origin of state.origins) {
@@ -731,7 +732,7 @@ function onResizeMove(e: MouseEvent): void {
     const heightChanged = state.dir.includes('s') || state.dir.includes('n')
     resizeNode(state.nodeId, width, height, heightChanged)
   } else if (found && found.parent) {
-    const isPositionedChild = FREE_POSITION_CONTAINERS.has(found.parent.type)
+    const isPositionedChild = isFreePositionContainer(found.parent)
     if (isPositionedChild) {
       // 自由定位容器内的子节点：按定位节点处理，修改 x/y/width/height
       const containerRect = getContainerRect(found.parent)
@@ -757,7 +758,7 @@ function onResizeMove(e: MouseEvent): void {
       resizeNode(state.nodeId, width, height)
     } else {
       // 普通容器内子节点：宽度不能超出容器边界
-      if (FREE_POSITION_CONTAINERS.has(found.parent.type)) {
+      if (isFreePositionContainer(found.parent)) {
         const containerRect = getContainerRect(found.parent)
         if (state.dir.includes('e')) {
           width = Math.min(width, containerRect.width - state.origX)
@@ -823,8 +824,18 @@ function findContainerAt(x: number, y: number): ComponentSchema | null {
   return null
 }
 
+/** [drag-debug] dragover 高频触发，限流打印 */
+let _lastDragOverLog = 0
 function onCanvasDragOver(e: DragEvent): void {
   e.preventDefault()
+  const now = Date.now()
+  if (now - _lastDragOverLog > 500) {
+    _lastDragOverLog = now
+    console.debug(
+      '[drag-debug] 画布 dragover: types=',
+      e.dataTransfer?.types ? [...e.dataTransfer.types] : null,
+    )
+  }
   emptyDropActive.value = true
 }
 
@@ -837,7 +848,11 @@ function onCanvasDrop(e: DragEvent): void {
   emptyDropActive.value = false
   const materialType = e.dataTransfer?.getData('application/x-material')
   const nodeId = e.dataTransfer?.getData('application/x-node-id')
-  if (!materialType && !nodeId) return
+  console.debug('[drag-debug] 画布 drop: materialType=', materialType, 'nodeId=', nodeId, 'client=', e.clientX, e.clientY)
+  if (!materialType && !nodeId) {
+    console.debug('[drag-debug] drop 提前返回：dataTransfer 中没有物料类型和节点 ID')
+    return
+  }
 
   const target = e.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
@@ -846,12 +861,13 @@ function onCanvasDrop(e: DragEvent): void {
 
   // 落点在容器内 → 作为容器的子节点（容器维度）
   const container = findContainerAt(dropX, dropY)
+  console.debug('[drag-debug] 落点容器:', container ? `${container.type}#${container.id}` : '无（画布根级）')
 
   if (materialType) {
     if (container) {
       // 获取容器在画布中的实际位置和尺寸（从 DOM 读取）
       const containerRect = getContainerRect(container)
-      const isFreePos = FREE_POSITION_CONTAINERS.has(container.type)
+      const isFreePos = isFreePositionContainer(container)
 
       addNode(materialType, container.id, container.children.length)
       const added = container.children[container.children.length - 1]
@@ -943,7 +959,7 @@ function onCanvasDrop(e: DragEvent): void {
       const movedResult = findNode(designerStore.schema, nodeId)
       if (movedResult) {
         const containerRect = getContainerRect(container)
-        const isFreePos = FREE_POSITION_CONTAINERS.has(container.type)
+        const isFreePos = isFreePositionContainer(container)
         const containerBounds = {
           width: containerRect.width,
           height: containerRect.height,
@@ -1057,7 +1073,7 @@ onMounted(async () => {
           :node="node"
           :parent-id="null"
           :index="i"
-          :positioned="true"
+          :positioned="!(designerStore.mode === 'biz' && designerStore.bizMode === 'mobile')"
           :selected="isNodeSelected(node.id)"
           @drag-start="onNodeDragStart"
           @resize-start="onNodeResizeStart"
@@ -1139,14 +1155,21 @@ onMounted(async () => {
   padding: 10px;
 }
 .canvas-mobile-frame {
-  max-width: 375px;
+  width: 375px !important;
+  min-width: 375px !important;
+  max-width: 375px !important;
+  height: 812px !important;
+  min-height: 812px !important;
+  max-height: 812px !important;
   margin: 0 auto;
-  min-height: 667px;
   border: 8px solid #2c3e50;
-  border-radius: 28px;
+  border-radius: 32px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
 .breadcrumb-bar {
   flex: 0 0 30px;
   display: flex;

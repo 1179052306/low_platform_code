@@ -21,7 +21,8 @@ import {
 import {
   STRUCTURAL_CHILD_TYPES,
   LAYOUT_CONTAINER_TYPES,
-  FREE_POSITION_CONTAINERS,
+
+  isFreePositionContainer,
   GRID_SECTION_TYPES,
   SUB_CONTAINER_TYPES,
 } from '@/constants/container-types'
@@ -119,6 +120,7 @@ const isSelected = computed(
 )
 const isPositioned = computed(() => props.positioned === true)
 const isContainer = computed(() => !!cfg.value?.isContainer)
+
 const OVERLAY_TYPES = new Set(['popup', 'toast', 'load-panel'])
 
 /** DataGrid 工具栏是否显示（设计器画布用） */
@@ -340,8 +342,9 @@ const isLayoutContainer = computed(() =>
   LAYOUT_CONTAINER_TYPES.has(props.node.type)
 )
 const childrenPositioned = computed(() =>
-  FREE_POSITION_CONTAINERS.has(props.node.type)
+  isFreePositionContainer(props.node)
 )
+
 
 /** 当前容器是否正在拖拽子节点（用于显示容器内对齐辅助线） */
 const isActiveDragContainer = computed(
@@ -443,6 +446,7 @@ const boundProps = computed(() => {
     ...overlayProps.value,
     ...(isContainer.value ? { nodeId: props.node.id } : {}),
     ...(props.node.type === 'el-tabs' ? { children: props.node.children } : {}),
+    ...(props.node.type === 'el-collapse' ? { children: props.node.children } : {}),
   }
 })
 
@@ -527,6 +531,11 @@ const wrapperStyle = computed(() => {
       if (nodeType === 'el-tab-pane') {
         return { ...bodyStyle.value, width: '100%', height: '100%' }
       }
+      // el-collapse-item: 宽度填满，高度自适应内容
+      if (nodeType === 'el-collapse-item') {
+        return { ...bodyStyle.value, width: '100%' }
+      }
+
       return { ...bodyStyle.value, ...flexItem }
     }
     // 非定位、非容器节点：合并 bodyStyle 中的宽高到外层（让选中框反映配置尺寸）
@@ -585,6 +594,11 @@ const wrapperStyle = computed(() => {
           style.height = `${Math.max(props.node.height ?? 200, minSum)}px`
         } else if (props.node.type === 'el-tabs') {
           style.height = `${props.node.height ?? 200}px`
+        } else if (props.node.type === 'el-collapse') {
+          style.height = `${props.node.height ?? 200}px`
+          style.maxHeight = `${props.node.height ?? 200}px`
+          style.overflowY = 'auto'
+          style.overflowX = 'hidden'
         } else {
           style.height = 'auto'
           // 横向分割面板：容器宽度至少要能容纳所有子面板 min-width 之和，否则子面板溢出、选中框只覆盖部分面板
@@ -672,7 +686,16 @@ const containerContentStyle = computed(() => {
     style.boxSizing = 'border-box'
     style.overflow = 'hidden'
     style.display = 'block'
-  } else if (FREE_POSITION_CONTAINERS.has(nodeType)) {
+  } else if (nodeType === 'el-collapse') {
+    // el-collapse：纵向排列折叠项
+    style.display = 'flex'
+    style.flexDirection = 'column'
+    style.width = '100%'
+    style.height = '100%'
+    style.boxSizing = 'border-box'
+    style.overflowY = 'auto'
+    style.overflowX = 'hidden'
+  } else if (isFreePositionContainer(props.node)) {
     // 自由定位容器：子节点使用 absolute 定位，容器需要 position:relative
     style.position = 'relative'
     style.width = '100%'
@@ -864,6 +887,7 @@ function onNodeDragStart(e: DragEvent): void {
   if (isPositioned.value) return
   e.stopPropagation()
   if (!e.dataTransfer) return
+  console.debug('[drag-debug] 节点 dragstart:', props.node.type, '#', props.node.id)
   // 结构子节点（el-col / el-splitter-panel / el-header 等）拖拽时重定向到父布局容器，
   // 这样用户在子节点上发起拖拽时，实际拖动的是整个布局容器
   let dragNodeId = props.node.id
@@ -882,7 +906,7 @@ function onNodeDragStart(e: DragEvent): void {
 function onDragOver(e: DragEvent): void {
   if (isPositioned.value) return
   // 自由定位容器：让 dragover 冒泡到 CanvasPanel 处理（放置位置由 CanvasPanel 计算）
-  if (isContainer.value && FREE_POSITION_CONTAINERS.has(props.node.type)) return
+  if (isContainer.value && isFreePositionContainer(props.node)) return
   e.preventDefault()
   e.stopPropagation()
   // 布局 section 子节点（el-col、el-splitter-panel 等）整个区域都是内部放置
@@ -902,7 +926,7 @@ function onDragOver(e: DragEvent): void {
 function onDragLeave(e: DragEvent): void {
   if (isPositioned.value) return
   // 自由定位容器：跳过
-  if (isContainer.value && FREE_POSITION_CONTAINERS.has(props.node.type)) return
+  if (isContainer.value && isFreePositionContainer(props.node)) return
   e.stopPropagation()
   dropPos.value = ''
 }
@@ -910,13 +934,14 @@ function onDragLeave(e: DragEvent): void {
 function onDrop(e: DragEvent): void {
   if (isPositioned.value) return
   // 自由定位容器：让 drop 事件冒泡到 CanvasPanel 处理（CanvasPanel 会计算精确放置位置）
-  if (isContainer.value && FREE_POSITION_CONTAINERS.has(props.node.type)) return
+  if (isContainer.value && isFreePositionContainer(props.node)) return
   e.preventDefault()
   e.stopPropagation()
   const pos = dropPos.value
   dropPos.value = ''
   const materialType = e.dataTransfer?.getData('application/x-material')
   const nodeId = e.dataTransfer?.getData('application/x-node-id')
+  console.debug('[drag-debug] 节点 drop:', props.node.type, '#', props.node.id, 'pos=', pos, 'materialType=', materialType, 'nodeId=', nodeId)
   if (!materialType && !nodeId) return
 
   if (isContainer.value && pos === 'inside') {
@@ -986,6 +1011,7 @@ function syncLayoutHeight(): void {
   )
     return
   if (props.node.type === 'el-tabs') return
+  if (props.node.type === 'el-collapse') return
   const el = nodeRef.value
   if (!el) return
   // 使用 scrollHeight 而非 offsetHeight，避免 selection-border 和 node-actions 等覆盖层影响测量
@@ -1010,7 +1036,8 @@ onMounted(() => {
       props.node.type === 'el-splitter' &&
       props.node.props.layout === 'vertical'
     const isTabs = props.node.type === 'el-tabs'
-    if (!isVerticalSplitter && !isTabs) {
+    const isCollapse = props.node.type === 'el-collapse'
+    if (!isVerticalSplitter && !isTabs && !isCollapse) {
       heightObserver = new ResizeObserver(() => syncLayoutHeight())
       if (nodeRef.value) heightObserver.observe(nodeRef.value)
     }
@@ -1891,4 +1918,5 @@ const wrapperClass = computed(() => {
 .form-field-control > :deep(.dx-widget) {
   width: 100%;
 }
+
 </style>

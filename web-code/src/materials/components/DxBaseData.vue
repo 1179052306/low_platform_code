@@ -23,6 +23,7 @@ const props = withDefaults(
     visible?: boolean
     dependField?: string
     dependFilters?: DependFilterCondition[]
+    rowData?: Record<string, unknown>
     dropdownWidthOffset?: number
     initialDisplayValue?: string
     autoFocus?: boolean
@@ -40,6 +41,7 @@ const props = withDefaults(
     visible: true,
     dependField: '',
     dependFilters: () => [],
+    rowData: () => ({}),
     dropdownWidthOffset: 0,
     initialDisplayValue: '',
     autoFocus: false,
@@ -292,14 +294,32 @@ const dataSource = computed(() => {
         if (loadOptions.filter) {
           allFilters.push(...convertFilter(loadOptions.filter))
         }
-        if (!echoMode && props.dependField && props.dependFilters && props.dependFilters.length > 0) {
+        if (!echoMode && props.dependFilters && props.dependFilters.length > 0) {
           const dVal = dependValue.value
           const hasDependCond = props.dependFilters.some((c) => c.valueType === 'depend')
           if (hasDependCond && (dVal == null || dVal === '')) {
             return { data: [], totalCount: 0 }
           }
+          const hasRowFieldCond = props.dependFilters.some((c) => c.valueType === 'rowField')
+          if (hasRowFieldCond && !props.rowData) {
+            return { data: [], totalCount: 0 }
+          }
           for (const c of props.dependFilters) {
-            const val = c.valueType === 'depend' ? dVal : c.fixedValue
+            let val: unknown
+            if (c.valueType === 'depend') {
+              val = dVal
+            } else if (c.valueType === 'fixed') {
+              val = c.fixedValue
+            } else if (c.valueType === 'rowField') {
+              const rf = c.rowField || ''
+              val = props.rowData?.[rf] ?? props.rowData?.[rf.toUpperCase()]
+            } else if (c.valueType === 'formControl') {
+              const fcField = c.formControlField || ''
+              if (renderStore) {
+                const fcNode = findNodeByFieldNameIn(renderStore.schema, fcField)
+                val = fcNode?.props.value
+              }
+            }
             if (val == null || val === '') continue
             allFilters.push({ Symbol: 'and' })
             allFilters.push({ Id: c.field, Symbol: c.operator, Val: val, TableAlias: 'T' })
@@ -582,7 +602,7 @@ onUnmounted(() => {
       </svg>
     </ElButton>
     <Teleport to="body">
-      <div v-show="isOpen" ref="dropdownRef" class="base-data-dropdown" :style="dropdownStyle">
+      <div v-if="isOpen" ref="dropdownRef" class="base-data-dropdown" :style="dropdownStyle">
         <LcTable
           v-if="dataSource"
           ref="gridRef"

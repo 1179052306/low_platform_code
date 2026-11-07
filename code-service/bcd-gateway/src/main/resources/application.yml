@@ -6,6 +6,14 @@ spring:
       httpclient:
         connect-timeout: 5000
         response-timeout: 60s
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
       routes:
         - id: auth-route
           uri: lb://bcd-auth

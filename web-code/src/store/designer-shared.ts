@@ -24,6 +24,12 @@ export interface RenderStore {
 /** designer store 的 injection key，用于 provide/inject 隔离子页面渲染 */
 export const DESIGNER_STORE_KEY: InjectionKey<RenderStore> = Symbol('designerStore')
 
+/** data-grid 组件实例注册表 injection key：nodeId → 组件暴露的 instance（含 getData） */
+export const GRID_REGISTRY_KEY: InjectionKey<Map<string, any>> = Symbol('gridRegistry')
+
+/** data-grid 选中行注册表 injection key：nodeId → 当前选中行数据（用于表格级父子关联） */
+export const GRID_SELECTION_KEY: InjectionKey<Map<string, Record<string, unknown> | null>> = Symbol('gridSelection')
+
 /** 递归收集所有节点（含嵌套 children） */
 export function collectAllNodes(list: ComponentSchema[]): ComponentSchema[] {
   const result: ComponentSchema[] = []
@@ -43,7 +49,7 @@ export function findNodeByFieldNameIn(
   fieldName: string,
 ): ComponentSchema | null {
   const all = collectAllNodes(schema)
-  return all.find((n) => n.fieldName === fieldName) ?? null
+  return all.find((n) => n.fieldName === fieldName || n.id === fieldName) ?? null
 }
 // ---- getConfig 依赖注入：打破 designer.ts ↔ materials/index.ts 循环依赖 ----
 import type { MaterialConfig } from '@/types/schema'

@@ -870,7 +870,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="home-page" ref="homePageRef">
+  <div class="home-page lc-theme-page" ref="homePageRef">
     <div v-if="langLoading" class="lang-loading-overlay">
       <div class="lang-loading-box">
         <div class="lang-loading-spinner"></div>
@@ -1197,7 +1197,7 @@ export default defineComponent({
   padding: 0 16px;
   gap: 16px;
   position: relative;
-  z-index: 40;
+  z-index: 200;
 }
 .top-left {
   display: flex;
